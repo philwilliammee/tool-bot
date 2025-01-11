@@ -1,14 +1,11 @@
 import {
   BedrockRuntimeClient,
-  ContentBlock,
   ConverseCommand,
   ConverseResponse,
   Message,
   SystemContentBlock,
   ToolConfiguration,
-  ToolUseBlock,
 } from "@aws-sdk/client-bedrock-runtime";
-import { fetchTool, FetchToolInput } from "./tools/fetch.tool";
 
 export interface BedrockServiceConfig {
   region: string;
@@ -68,44 +65,6 @@ export class BedrockService {
       const response: ConverseResponse = await this.client.send(command);
       console.log("Response:", response);
 
-      // Handle tool use request
-      if (response.stopReason === "tool_use") {
-        const toolUse = response.output?.message?.content?.find(
-          (content) => content.toolUse
-        )?.toolUse;
-        if (toolUse) {
-          const toolResult = await this.handleToolUse(toolUse as ToolUseBlock);
-
-          // Add assistant message first (the tool request)
-          messages.push({
-            role: "assistant",
-            content: response.output?.message?.content || [],
-          });
-
-          // Then add user message with tool result
-          messages.push({
-            role: "user",
-            content: [
-              {
-                toolResult: {
-                  toolUseId: toolUse.toolUseId,
-                  content: [{ json: toolResult }],
-                  status: toolResult.error ? "error" : "success",
-                },
-              },
-            ],
-          });
-
-          // Recursive call to continue the conversation
-          return this.executeWithRetry(
-            modelId,
-            messages,
-            systemPrompt,
-            retryCount
-          );
-        }
-      }
-
       return response;
     } catch (error: any) {
       console.error("Execute error:", {
@@ -136,33 +95,6 @@ export class BedrockService {
         );
       }
       throw error;
-    }
-  }
-
-  private async handleToolUse(toolUse: ToolUseBlock): Promise<any> {
-    try {
-      switch (toolUse.name) {
-        case "fetch_url": {
-          console.log("fetching url", toolUse.input);
-          const fetchToolInput = toolUse.input as unknown as FetchToolInput;
-          const result = await fetchTool(fetchToolInput);
-          return {
-            statusCode: result.status,
-            headers: result.headers,
-            content: result.data,
-            error: result.error || false,
-            errorMessage: result.message || "",
-          };
-        }
-        default:
-          throw new Error(`Unknown tool: ${toolUse.name}`);
-      }
-    } catch (error: any) {
-      return {
-        error: true,
-        errorMessage: error.message || "Tool execution failed",
-        statusCode: 500,
-      };
     }
   }
 

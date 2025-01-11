@@ -244,3 +244,247 @@ h1 {
     font-size: 0.75rem;
   }
 }
+
+/* ============================
+   9) CHAT ADMIN TABLE
+============================ */
+.chat-admin-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 1rem;
+  background: white;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  border-radius: 0.5rem;
+  overflow: hidden;
+}
+
+.chat-admin-table th,
+.chat-admin-table td {
+  padding: 0.75rem 1rem;
+  text-align: left;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.chat-admin-table th {
+  background-color: #f9fafb;
+  font-weight: 600;
+  color: #374151;
+  font-size: 0.875rem;
+}
+
+.chat-admin-table tr:hover {
+  background-color: #f9fafb;
+}
+
+.action-buttons {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.action-btn {
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.25rem;
+  font-size: 0.75rem;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: all 0.2s;
+}
+
+.view-btn {
+  background-color: var(--primary-color);
+  color: white;
+}
+
+.edit-btn {
+  background-color: #f59e0b;
+  color: white;
+}
+
+.delete-btn {
+  background-color: var(--danger-color);
+  color: white;
+}
+
+.action-btn:hover {
+  opacity: 0.9;
+}
+
+.message-content {
+  max-width: 300px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.role-badge {
+  display: inline-block;
+  padding: 0.25rem 0.5rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.role-user {
+  background-color: #e0e7ff;
+  color: #4338ca;
+}
+
+.role-assistant {
+  background-color: #dcfce7;
+  color: #15803d;
+}
+
+/* ============================
+   10) Modal Styles
+============================ */
+/* Add to styles.css */
+.modal {
+  border: none;
+  border-radius: 0.5rem;
+  padding: 0;
+  max-width: 600px;
+  width: 90%;
+  background: white;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  margin: auto;
+}
+
+.modal::backdrop {
+  background: rgba(0, 0, 0, 0.5);
+}
+
+.modal-content {
+  padding: 1.5rem;
+}
+
+.modal h3 {
+  margin: 0 0 1rem 0;
+  font-size: 1.25rem;
+  color: #1f2937;
+}
+
+.message-details {
+  background: #f9fafb;
+  border-radius: 0.375rem;
+  padding: 1rem;
+  margin: 1rem 0;
+}
+
+.message-detail {
+  margin-bottom: 0.75rem;
+}
+
+.message-detail pre {
+  margin-top: 0.5rem;
+  white-space: pre-wrap;
+  background: white;
+  padding: 0.75rem;
+  border-radius: 0.25rem;
+  border: 1px solid #e5e7eb;
+}
+
+.form-group {
+  margin-bottom: 1rem;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+  color: #374151;
+}
+
+.form-group textarea {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.375rem;
+  font-family: inherit;
+  font-size: inherit;
+  resize: vertical;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+}
+
+/* Add to styles.css */
+.work-area-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.new-message-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.drag-handle {
+  cursor: move;
+  color: #9ca3af;
+  width: 24px;
+}
+
+.message-row {
+  cursor: move;
+}
+
+.message-row.dragging {
+  opacity: 0.5;
+  background: #f3f4f6;
+}
+
+.message-row.drag-over {
+  border-top: 2px solid var(--primary-color);
+}
+
+.form-group select {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.375rem;
+  background-color: white;
+  font-family: inherit;
+  font-size: inherit;
+}
+
+.work-area-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.work-area-title-group {
+  display: flex;
+  align-items: baseline;
+  gap: 1rem;
+}
+
+.message-count {
+  color: #6b7280;
+  font-size: 0.875rem;
+}
+
+.work-area-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.delete-all-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background-color: var(--danger-color);
+  color: white;
+}
+
+.delete-all-btn:hover {
+  background-color: #dc2626;
+}

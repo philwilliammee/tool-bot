@@ -111,14 +111,107 @@ npm run dev</code></pre>
 <h2>Development Roadmap</h2>
 
 <ul>
-  <li>[ ] Improved error handling and validation</li>
-  <li>[ ] Message persistence</li>
-  <li>[ ] Enhanced conversation context management</li>
+  <li>[x] Chat admin editor interface</li>
+  <li>[hold for later] Improved error handling and validation</li>
+  <li>[x] Message persistence</li>
+  <li>[x] Enhanced conversation context management</li>
   <li>[ ] Additional tool support</li>
 </ul>
+
+tool ideas:
 
 Calculator functions
 Data analysis capabilities
 URL processing
 File handling
 Integration with external APIs
+
+<!-- Add after the existing sections -->
+<h2>Tool Usage Examples</h2>
+
+<h3>HTTP Fetch Tool</h3>
+<p>The assistant can fetch and analyze web content from HTTPS URLs. Here are some example interactions:</p>
+
+<h4>1. Repository Information</h4>
+<pre><code>User: Could you fetch information about the React repository from GitHub's API?
+Assistant: I'll fetch that information for you from GitHub's API.
+
+{tool_use: fetch_url, url: "<https://api.github.com/repos/facebook/react"}>
+
+Based on the repository data:
+
+- Stars: 214,000+
+- Description: A declarative, efficient, and flexible JavaScript library for building user interfaces
+- Latest update: [date]
+- Open issues: [count]
+- Primary language: JavaScript
+- License: MIT</code></pre>
+
+<h4>2. Content Analysis</h4>
+<pre><code>User: Could you fetch and analyze the package.json from this repository?
+Assistant: I'll fetch the package.json file and analyze its dependencies.
+
+{tool_use: fetch_url, url: "<https://raw.githubusercontent.com/philwilliammee/tool-bot/main/package.json"}>
+
+Analysis of dependencies:
+
+- AWS SDK: @aws-sdk/client-bedrock-runtime for AI capabilities
+- Express: For server functionality
+- Preact Signals: For state management
+Additional devDependencies include:
+- TypeScript
+- Vite
+- Testing utilities</code></pre>
+
+<h4>3. Release Information</h4>
+<pre><code>User: What's in the latest Node.js release?
+Assistant: I'll check the latest release information.
+
+{tool_use: fetch_url, url: "<https://api.github.com/repos/nodejs/node/releases/latest"}>
+
+Latest Node.js Release:
+
+- Version: [version number]
+- Release date: [date]
+- Key changes:
+  • [major change 1]
+  • [major change 2]
+  • [major change 3]</code></pre>
+
+<h4>4. Comparative Analysis</h4>
+<pre><code>User: Compare Vue.js and React GitHub stats
+Assistant: I'll fetch data for both repositories and compare them.
+
+{tool_use: fetch_url, url: "<https://api.github.com/repos/vuejs/vue"}>
+{tool_use: fetch_url, url: "<https://api.github.com/repos/facebook/react"}>
+
+Comparison:
+Vue.js vs React
+
+- Stars: [Vue stars] vs [React stars]
+- Forks: [Vue forks] vs [React forks]
+- Open Issues: [Vue issues] vs [React issues]
+- Latest Release: [Vue date] vs [React date]</code></pre>
+
+<h4>Error Handling</h4>
+<pre><code>User: Fetch from https://api.nonexistent.com/data
+Assistant: I'll try to fetch from that URL, but it appears to be invalid.
+
+{tool_use: fetch_url, url: "<https://api.nonexistent.com/data"}>
+
+I apologize, but I encountered an error:
+
+- Error: Failed to fetch from the URL
+- Reason: DNS resolution failed
+- Suggestion: Please verify the URL is correct and accessible</code></pre>
+
+<h3>Tool Limitations</h3>
+<ul>
+  <li>HTTPS URLs only</li>
+  <li>Supported content types: JSON, text, HTML, markdown</li>
+  <li>Maximum content size: 1MB</li>
+  <li>5-second timeout limit</li>
+  <li>Maximum 3 redirects</li>
+</ul>
+
+<p><strong>Note:</strong> These examples demonstrate the tool's capabilities in fetching and analyzing web content. The assistant will explain its actions and provide formatted responses based on the fetched data.</p>

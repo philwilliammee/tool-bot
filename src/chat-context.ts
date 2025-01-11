@@ -4,9 +4,35 @@ interface ContentBlock {
   text: string;
 }
 
+const STORAGE_KEY = "chat-messages";
+
 export class ChatContext {
   private messages: Message[] = [];
   private messageChangeCallbacks: ((messages: Message[]) => void)[] = [];
+
+  constructor() {
+    this.loadFromStorage();
+  }
+
+  private loadFromStorage(): void {
+    try {
+      const stored = localStorage.getItem(STORAGE_KEY);
+      if (stored) {
+        this.messages = JSON.parse(stored);
+        this.notifyMessageChange();
+      }
+    } catch (error) {
+      console.error("Error loading messages from storage:", error);
+    }
+  }
+
+  private saveToStorage(): void {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(this.messages));
+    } catch (error) {
+      console.error("Error saving messages to storage:", error);
+    }
+  }
 
   onMessagesChange(callback: (messages: Message[]) => void) {
     this.messageChangeCallbacks.push(callback);
@@ -14,6 +40,7 @@ export class ChatContext {
 
   private notifyMessageChange() {
     this.messageChangeCallbacks.forEach((cb) => cb(this.messages));
+    this.saveToStorage();
   }
 
   addUserMessage(prompt: string) {
@@ -21,13 +48,11 @@ export class ChatContext {
       this.messages.length > 0 &&
       this.messages[this.messages.length - 1].role === "user"
     ) {
-      // Add content to existing user message
       const lastMessage = this.messages[this.messages.length - 1];
       const newContent: ContentBlock[] = [{ text: prompt }];
       const lastMessageContent = lastMessage.content || [];
       lastMessage.content = [...lastMessageContent, ...newContent];
     } else {
-      // Create new user message
       this.messages.push({
         role: "user",
         content: [{ text: prompt }],
@@ -41,18 +66,50 @@ export class ChatContext {
       this.messages.length > 0 &&
       this.messages[this.messages.length - 1].role === "assistant"
     ) {
-      // Add content to existing assistant message
       const lastMessage = this.messages[this.messages.length - 1];
       const newContent: ContentBlock[] = [{ text: response }];
       const lastMessageContent = lastMessage.content || [];
       lastMessage.content = [...lastMessageContent, ...newContent];
     } else {
-      // Create new assistant message
       this.messages.push({
         role: "assistant",
         content: [{ text: response }],
       });
     }
+    this.notifyMessageChange();
+  }
+
+  addMessage(role: "user" | "assistant", content: string): void {
+    this.messages.push({
+      role,
+      content: [{ text: content }],
+    });
+    this.notifyMessageChange();
+  }
+
+  updateMessage(index: number, newContent: string): void {
+    if (this.messages[index]) {
+      this.messages[index].content = [{ text: newContent }];
+      this.notifyMessageChange();
+    }
+  }
+
+  deleteMessage(index: number): void {
+    this.messages.splice(index, 1);
+    this.notifyMessageChange();
+  }
+
+  deleteAllMessages(): void {
+    this.messages = [];
+    this.notifyMessageChange();
+    localStorage.removeItem(STORAGE_KEY);
+  }
+
+  reorderMessages(fromIndex: number, toIndex: number): void {
+    const messages = [...this.messages];
+    const [removed] = messages.splice(fromIndex, 1);
+    messages.splice(toIndex, 0, removed);
+    this.messages = messages;
     this.notifyMessageChange();
   }
 
@@ -62,10 +119,6 @@ export class ChatContext {
 
   getTruncatedHistory(count: number = 3): Message[] {
     return this.messages.slice(-count);
-  }
-
-  clearMessages(): void {
-    this.messages = [];
   }
 }
 

@@ -1,9 +1,10 @@
 import { Message } from "@aws-sdk/client-bedrock-runtime";
 import { chatContext } from "../../chat-context";
 import { ButtonSpinner } from "../ButtonSpinner/ButtonSpinner";
-import { designAssistantInstance } from "../../design-assistant-bot";
+import { chatBot } from "../../chat-bot";
 import { store } from "../../stores/AppStore";
 import { effect } from "@preact/signals-core";
+import { WorkArea } from "../WorkArea/WorkArea";
 
 interface ChatMessage {
   role: "user" | "assistant";
@@ -26,6 +27,7 @@ export class Chat {
   constructor(dependencies: ChatDependencies) {
     // Store work area reference
     this.workArea = dependencies.workArea;
+    new WorkArea(this.workArea);
 
     // Initialize DOM elements
     this.promptInput = document.querySelector(
@@ -98,9 +100,7 @@ export class Chat {
       for (let attempt = 0; attempt <= retries; attempt++) {
         try {
           const messages = chatContext.getTruncatedHistory();
-          const response = await designAssistantInstance.generateResponse(
-            messages
-          );
+          const response = await chatBot.generateResponse(messages);
 
           chatContext.addAssistantMessage(response);
           this.promptInput.value = "";
