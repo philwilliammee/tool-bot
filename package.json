@@ -1,0 +1,28 @@
+{
+  "name": "vite-typescript-starter",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev:client": "vite",
+    "dev:server": "nodemon --watch server --watch server.ts --ext ts --exec \"vite-node server.ts\"",
+    "dev": "concurrently \"npm run dev:client\" \"npm run dev:server\"",
+    "build": "tsc && vite build",
+    "preview": "vite preview"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.0",
+    "@types/node": "^22.10.5",
+    "concurrently": "^9.1.2",
+    "nodemon": "^3.1.9",
+    "typescript": "~5.6.2",
+    "vite": "^6.0.1",
+    "vite-node": "^2.1.8",
+    "vitest": "^2.1.8"
+  },
+  "dependencies": {
+    "@aws-sdk/client-bedrock-runtime": "^3.699.0",
+    "@preact/signals-core": "^1.8.0",
+    "express": "^4.21.2"
+  }
+}

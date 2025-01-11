@@ -1,0 +1,41 @@
+{
+  "folders": [
+    {
+        "path": "./"
+    }
+],
+  "settings": {
+    // "breadcrumbs.enabled": true,
+    // "css.validate": true,
+    // "diffEditor.ignoreTrimWhitespace": false,
+    // "editor.tabSize": 4,
+    // "editor.autoIndent": "full",
+    // "editor.insertSpaces": true,
+    // "editor.formatOnSave": false,
+    // "editor.formatOnPaste": false,
+    // "editor.renderWhitespace": "trailing",
+    // "editor.wordWrapColumn": 80,
+    // "editor.wordWrap": "off",
+    // "editor.detectIndentation": false,
+    // "editor.rulers": [80],
+    // "files.insertFinalNewline": true,
+    // "html.format.enable": true,
+    // "html.format.wrapLineLength": 80,
+    // "eslint.nodePath": "./node_modules/eslint/lib/api.js",
+    "cSpell.words": [
+    ],
+    "[javascript]": {
+      "editor.tabSize": 2,
+      "editor.formatOnSave": true,
+      "files.trimTrailingWhitespace": true,
+    },
+    "[typescript]": {
+      "editor.tabSize": 2,
+      "editor.formatOnSave": true,
+      "files.trimTrailingWhitespace": true,
+    },
+    "[markdown]": {
+      "editor.trimAutoWhitespace": false,
+    }
+  },
+}

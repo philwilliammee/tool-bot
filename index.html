@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>AI Chat Assistant</title>
+        <link rel="stylesheet" href="styles.css">
+        <link rel="icon" type="image/svg+xml" href="/fav.png">
+    </head>
+    <body>
+        <div class="container">
+            <div class="main-content">
+                <div class="left-column">
+                    <header>
+                        <div class="header-left">
+                            <svg class="notebook-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"></path>
+                            </svg>
+                            <h1>AI Chat Assistant</h1>
+                        </div>
+                    </header>
+
+                    <div id="chat" class="chat-container">
+                        <div class="chat-section">
+                            <div class="chat-messages"></div>
+                            <div class="prompt-container">
+                                <textarea
+                                    class="prompt-input"
+                                    placeholder="Enter your message..."
+                                    rows="5"
+                                    cols="33"
+                                ></textarea>
+                                <div class="prompt-actions">
+                                    <button class="btn btn-green generate-btn" type="button">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                            <polygon points="21 12 9 18 9 6 21 12"></polygon>
+                                        </svg>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="right-column">
+                    <div class="work-area">
+                        <!-- This area can be used for displaying response content, tools, or other interactive elements -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div>
+            <dialog id="toast-message" class="toast">
+                <p class="toast-content"></p>
+            </dialog>
+        </div>
+        <script type="module" src="/src/main.ts"></script>
+    </body>
+</html>
