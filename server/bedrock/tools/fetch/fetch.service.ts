@@ -90,6 +90,7 @@ export class FetchToolService {
   }
 
   private isUrlAllowed(url: string): boolean {
+    return true; // alow all domains
     try {
       const urlObj = new URL(url);
       return FETCH_CONFIG.ALLOWED_DOMAINS.some((domain) =>

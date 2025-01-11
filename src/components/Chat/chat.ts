@@ -129,34 +129,108 @@ export class Chat {
 
   private updateChatUI = (messages: Message[]): void => {
     this.chatMessages.innerHTML = "";
-    messages.forEach((message) => {
+    let lastAssistantMessageIndex = -1;
+
+    // Find the index of the last assistant message
+    for (let i = messages.length - 1; i >= 0; i--) {
+      if (messages[i].role === "assistant") {
+        lastAssistantMessageIndex = i;
+        break;
+      }
+    }
+
+    messages.forEach((message, index) => {
       if (message.role === "user") {
         message.content?.forEach((content) => {
-          this.appendMessageToDOM({
-            role: message.role || "user",
-            message: content.text || "",
-            timestamp: new Date(),
-          });
+          this.appendMessageToDOM(
+            {
+              role: message.role || "user",
+              message: content.text || "",
+              timestamp: new Date(),
+            },
+            index === lastAssistantMessageIndex
+          );
         });
       } else {
         const content = message.content?.[0]?.text;
         if (content) {
-          this.appendMessageToDOM({
-            role: message.role || "assistant",
-            message: content,
-            timestamp: new Date(),
-          });
+          this.appendMessageToDOM(
+            {
+              role: message.role || "assistant",
+              message: content,
+              timestamp: new Date(),
+            },
+            index === lastAssistantMessageIndex
+          );
         }
       }
     });
   };
 
-  private appendMessageToDOM(message: ChatMessage): void {
+  private appendMessageToDOM(
+    message: ChatMessage,
+    isLatestAIMessage: boolean
+  ): void {
     const messageElement = document.createElement("div");
     messageElement.className = `chat-message ${message.role}`;
-    messageElement.textContent = message.message;
+
+    const contentWrapper = document.createElement("div");
+    contentWrapper.className = "message-content-wrapper";
+
+    const formattedContent = this.formatMessageContent(message.message);
+
+    if (message.message.length > 300) {
+      const previewContent = document.createElement("div");
+      previewContent.className = "message-preview";
+      previewContent.innerHTML = formattedContent.slice(0, 300) + "...";
+
+      const fullContent = document.createElement("div");
+      fullContent.className = "message-full-content";
+      fullContent.innerHTML = formattedContent;
+
+      const toggleButton = document.createElement("button");
+      toggleButton.className = "read-more-btn";
+      toggleButton.textContent = "Show less";
+      toggleButton.onclick = () => {
+        fullContent.classList.toggle("hidden");
+        previewContent.classList.toggle("hidden");
+        toggleButton.textContent = fullContent.classList.contains("hidden")
+          ? "Read more"
+          : "Show less";
+      };
+
+      // Set initial state based on whether this is the latest AI message
+      if (!isLatestAIMessage) {
+        fullContent.classList.add("hidden");
+        previewContent.classList.remove("hidden");
+        toggleButton.textContent = "Read more";
+      } else {
+        fullContent.classList.remove("hidden");
+        previewContent.classList.add("hidden");
+      }
+
+      contentWrapper.appendChild(previewContent);
+      contentWrapper.appendChild(fullContent);
+      contentWrapper.appendChild(toggleButton);
+    } else {
+      contentWrapper.innerHTML = formattedContent;
+    }
+
+    messageElement.appendChild(contentWrapper);
     this.chatMessages.appendChild(messageElement);
     this.chatMessages.scrollTop = this.chatMessages.scrollHeight;
+  }
+
+  private formatMessageContent(content: string): string {
+    return content
+      .replace(/\n/g, "<br>")
+      .replace(
+        /```([\s\S]*?)```/g,
+        (_, code) => `
+      <pre class="code-block"><code>${code.trim()}</code></pre>
+    `
+      )
+      .replace(/`([^`]+)`/g, "<code>$1</code>");
   }
 
   public destroy(): void {

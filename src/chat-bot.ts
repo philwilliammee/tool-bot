@@ -1,6 +1,7 @@
 import { Message, ConverseResponse } from "@aws-sdk/client-bedrock-runtime";
 import { postBedrock } from "./apiClient";
 import { designAssistantSystemPrompt } from "./design-assistant.system";
+import { chatContext } from "./chat-context";
 
 interface ToolUse {
   name: string;
@@ -35,30 +36,55 @@ export class ChatBot {
         )?.toolUse;
 
         if (toolUse) {
-          // Execute tool
-          const toolResult = await this.executeToolRequest(toolUse as ToolUse);
+          // Add tool request to chat
+          chatContext.addAssistantMessage(
+            `I need to use the ${
+              toolUse.name
+            } tool. Making request to: ${JSON.stringify(toolUse.input)}`
+          );
 
-          // Add tool interaction to messages
-          truncatedMessages.push({
-            role: "assistant",
-            content: response.output?.message?.content || [],
-          });
+          try {
+            // Execute tool
+            const toolResult = await this.executeToolRequest(
+              toolUse as ToolUse
+            );
 
-          truncatedMessages.push({
-            role: "user",
-            content: [
-              {
-                toolResult: {
-                  toolUseId: toolUse.toolUseId,
-                  content: [{ json: toolResult }],
-                  status: toolResult.error ? "error" : "success",
+            // Add tool result to chat
+            chatContext.addUserMessage(
+              `Tool ${toolUse.name} returned: ${JSON.stringify(
+                toolResult,
+                null,
+                2
+              )}`
+            );
+
+            truncatedMessages.push({
+              role: "assistant",
+              content: response.output?.message?.content || [],
+            });
+
+            truncatedMessages.push({
+              role: "user",
+              content: [
+                {
+                  toolResult: {
+                    toolUseId: toolUse.toolUseId,
+                    content: [{ json: toolResult }],
+                    status: toolResult.error ? "error" : "success",
+                  },
                 },
-              },
-            ],
-          });
+              ],
+            });
 
-          // Recursive call to continue the conversation with tool result
-          return this.generateResponse(truncatedMessages);
+            // Continue conversation with tool result
+            return this.generateResponse(truncatedMessages);
+          } catch (error: any) {
+            // Add error to chat
+            chatContext.addUserMessage(
+              `Tool execution failed: ${error.message}`
+            );
+            throw error;
+          }
         }
       }
 

@@ -309,6 +309,12 @@ h1 {
   opacity: 0.9;
 }
 
+.message-table-container,
+#message-table-container {
+  flex: 1;
+  overflow: auto;
+}
+
 .message-content {
   max-width: 300px;
   overflow: hidden;
@@ -333,16 +339,14 @@ h1 {
   background-color: #dcfce7;
   color: #15803d;
 }
-
 /* ============================
-   10) Modal Styles
+   10) MODAL STYLES
 ============================ */
-/* Add to styles.css */
 .modal {
   border: none;
   border-radius: 0.5rem;
   padding: 0;
-  max-width: 600px;
+  max-width: 1000px;
   width: 90%;
   background: white;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
@@ -394,13 +398,17 @@ h1 {
   color: #374151;
 }
 
-.form-group textarea {
+.form-group textarea,
+.form-group select {
   width: 100%;
   padding: 0.75rem;
   border: 1px solid #e5e7eb;
   border-radius: 0.375rem;
   font-family: inherit;
   font-size: inherit;
+}
+
+.form-group textarea {
   resize: vertical;
 }
 
@@ -411,49 +419,9 @@ h1 {
   margin-top: 1.5rem;
 }
 
-/* Add to styles.css */
-.work-area-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 1rem;
-}
-
-.new-message-btn {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.drag-handle {
-  cursor: move;
-  color: #9ca3af;
-  width: 24px;
-}
-
-.message-row {
-  cursor: move;
-}
-
-.message-row.dragging {
-  opacity: 0.5;
-  background: #f3f4f6;
-}
-
-.message-row.drag-over {
-  border-top: 2px solid var(--primary-color);
-}
-
-.form-group select {
-  width: 100%;
-  padding: 0.75rem;
-  border: 1px solid #e5e7eb;
-  border-radius: 0.375rem;
-  background-color: white;
-  font-family: inherit;
-  font-size: inherit;
-}
-
+/* ============================
+   11) WORK AREA HEADER
+============================ */
 .work-area-header {
   display: flex;
   justify-content: space-between;
@@ -477,6 +445,12 @@ h1 {
   gap: 0.5rem;
 }
 
+.new-message-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
 .delete-all-btn {
   display: flex;
   align-items: center;
@@ -487,4 +461,91 @@ h1 {
 
 .delete-all-btn:hover {
   background-color: #dc2626;
+}
+
+/* ============================
+   11) CHAT MESSAGE FORMATTING
+============================ */
+.chat-message {
+  margin-bottom: 0.75rem;
+  padding: 0.75rem;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+/* Message Types */
+.chat-message.user {
+  background-color: #f3f4f6;
+}
+
+.chat-message.assistant {
+  background-color: #dbeafe;
+}
+
+.chat-message.tool-message {
+  background-color: #f0f9ff;
+  border-left: 4px solid #3b82f6;
+}
+
+.chat-message.tool-result {
+  background-color: #f0fdf4;
+  border-left: 4px solid #22c55e;
+}
+
+.chat-message.error-message {
+  background-color: #fef2f2;
+  border-left: 4px solid #ef4444;
+}
+
+/* Message Content */
+.message-content-wrapper {
+  position: relative;
+}
+
+.message-preview,
+.message-full-content {
+  transition: opacity 0.3s ease;
+}
+
+.read-more-btn {
+  margin-top: 0.5rem;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.75rem;
+  color: var(--primary-color);
+  background: none;
+  border: 1px solid var(--primary-color);
+  border-radius: 0.25rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.read-more-btn:hover {
+  background-color: var(--primary-color);
+  color: white;
+}
+
+/* Code Formatting */
+.code-block {
+  background-color: #1e1e1e;
+  color: #d4d4d4;
+  padding: 1rem;
+  border-radius: 0.375rem;
+  margin: 0.5rem 0;
+  overflow-x: auto;
+  font-family: monospace;
+}
+
+code {
+  background-color: #f1f5f9;
+  padding: 0.2em 0.4em;
+  border-radius: 0.25rem;
+  font-family: monospace;
+  font-size: 0.9em;
+}
+
+/* States */
+.hidden {
+  display: none;
 }
