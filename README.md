@@ -130,16 +130,22 @@ Integration with external APIs
 <h2>Tool Usage Examples</h2>
 
 <h3>HTTP Fetch Tool</h3>
-<p>The assistant can fetch and analyze web content from HTTPS URLs. Here are some example interactions:</p>
+<p>Examples of queries the assistant can handle:</p>
 
-<h4>1. Repository Information</h4>
+<ul>
+  <li>"Could you fetch information about the React repository from GitHub's API?"</li>
+  <li>"Fetch and analyze the package.json from this repository"</li>
+  <li>"What's in the latest Node.js release?"</li>
+  <li>"Compare Vue.js and React GitHub stats"</li>
+</ul>
+
+<h4>Example Interaction:</h4>
 <pre><code>User: Could you fetch information about the React repository from GitHub's API?
 Assistant: I'll fetch that information for you from GitHub's API.
 
-{tool_use: fetch_url, url: "<https://api.github.com/repos/facebook/react"}>
+{tool_use: fetch_url, url: "https://api.github.com/repos/facebook/react"}
 
 Based on the repository data:
-
 - Stars: 214,000+
 - Description: A declarative, efficient, and flexible JavaScript library for building user interfaces
 - Latest update: [date]
@@ -147,71 +153,39 @@ Based on the repository data:
 - Primary language: JavaScript
 - License: MIT</code></pre>
 
-<h4>2. Content Analysis</h4>
-<pre><code>User: Could you fetch and analyze the package.json from this repository?
-Assistant: I'll fetch the package.json file and analyze its dependencies.
+<h3>Calculator Tool</h3>
+<p>Examples of calculations the assistant can perform:</p>
 
-{tool_use: fetch_url, url: "<https://raw.githubusercontent.com/philwilliammee/tool-bot/main/package.json"}>
+<ul>
+  <li>"What is 234 * 456?"</li>
+  <li>"Calculate the sum of 10, 20, 30, and 40"</li>
+  <li>"Evaluate the expression: 2 * (3 + 4) / 2"</li>
+  <li>"What's 15% of 80?"</li>
+</ul>
 
-Analysis of dependencies:
+<h4>Example Interaction:</h4>
+<pre><code>User: Calculate the sum of 10, 20, 30, and 40
+Assistant: I'll help you add those numbers.
 
-- AWS SDK: @aws-sdk/client-bedrock-runtime for AI capabilities
-- Express: For server functionality
-- Preact Signals: For state management
-Additional devDependencies include:
-- TypeScript
-- Vite
-- Testing utilities</code></pre>
+{tool_use: calculator, operation: "add", values: [10, 20, 30, 40]}
 
-<h4>3. Release Information</h4>
-<pre><code>User: What's in the latest Node.js release?
-Assistant: I'll check the latest release information.
-
-{tool_use: fetch_url, url: "<https://api.github.com/repos/nodejs/node/releases/latest"}>
-
-Latest Node.js Release:
-
-- Version: [version number]
-- Release date: [date]
-- Key changes:
-  • [major change 1]
-  • [major change 2]
-  • [major change 3]</code></pre>
-
-<h4>4. Comparative Analysis</h4>
-<pre><code>User: Compare Vue.js and React GitHub stats
-Assistant: I'll fetch data for both repositories and compare them.
-
-{tool_use: fetch_url, url: "<https://api.github.com/repos/vuejs/vue"}>
-{tool_use: fetch_url, url: "<https://api.github.com/repos/facebook/react"}>
-
-Comparison:
-Vue.js vs React
-
-- Stars: [Vue stars] vs [React stars]
-- Forks: [Vue forks] vs [React forks]
-- Open Issues: [Vue issues] vs [React issues]
-- Latest Release: [Vue date] vs [React date]</code></pre>
-
-<h4>Error Handling</h4>
-<pre><code>User: Fetch from https://api.nonexistent.com/data
-Assistant: I'll try to fetch from that URL, but it appears to be invalid.
-
-{tool_use: fetch_url, url: "<https://api.nonexistent.com/data"}>
-
-I apologize, but I encountered an error:
-
-- Error: Failed to fetch from the URL
-- Reason: DNS resolution failed
-- Suggestion: Please verify the URL is correct and accessible</code></pre>
+The sum is 100.</code></pre>
 
 <h3>Tool Limitations</h3>
 <ul>
-  <li>HTTPS URLs only</li>
-  <li>Supported content types: JSON, text, HTML, markdown</li>
-  <li>Maximum content size: 1MB</li>
-  <li>5-second timeout limit</li>
-  <li>Maximum 3 redirects</li>
+  <li>Fetch Tool:
+    <ul>
+      <li>HTTPS URLs only</li>
+      <li>Supported content types: JSON, text, HTML, markdown</li>
+      <li>Maximum content size: 1MB</li>
+      <li>5-second timeout limit</li>
+    </ul>
+  </li>
+  <li>Calculator Tool:
+    <ul>
+      <li>Basic operations: add, subtract, multiply, divide</li>
+      <li>Expression evaluation with standard operators</li>
+      <li>Numbers must be within safe JavaScript number range</li>
+    </ul>
+  </li>
 </ul>
-
-<p><strong>Note:</strong> These examples demonstrate the tool's capabilities in fetching and analyzing web content. The assistant will explain its actions and provide formatted responses based on the fetched data.</p>

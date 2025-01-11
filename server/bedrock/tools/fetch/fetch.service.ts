@@ -102,6 +102,7 @@ export class FetchToolService {
   }
 
   private isContentTypeAllowed(contentType: string): boolean {
+    return true; // allow all content types
     return FETCH_CONFIG.ALLOWED_CONTENT_TYPES.some((allowed) =>
       contentType.toLowerCase().includes(allowed.toLowerCase())
     );

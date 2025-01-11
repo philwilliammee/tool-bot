@@ -6,6 +6,8 @@ import {
   SystemContentBlock,
   ToolConfiguration,
 } from "@aws-sdk/client-bedrock-runtime";
+import { fetchToolConfig } from "./tools/fetch/fetch.config";
+import { calculatorToolConfig } from "./tools/calculator/calculator.config";
 
 export interface BedrockServiceConfig {
   region: string;
@@ -99,36 +101,10 @@ export class BedrockService {
   }
 
   private getToolConfig(): ToolConfiguration {
+    const fetchToolToolsConfig = fetchToolConfig.tools || [];
+    const calculatorToolToolsConfig = calculatorToolConfig.tools || [];
     return {
-      tools: [
-        {
-          toolSpec: {
-            name: "fetch_url",
-            description:
-              "Fetch content from a specified URL. Only HTTPS URLs from allowed domains are supported. Returns JSON or text content.",
-            inputSchema: {
-              json: {
-                type: "object",
-                properties: {
-                  url: {
-                    type: "string",
-                    description:
-                      "The HTTPS URL to fetch from. Must be from an allowed domain.",
-                    pattern: "^https://",
-                  },
-                  method: {
-                    type: "string",
-                    enum: ["GET"],
-                    default: "GET",
-                    description: "HTTP method (only GET is supported)",
-                  },
-                },
-                required: ["url"],
-              },
-            },
-          },
-        },
-      ],
+      tools: [...fetchToolToolsConfig, ...calculatorToolToolsConfig],
     };
   }
 }

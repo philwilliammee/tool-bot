@@ -1,6 +1,6 @@
 import { Message, ConverseResponse } from "@aws-sdk/client-bedrock-runtime";
 import { postBedrock } from "./apiClient";
-import { designAssistantSystemPrompt } from "./design-assistant.system";
+import { systemPrompt } from "./design-assistant.system";
 import { chatContext } from "./chat-context";
 
 interface ToolUse {
@@ -16,7 +16,7 @@ export class ChatBot {
 
   constructor() {
     this.modelId = import.meta.env.VITE_BEDROCK_MODEL_ID;
-    this.systemPrompt = designAssistantSystemPrompt;
+    this.systemPrompt = systemPrompt;
   }
 
   public async generateResponse(messages: Message[]): Promise<string> {
@@ -106,6 +106,7 @@ export class ChatBot {
     }
   }
 
+  // src/chat-bot.ts
   private async executeToolRequest(toolUse: ToolUse): Promise<any> {
     switch (toolUse.name) {
       case "fetch_url": {
@@ -120,6 +121,22 @@ export class ChatBot {
         if (!response.ok) {
           const error = await response.text();
           throw new Error(`Tool execution failed: ${error}`);
+        }
+
+        return await response.json();
+      }
+      case "calculator": {
+        const response = await fetch("/api/tools/calculator", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(toolUse.input),
+        });
+
+        if (!response.ok) {
+          const error = await response.text();
+          throw new Error(`Calculator execution failed: ${error}`);
         }
 
         return await response.json();
