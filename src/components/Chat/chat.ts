@@ -2,8 +2,6 @@ import { Message } from "@aws-sdk/client-bedrock-runtime";
 import { chatContext } from "../../chat-context";
 import { ButtonSpinner } from "../ButtonSpinner/ButtonSpinner";
 import { designAssistantInstance } from "../../design-assistant-bot";
-import { CodeEditorComponent } from "../CodeEditor/CodeEditorComponent";
-import { CsvUploader } from "../CsvUploader";
 import { store } from "../../stores/AppStore";
 import { effect } from "@preact/signals-core";
 
@@ -14,8 +12,7 @@ interface ChatMessage {
 }
 
 interface ChatDependencies {
-  codeEditor: CodeEditorComponent;
-  csvUploader: CsvUploader;
+  workArea: HTMLElement;
 }
 
 export class Chat {
@@ -23,9 +20,13 @@ export class Chat {
   private promptInput: HTMLTextAreaElement;
   private chatMessages: HTMLElement;
   private button: HTMLButtonElement;
+  private workArea: HTMLElement;
   private cleanupFns: Array<() => void> = [];
 
   constructor(dependencies: ChatDependencies) {
+    // Store work area reference
+    this.workArea = dependencies.workArea;
+
     // Initialize DOM elements
     this.promptInput = document.querySelector(
       ".prompt-input"
@@ -68,13 +69,13 @@ export class Chat {
   private async handleErrorPrompt(prompt: string) {
     this.promptInput.value = prompt;
     store.clearPendingErrorPrompt();
-    await this.generateCodeWithRetry();
+    await this.generateResponse();
   }
 
   private handleGenerate = (e: MouseEvent): void => {
     e.preventDefault();
     if (!store.isGenerating.value) {
-      this.generateCodeWithRetry();
+      this.generateResponse();
     }
   };
 
@@ -85,14 +86,9 @@ export class Chat {
     }
   };
 
-  private async generateCodeWithRetry(retries = 1): Promise<void> {
+  private async generateResponse(retries = 1): Promise<void> {
     const prompt = this.promptInput?.value.trim();
     if (!prompt || store.isGenerating.value) return;
-
-    const data = store.getData();
-    if (data) {
-      chatContext.addUserMessage(this.getDataStructureDescription());
-    }
 
     chatContext.addUserMessage(prompt);
     store.setGenerating(true);
@@ -102,28 +98,20 @@ export class Chat {
       for (let attempt = 0; attempt <= retries; attempt++) {
         try {
           const messages = chatContext.getTruncatedHistory();
-          const response = await designAssistantInstance.generateWebDesign(
+          const response = await designAssistantInstance.generateResponse(
             messages
           );
-          const { html, css, javascript, description } = response;
 
-          if (html || css || javascript) {
-            chatContext.addAssistantMessage(
-              JSON.stringify({ html, css, javascript }),
-              description
-            );
-
-            store.setAllCode({ html, css, javascript });
-            this.promptInput.value = "";
-            store.showToast("Design generated successfully ✨");
-            break;
-          }
+          chatContext.addAssistantMessage(response);
+          this.promptInput.value = "";
+          store.showToast("Response generated successfully ✨");
+          break;
         } catch (error: any) {
           if (attempt === retries) throw error;
           const errorMessage = `Attempt ${attempt + 1} failed: ${
             error.message
           }. Retrying...`;
-          chatContext.addAssistantMessage(errorMessage, "Error");
+          chatContext.addAssistantMessage(errorMessage);
           store.showToast(`Retrying attempt ${attempt + 1} of ${retries} ⏳`);
           await new Promise((resolve) => setTimeout(resolve, 1000));
         }
@@ -131,25 +119,12 @@ export class Chat {
     } catch (error: any) {
       store.setError(error.message);
       chatContext.addAssistantMessage(
-        `Error generating design: ${error.message}`,
-        "Error"
+        `Error generating response: ${error.message}`
       );
-      store.showToast("Error generating design ❌");
+      store.showToast("Error generating response ❌");
     } finally {
       store.setGenerating(false);
     }
-  }
-
-  private getDataStructureDescription(): string {
-    const data = store.getData();
-    if (!data?.length) return "";
-
-    const sampleData = data[0];
-    const structure = Object.entries(sampleData)
-      .map(([key, value]) => `${key}: ${typeof value}`)
-      .join(", ");
-
-    return `\nAvailable data structure: { ${structure} }.\nData has ${data.length} records.`;
   }
 
   private updateChatUI = (messages: Message[]): void => {
@@ -164,11 +139,11 @@ export class Chat {
           });
         });
       } else {
-        const description = message.content?.[1]?.text;
-        if (description) {
+        const content = message.content?.[0]?.text;
+        if (content) {
           this.appendMessageToDOM({
             role: message.role || "assistant",
-            message: description,
+            message: content,
             timestamp: new Date(),
           });
         }

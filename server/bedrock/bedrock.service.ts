@@ -1,4 +1,3 @@
-// server/bedrock/bedrock.service.ts
 import {
   BedrockRuntimeClient,
   ContentBlock,
@@ -20,13 +19,6 @@ export interface BedrockServiceConfig {
   };
 }
 
-interface ServiceResponse {
-  parsed: any | null;
-  raw: ConverseResponse;
-  stopReason: string;
-  messageContent?: ContentBlock[];
-}
-
 export class BedrockService {
   private static MAX_RETRIES = 2;
   private client: BedrockRuntimeClient;
@@ -39,7 +31,7 @@ export class BedrockService {
     modelId: string,
     messages: Message[],
     systemPrompt: string
-  ): Promise<ServiceResponse> {
+  ): Promise<ConverseResponse> {
     return this.executeWithRetry(modelId, messages, systemPrompt);
   }
 
@@ -48,7 +40,7 @@ export class BedrockService {
     messages: Message[],
     systemPrompt: string,
     retryCount = BedrockService.MAX_RETRIES
-  ): Promise<ServiceResponse> {
+  ): Promise<ConverseResponse> {
     try {
       const system: SystemContentBlock[] = [{ text: systemPrompt }];
 
@@ -73,13 +65,12 @@ export class BedrockService {
       };
 
       const command = new ConverseCommand(input);
-      const response = await this.client.send(command);
+      const response: ConverseResponse = await this.client.send(command);
       console.log("Response:", response);
-      const parsedResponse = this.parseResponse(response);
 
       // Handle tool use request
-      if (parsedResponse.stopReason === "tool_use") {
-        const toolUse = parsedResponse.messageContent?.find(
+      if (response.stopReason === "tool_use") {
+        const toolUse = response.output?.message?.content?.find(
           (content) => content.toolUse
         )?.toolUse;
         if (toolUse) {
@@ -88,7 +79,7 @@ export class BedrockService {
           // Add assistant message first (the tool request)
           messages.push({
             role: "assistant",
-            content: parsedResponse.messageContent || [],
+            content: response.output?.message?.content || [],
           });
 
           // Then add user message with tool result
@@ -115,7 +106,7 @@ export class BedrockService {
         }
       }
 
-      return parsedResponse;
+      return response;
     } catch (error: any) {
       console.error("Execute error:", {
         error: error.message,
@@ -173,31 +164,6 @@ export class BedrockService {
         statusCode: 500,
       };
     }
-  }
-
-  private parseResponse(response: ConverseResponse): ServiceResponse {
-    const messageContent = response?.output?.message?.content || [];
-
-    // Look for text content in the message
-    const textContent =
-      messageContent.find((content) => content.text)?.text || "";
-
-    let parsed = null;
-    if (textContent) {
-      try {
-        parsed = JSON.parse(textContent);
-      } catch (error) {
-        // If it's not JSON, that's okay - leave parsed as null
-        console.debug("Response is not JSON:", textContent);
-      }
-    }
-
-    return {
-      parsed,
-      raw: response,
-      stopReason: response.stopReason || "",
-      messageContent: messageContent,
-    };
   }
 
   private getToolConfig(): ToolConfiguration {

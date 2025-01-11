@@ -1,5 +1,4 @@
-// design-assistant-bot.ts
-import { Message } from "@aws-sdk/client-bedrock-runtime";
+import { Message, ConverseResponse } from "@aws-sdk/client-bedrock-runtime";
 import { postBedrock } from "./apiClient";
 import { designAssistantSystemPrompt } from "./design-assistant.system";
 
@@ -13,19 +12,31 @@ export class DesignAssistantBot {
     this.systemPrompt = designAssistantSystemPrompt;
   }
 
-  public async generateWebDesign(messages: Message[]) {
+  public async generateResponse(messages: Message[]): Promise<string> {
     const truncatedMessages = this.truncateMessages(messages);
 
     try {
-      const response = await postBedrock(
+      const response: ConverseResponse = await postBedrock(
         this.modelId,
         truncatedMessages,
         this.systemPrompt
       );
 
-      return response.parsed || response.raw;
+      // Extract the text content from the response
+      const messageContent = response.output?.message?.content;
+      if (!messageContent || messageContent.length === 0) {
+        throw new Error("No content in response");
+      }
+
+      // Find the first text content block
+      const textContent = messageContent.find((content) => content.text)?.text;
+      if (!textContent) {
+        throw new Error("No text content found in response");
+      }
+
+      return textContent;
     } catch (error) {
-      console.error("Design generation failed:", error);
+      console.error("Response generation failed:", error);
       throw error;
     }
   }

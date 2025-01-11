@@ -1,9 +1,10 @@
-// src/apiClient.ts
+import { Message, ConverseResponse } from "@aws-sdk/client-bedrock-runtime";
+
 export async function postBedrock(
   modelId: string,
-  messages: any[], // or use the AWS 'Message' type
+  messages: Message[],
   systemPrompt: string
-): Promise<any> {
+): Promise<ConverseResponse> {
   const response = await fetch("/api/bedrock", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -13,5 +14,6 @@ export async function postBedrock(
   if (!response.ok) {
     throw new Error(`Bedrock server error: ${await response.text()}`);
   }
+
   return await response.json();
 }

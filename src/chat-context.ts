@@ -1,5 +1,4 @@
-// chat-context.ts
-import { Message } from '@aws-sdk/client-bedrock-runtime';
+import { Message } from "@aws-sdk/client-bedrock-runtime";
 
 interface ContentBlock {
   text: string;
@@ -7,20 +6,21 @@ interface ContentBlock {
 
 export class ChatContext {
   private messages: Message[] = [];
+  private messageChangeCallbacks: ((messages: Message[]) => void)[] = [];
 
-    // Add event emitter
-    private messageChangeCallbacks: ((messages: Message[]) => void)[] = [];
+  onMessagesChange(callback: (messages: Message[]) => void) {
+    this.messageChangeCallbacks.push(callback);
+  }
 
-    onMessagesChange(callback: (messages: Message[]) => void) {
-      this.messageChangeCallbacks.push(callback);
-    }
-
-    private notifyMessageChange() {
-      this.messageChangeCallbacks.forEach(cb => cb(this.messages));
-    }
+  private notifyMessageChange() {
+    this.messageChangeCallbacks.forEach((cb) => cb(this.messages));
+  }
 
   addUserMessage(prompt: string) {
-    if (this.messages.length > 0 && this.messages[this.messages.length - 1].role === 'user') {
+    if (
+      this.messages.length > 0 &&
+      this.messages[this.messages.length - 1].role === "user"
+    ) {
       // Add content to existing user message
       const lastMessage = this.messages[this.messages.length - 1];
       const newContent: ContentBlock[] = [{ text: prompt }];
@@ -29,31 +29,28 @@ export class ChatContext {
     } else {
       // Create new user message
       this.messages.push({
-        role: 'user',
-        content: [{ text: prompt }]
+        role: "user",
+        content: [{ text: prompt }],
       });
     }
     this.notifyMessageChange();
   }
 
-  addAssistantMessage(response: string, description: string) {
-    if (this.messages.length > 0 && this.messages[this.messages.length - 1].role === 'assistant') {
+  addAssistantMessage(response: string) {
+    if (
+      this.messages.length > 0 &&
+      this.messages[this.messages.length - 1].role === "assistant"
+    ) {
       // Add content to existing assistant message
       const lastMessage = this.messages[this.messages.length - 1];
-      const newContent: ContentBlock[] = [
-        { text: response },
-        { text: description }
-      ];
+      const newContent: ContentBlock[] = [{ text: response }];
       const lastMessageContent = lastMessage.content || [];
       lastMessage.content = [...lastMessageContent, ...newContent];
     } else {
       // Create new assistant message
       this.messages.push({
-        role: 'assistant',
-        content: [
-          { text: response },
-          { text: description }
-        ]
+        role: "assistant",
+        content: [{ text: response }],
       });
     }
     this.notifyMessageChange();
