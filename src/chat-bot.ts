@@ -1,8 +1,21 @@
 import { Message, ConverseResponse } from "@aws-sdk/client-bedrock-runtime";
 import { postBedrock } from "./apiClient";
-import { systemPrompt } from "./design-assistant.system";
 import { chatContext } from "./chat-context";
+import { fetchTool } from "./tools/fetch/fetch.tool";
+import { mathTool } from "./tools/math/math.tool";
 
+const tools = {
+  math: mathTool,
+  fetch_url: fetchTool,
+};
+
+export interface Tool {
+  execute: (input: any) => Promise<any>;
+  validate: (input: any) => boolean;
+  systemPrompt: string;
+}
+
+// Remove generic constraint from ToolUse
 interface ToolUse {
   name: string;
   toolUseId: string;
@@ -16,7 +29,35 @@ export class ChatBot {
 
   constructor() {
     this.modelId = import.meta.env.VITE_BEDROCK_MODEL_ID;
-    this.systemPrompt = systemPrompt;
+    this.systemPrompt = this.buildSystemPrompt();
+  }
+
+  private buildSystemPrompt(): string {
+    const toolPrompts = Object.values(tools).map((tool) => tool.systemPrompt);
+
+    return `You are an AI assistant with access to helpful tools.
+
+${toolPrompts.join("\n\n")}
+
+Guidelines:
+- Be helpful and accurate
+- Explain what you're doing before using tools
+- Show expressions and results clearly
+- If a tool request fails, explain the issue
+- Break down complex tasks into steps
+
+Remember: Your goal is to provide helpful and accurate information while making effective use of available tools.`;
+  }
+
+  private async executeToolRequest(toolUse: any): Promise<any> {
+    switch (toolUse.name) {
+      case "math":
+        return await mathTool.execute(toolUse.input);
+      case "fetch_url":
+        return await fetchTool.execute(toolUse.input);
+      default:
+        throw new Error(`Unknown tool: ${toolUse.name}`);
+    }
   }
 
   public async generateResponse(messages: Message[]): Promise<string> {
@@ -103,46 +144,6 @@ export class ChatBot {
     } catch (error) {
       console.error("Response generation failed:", error);
       throw error;
-    }
-  }
-
-  // src/chat-bot.ts
-  private async executeToolRequest(toolUse: ToolUse): Promise<any> {
-    switch (toolUse.name) {
-      case "fetch_url": {
-        const response = await fetch("/api/tools/fetch", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(toolUse.input),
-        });
-
-        if (!response.ok) {
-          const error = await response.text();
-          throw new Error(`Tool execution failed: ${error}`);
-        }
-
-        return await response.json();
-      }
-      case "calculator": {
-        const response = await fetch("/api/tools/calculator", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(toolUse.input),
-        });
-
-        if (!response.ok) {
-          const error = await response.text();
-          throw new Error(`Calculator execution failed: ${error}`);
-        }
-
-        return await response.json();
-      }
-      default:
-        throw new Error(`Unknown tool: ${toolUse.name}`);
     }
   }
 

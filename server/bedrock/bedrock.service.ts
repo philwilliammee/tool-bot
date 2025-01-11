@@ -7,7 +7,7 @@ import {
   ToolConfiguration,
 } from "@aws-sdk/client-bedrock-runtime";
 import { fetchToolConfig } from "./tools/fetch/fetch.config";
-import { calculatorToolConfig } from "./tools/calculator/calculator.config";
+import { mathToolConfig } from "./tools/mathTool/mathTool.config";
 
 export interface BedrockServiceConfig {
   region: string;
@@ -102,9 +102,9 @@ export class BedrockService {
 
   private getToolConfig(): ToolConfiguration {
     const fetchToolToolsConfig = fetchToolConfig.tools || [];
-    const calculatorToolToolsConfig = calculatorToolConfig.tools || [];
+    const mathToolConfigToolsConfig = mathToolConfig.tools || [];
     return {
-      tools: [...fetchToolToolsConfig, ...calculatorToolToolsConfig],
+      tools: [...fetchToolToolsConfig, ...mathToolConfigToolsConfig],
     };
   }
 }

@@ -157,10 +157,14 @@ Based on the repository data:
 <p>Examples of calculations the assistant can perform:</p>
 
 <ul>
-  <li>"What is 234 * 456?"</li>
-  <li>"Calculate the sum of 10, 20, 30, and 40"</li>
-  <li>"Evaluate the expression: 2 * (3 + 4) / 2"</li>
-  <li>"What's 15% of 80?"</li>
+  <li>"Calculate the standard deviation of [23, 45, 67, 89, 12, 34]"</li>
+  <li>"What's the mean and median of [125, 475, 275, 550, 325, 225]?"</li>
+  <li>"Convert 145 km/h to mph and round to 2 decimal places"</li>
+  <li>"What's the compound interest on $1000 at 5% APR for 3 years? Use (1000 * (1 + 0.05)^3)"</li>
+  <li>"Find the area of a circle with radius 7.5 using pi * r^2"</li>
+  <li>"Calculate sin(45°) * sqrt(256) + cos(30°)"</li>
+  <li>"Find the determinant of matrix [-2, 3, 1; 4, -5, 2; 1, -3, 2]"</li>
+  <li>"What's a 23% increase from 450, then decreased by 15%?"</li>
 </ul>
 
 <h4>Example Interaction:</h4>
