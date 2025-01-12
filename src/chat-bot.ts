@@ -81,7 +81,7 @@ Remember: Your goal is to provide helpful and accurate information while making 
         )?.toolUse;
 
         if (toolUse) {
-          // Add tool request to chat
+          // Add tool request to chat this doesn't make ay sense why wouldn't I just update the chat context and then generateResponse just takes the chat context and doesn't get passed it.
           chatContext.addAssistantMessage(
             `I need to use the ${
               toolUse.name
@@ -95,11 +95,7 @@ Remember: Your goal is to provide helpful and accurate information while making 
 
             // Add tool result to chat
             chatContext.addUserMessage(
-              `Tool ${toolUse.name} returned: ${JSON.stringify(
-                toolResult,
-                null,
-                2
-              )}`
+              `Tool ${toolUse.name} returned: ${JSON.stringify(toolResult)}`
             );
 
             truncatedMessages.push({
@@ -107,15 +103,21 @@ Remember: Your goal is to provide helpful and accurate information while making 
               content: response.output?.message?.content || [],
             });
 
+            const toolResultContent: ToolResultBlock = {
+              toolUseId: toolUse.toolUseId,
+              content: [
+                {
+                  text: JSON.stringify(toolResult),
+                },
+              ],
+              status: "success",
+            };
+
             truncatedMessages.push({
               role: "user",
               content: [
                 {
-                  toolResult: {
-                    toolUseId: toolUse.toolUseId,
-                    content: [{ json: toolResult }],
-                    status: toolResult.error ? "error" : "success",
-                  },
+                  toolResult: toolResultContent,
                 },
               ],
             });
@@ -151,11 +153,11 @@ Remember: Your goal is to provide helpful and accurate information while making 
       throw error;
     }
   }
-
   // need to find a better way to do this.
   // There may be issues here with out of order or user message not first.
   private truncateMessages(messages: Message[]): Message[] {
-    return messages.slice(-ChatBot.MAX_MESSAGES);
+    return messages;
+    // return messages.slice(-ChatBot.MAX_MESSAGES);
   }
 }
 
