@@ -7,7 +7,6 @@
 </blockquote>
 
 <h2>Features</h2>
-
 <ul>
   <li>AI-powered conversational interface</li>
   <li>Real-time chat interactions</li>
@@ -17,7 +16,6 @@
 </ul>
 
 <h2>Quick Start</h2>
-
 <ol>
   <li>Clone and setup environment:
     <pre><code>git clone https://github.com/[your-username]/ai-chat-assistant
@@ -41,7 +39,6 @@ npm run dev</code></pre>
 </ol>
 
 <h2>API Integration</h2>
-
 <p>Currently, this project uses AWS Bedrock as its AI provider, specifically designed to work with Amazon's Large Language Models through the Bedrock API. However, the project is structured to potentially support other AI providers.</p>
 
 <h3>Supported:</h3>
@@ -71,7 +68,6 @@ npm run dev</code></pre>
 <p>Check the <code>src/bedrock/bedrock.service.ts</code> file for an example of how API integration is currently implemented.</p>
 
 <h2>Technical Architecture</h2>
-
 <ul>
   <li>Built with TypeScript and Vite</li>
   <li>AWS Bedrock integration for AI capabilities</li>
@@ -81,25 +77,23 @@ npm run dev</code></pre>
 </ul>
 
 <h3>Key Components</h3>
-
 <ul>
-  <li>Chat Interface: Handles user prompts and AI responses</li>
-  <li>Message History: Maintains conversation context</li>
-  <li>Error Handling: Automatic retry mechanism for API failures</li>
+  <li><strong>Chat Context (chatContext)</strong>: Holds the entire conversation. Automatically handles AWS Bedrock calls whenever a new <code>user</code> message is added, and executes tools if an <code>assistant</code> message includes a <code>toolUse</code> block.</li>
+  <li><strong>Chat Interface (Chat.ts)</strong>: Primarily a UI layer. Listens to user input, adds new messages to the context, and renders updates whenever the context changes.</li>
+  <li><strong>Work Area</strong>: Provides an admin interface to view/edit messages and manage the conversation history.</li>
+  <li><strong>Error Handling</strong>: A robust but still development-level approach that attempts to retry errors; not production-ready.</li>
 </ul>
 
 <h2>Limitations</h2>
-
 <ul>
   <li>Development tool only, not production-ready</li>
   <li>Requires AWS Bedrock access</li>
   <li>Maximum token limitations apply</li>
-  <li>No persistent storage</li>
+  <li>No persistent storage outside of local storage</li>
   <li>Limited to text-based interactions</li>
 </ul>
 
 <h2>Contributing</h2>
-
 <ol>
   <li>Fork the repository</li>
   <li>Create a feature branch</li>
@@ -109,7 +103,6 @@ npm run dev</code></pre>
 </ol>
 
 <h2>Development Roadmap</h2>
-
 <ul>
   <li>[x] Chat admin editor interface</li>
   <li>[hold for later] Improved error handling and validation</li>
@@ -118,22 +111,15 @@ npm run dev</code></pre>
   <li>[ ] Additional tool support</li>
 </ul>
 
-tool ideas:
+<p>We now support an <strong>automated chat flow</strong> where the context automatically calls the LLM on new user messages, and if an <code>assistant</code> message contains a <code>toolUse</code> request, the appropriate tool is invoked automatically.</p>
 
-Calculator functions
-Data analysis capabilities
-URL processing
-File handling
-Integration with external APIs
+<hr />
 
-<!-- Add after the existing sections -->
 <h2>Tool Usage Examples</h2>
-
-How do you calculate the area of a circle give examples.
+<p>Below are some usage examples illustrating the <strong>Fetch Tool</strong> and <strong>Calculator Tool</strong>.</p>
 
 <h3>HTTP Fetch Tool</h3>
 <p>Examples of queries the assistant can handle:</p>
-
 <ul>
   <li>"Could you fetch information about the React repository from GitHub's API?"</li>
   <li>"Fetch and analyze the package.json from this repository"</li>
@@ -157,7 +143,6 @@ Based on the repository data:
 
 <h3>Calculator Tool</h3>
 <p>Examples of calculations the assistant can perform:</p>
-
 <ul>
   <li>"Calculate the standard deviation of [23, 45, 67, 89, 12, 34]"</li>
   <li>"What's the mean and median of [125, 475, 275, 550, 325, 225]?"</li>

@@ -1,10 +1,9 @@
 import { Message } from "@aws-sdk/client-bedrock-runtime";
-import { chatContext } from "../../chat-context";
 import { ButtonSpinner } from "../ButtonSpinner/ButtonSpinner";
-import { chatBot } from "../../chat-bot";
 import { store } from "../../stores/AppStore";
 import { effect } from "@preact/signals-core";
 import { WorkArea } from "../WorkArea/WorkArea";
+import { chatContext } from "./chat-context";
 
 interface ChatMessage {
   role: "user" | "assistant";
@@ -25,11 +24,11 @@ export class Chat {
   private cleanupFns: Array<() => void> = [];
 
   constructor(dependencies: ChatDependencies) {
-    // Store work area reference
+    // 1) WorkArea for the message table & modals
     this.workArea = dependencies.workArea;
     new WorkArea(this.workArea);
 
-    // Initialize DOM elements
+    // 2) Get DOM elements
     this.promptInput = document.querySelector(
       ".prompt-input"
     ) as HTMLTextAreaElement;
@@ -39,16 +38,17 @@ export class Chat {
       throw new Error("Required DOM elements not found");
     }
 
-    // Setup spinner and button
+    // 3) Spinner & send button
     this.buttonSpinner = new ButtonSpinner();
     this.button = this.buttonSpinner.getElement();
     this.button.onclick = this.handleGenerate;
     this.promptInput.onkeydown = this.handleKeyDown;
 
-    // Initialize styles and listeners
+    // 4) Listen for message changes & re-render
     chatContext.onMessagesChange(this.updateChatUI);
 
-    // Setup loading state effect
+    // 5) Signals-based effects
+    //   a) Show spinner if generating
     this.cleanupFns.push(
       effect(() => {
         const isGenerating = store.isGenerating.value;
@@ -57,7 +57,7 @@ export class Chat {
       })
     );
 
-    // Setup error prompt handling
+    //   b) If there's a pending error prompt, fill the input
     this.cleanupFns.push(
       effect(() => {
         const errorPrompt = store.pendingErrorPrompt.value;
@@ -71,14 +71,28 @@ export class Chat {
   private async handleErrorPrompt(prompt: string) {
     this.promptInput.value = prompt;
     store.clearPendingErrorPrompt();
-    await this.generateResponse();
+    // No LLM call here — the user can just press send or we can auto-send if desired
   }
 
   private handleGenerate = (e: MouseEvent): void => {
     e.preventDefault();
-    if (!store.isGenerating.value) {
-      this.generateResponse();
+    if (store.isGenerating.value) return; // skip if currently generating
+
+    // 1) Grab text
+    const prompt = this.promptInput.value.trim();
+    if (!prompt) {
+      store.showToast("Please type something before sending");
+      return;
     }
+
+    // 2) Add user message to chat
+    chatContext.addMessage({
+      role: "user",
+      content: [{ text: prompt }],
+    });
+
+    // 3) Clear input
+    this.promptInput.value = "";
   };
 
   private handleKeyDown = (e: KeyboardEvent): void => {
@@ -88,160 +102,120 @@ export class Chat {
     }
   };
 
-  private async generateResponse(retries = 1): Promise<void> {
-    const prompt = this.promptInput?.value.trim();
-    if (!prompt || store.isGenerating.value) return;
-
-    chatContext.addUserMessage(prompt);
-    store.setGenerating(true);
-    store.setError(null);
-
-    try {
-      for (let attempt = 0; attempt <= retries; attempt++) {
-        try {
-          const messages = chatContext.getTruncatedHistory();
-          const response = await chatBot.generateResponse(messages);
-
-          chatContext.addAssistantMessage(response);
-          this.promptInput.value = "";
-          store.showToast("Response generated successfully ✨");
-          break;
-        } catch (error: any) {
-          if (attempt === retries) throw error;
-          const errorMessage = `Attempt ${attempt + 1} failed: ${
-            error.message
-          }. Retrying...`;
-          chatContext.addAssistantMessage(errorMessage);
-          store.showToast(`Retrying attempt ${attempt + 1} of ${retries} ⏳`);
-          await new Promise((resolve) => setTimeout(resolve, 1000));
-        }
-      }
-    } catch (error: any) {
-      store.setError(error.message);
-      chatContext.addAssistantMessage(
-        `Error generating response: ${error.message}`
-      );
-      store.showToast("Error generating response ❌");
-    } finally {
-      store.setGenerating(false);
-    }
-  }
-
+  /**
+   * Whenever chatContext changes, re-render the chat window.
+   */
   private updateChatUI = (messages: Message[]): void => {
     this.chatMessages.innerHTML = "";
-    let lastAssistantMessageIndex = -1;
 
-    // Find the index of the last assistant message
+    // Find the last assistant message index for the "read more" logic
+    let lastAssistantIdx = -1;
     for (let i = messages.length - 1; i >= 0; i--) {
       if (messages[i].role === "assistant") {
-        lastAssistantMessageIndex = i;
+        lastAssistantIdx = i;
         break;
       }
     }
 
+    // Render each message block
     messages.forEach((message, index) => {
-      if (message.role === "user") {
-        message.content?.forEach((content) => {
-          this.appendMessageToDOM(
-            {
-              role: message.role || "user",
-              message: content.text || "",
-              timestamp: new Date(),
-            },
-            index === lastAssistantMessageIndex
-          );
-        });
-      } else {
-        const content = message.content?.[0]?.text;
-        if (content) {
-          this.appendMessageToDOM(
-            {
-              role: message.role || "assistant",
-              message: content,
-              timestamp: new Date(),
-            },
-            index === lastAssistantMessageIndex
-          );
+      message.content?.forEach((block) => {
+        if (block.text) {
+          // Normal text
+          const chatMsg: ChatMessage = {
+            role: message.role || "assistant",
+            message: block.text,
+            timestamp: new Date(),
+          };
+          const isLatestAIMessage = index === lastAssistantIdx;
+          this.appendMessageToDOM(chatMsg, isLatestAIMessage);
+        } else if (block.toolResult) {
+          // Tool result (JSON)
+          const toolResultJson = JSON.stringify(block.toolResult, null, 2);
+          const chatMsg: ChatMessage = {
+            role: message.role || "assistant",
+            message: `Tool Result:\n${toolResultJson}`,
+            timestamp: new Date(),
+          };
+          this.appendMessageToDOM(chatMsg, false);
         }
-      }
+        // If there's .toolUse or other block types, handle similarly
+      });
     });
+
+    // Scroll to bottom
+    this.chatMessages.scrollTop = this.chatMessages.scrollHeight;
   };
 
-  private appendMessageToDOM(
-    message: ChatMessage,
-    isLatestAIMessage: boolean
-  ): void {
-    const messageElement = document.createElement("div");
-    messageElement.className = `chat-message ${message.role}`;
+  private appendMessageToDOM(message: ChatMessage, isLatestAI: boolean): void {
+    const msgElem = document.createElement("div");
+    msgElem.className = `chat-message ${message.role}`;
 
     const contentWrapper = document.createElement("div");
     contentWrapper.className = "message-content-wrapper";
 
-    const formattedContent = this.formatMessageContent(message.message);
+    const formatted = this.formatMessageContent(message.message);
 
     if (message.message.length > 300) {
-      const previewContent = document.createElement("div");
-      previewContent.className = "message-preview";
-      previewContent.innerHTML = formattedContent.slice(0, 300) + "...";
+      // "Read more" approach
+      const preview = document.createElement("div");
+      preview.className = "message-preview";
+      preview.innerHTML = formatted.slice(0, 300) + "...";
 
-      const fullContent = document.createElement("div");
-      fullContent.className = "message-full-content";
-      fullContent.innerHTML = formattedContent;
+      const full = document.createElement("div");
+      full.className = "message-full-content";
+      full.innerHTML = formatted;
 
-      const toggleButton = document.createElement("button");
-      toggleButton.className = "read-more-btn";
-      toggleButton.textContent = "Show less";
-      toggleButton.onclick = () => {
-        fullContent.classList.toggle("hidden");
-        previewContent.classList.toggle("hidden");
-        toggleButton.textContent = fullContent.classList.contains("hidden")
+      const toggleBtn = document.createElement("button");
+      toggleBtn.className = "read-more-btn";
+      toggleBtn.textContent = "Show less";
+      toggleBtn.onclick = () => {
+        full.classList.toggle("hidden");
+        preview.classList.toggle("hidden");
+        toggleBtn.textContent = full.classList.contains("hidden")
           ? "Read more"
           : "Show less";
       };
 
-      // Set initial state based on whether this is the latest AI message
-      if (!isLatestAIMessage) {
-        fullContent.classList.add("hidden");
-        previewContent.classList.remove("hidden");
-        toggleButton.textContent = "Read more";
+      if (!isLatestAI) {
+        full.classList.add("hidden");
+        preview.classList.remove("hidden");
+        toggleBtn.textContent = "Read more";
       } else {
-        fullContent.classList.remove("hidden");
-        previewContent.classList.add("hidden");
+        full.classList.remove("hidden");
+        preview.classList.add("hidden");
       }
 
-      contentWrapper.appendChild(previewContent);
-      contentWrapper.appendChild(fullContent);
-      contentWrapper.appendChild(toggleButton);
+      contentWrapper.appendChild(preview);
+      contentWrapper.appendChild(full);
+      contentWrapper.appendChild(toggleBtn);
     } else {
-      contentWrapper.innerHTML = formattedContent;
+      // Short content, display as-is
+      contentWrapper.innerHTML = formatted;
     }
 
-    messageElement.appendChild(contentWrapper);
-    this.chatMessages.appendChild(messageElement);
-    this.chatMessages.scrollTop = this.chatMessages.scrollHeight;
+    msgElem.appendChild(contentWrapper);
+    this.chatMessages.appendChild(msgElem);
   }
 
   private formatMessageContent(content: string): string {
+    // Basic formatting + code block highlighting
     return content
       .replace(/\n/g, "<br>")
       .replace(
         /```([\s\S]*?)```/g,
         (_, code) => `
-      <pre class="code-block"><code>${code.trim()}</code></pre>
-    `
+          <pre class="code-block"><code>${code.trim()}</code></pre>
+        `
       )
       .replace(/`([^`]+)`/g, "<code>$1</code>");
   }
 
   public destroy(): void {
-    // Clean up all effects
-    this.cleanupFns.forEach((cleanup) => cleanup());
-
-    // Remove event listeners
+    // Cleanup
+    this.cleanupFns.forEach((fn) => fn());
     this.button.onclick = null;
     this.promptInput.onkeydown = null;
-
-    // Clean up components
     this.buttonSpinner.destroy();
   }
 }
