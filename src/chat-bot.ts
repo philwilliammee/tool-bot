@@ -1,4 +1,8 @@
-import { Message, ConverseResponse } from "@aws-sdk/client-bedrock-runtime";
+import {
+  Message,
+  ConverseResponse,
+  ToolResultBlock,
+} from "@aws-sdk/client-bedrock-runtime";
 import { postBedrock } from "./apiClient";
 import { chatContext } from "./chat-context";
 import { fetchTool } from "./tools/fetch/fetch.tool";
@@ -23,7 +27,7 @@ interface ToolUse {
 }
 
 export class ChatBot {
-  private static MAX_MESSAGES = 5;
+  private static MAX_MESSAGES = 7;
   private modelId: string;
   private systemPrompt: string;
 
@@ -49,7 +53,7 @@ Guidelines:
 Remember: Your goal is to provide helpful and accurate information while making effective use of available tools.`;
   }
 
-  private async executeToolRequest(toolUse: any): Promise<any> {
+  private async executeToolRequest(toolUse: ToolUse): Promise<any> {
     switch (toolUse.name) {
       case "math":
         return await mathTool.execute(toolUse.input);
@@ -83,7 +87,6 @@ Remember: Your goal is to provide helpful and accurate information while making 
               toolUse.name
             } tool. Making request to: ${JSON.stringify(toolUse.input)}`
           );
-
           try {
             // Execute tool
             const toolResult = await this.executeToolRequest(
@@ -121,6 +124,8 @@ Remember: Your goal is to provide helpful and accurate information while making 
             return this.generateResponse(truncatedMessages);
           } catch (error: any) {
             // Add error to chat
+            // (todo handle this)
+
             chatContext.addUserMessage(
               `Tool execution failed: ${error.message}`
             );
@@ -147,6 +152,8 @@ Remember: Your goal is to provide helpful and accurate information while making 
     }
   }
 
+  // need to find a better way to do this.
+  // There may be issues here with out of order or user message not first.
   private truncateMessages(messages: Message[]): Message[] {
     return messages.slice(-ChatBot.MAX_MESSAGES);
   }

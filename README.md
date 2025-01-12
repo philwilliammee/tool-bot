@@ -129,6 +129,8 @@ Integration with external APIs
 <!-- Add after the existing sections -->
 <h2>Tool Usage Examples</h2>
 
+How do you calculate the area of a circle give examples.
+
 <h3>HTTP Fetch Tool</h3>
 <p>Examples of queries the assistant can handle:</p>
 
