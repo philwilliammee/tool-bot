@@ -50,7 +50,7 @@ export class MessageTable {
                   }
                   return "[Unknown block type]";
                 })
-                .join(" | "); // You can choose any separator you like
+                .join(" | ");
 
               // Basic date/time (or you could store a timestamp in the message object)
               const timestamp = new Date().toLocaleString();
