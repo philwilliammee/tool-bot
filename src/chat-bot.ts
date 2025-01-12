@@ -53,7 +53,7 @@ Guidelines:
 Remember: Your goal is to provide helpful and accurate information while making effective use of available tools.`;
   }
 
-  private async executeToolRequest(toolUse: ToolUse): Promise<any> {
+  public async executeToolRequest(toolUse: ToolUse): Promise<any> {
     switch (toolUse.name) {
       case "math":
         return await mathTool.execute(toolUse.input);

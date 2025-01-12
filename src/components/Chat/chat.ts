@@ -10,7 +10,7 @@ import { effect } from "@preact/signals-core";
 import { WorkArea } from "../WorkArea/WorkArea";
 import { postBedrock } from "../../apiClient";
 import { ToolUse } from "../../types/tool.types";
-
+import { chatBot } from "../../chat-bot";
 /**
  * Optional: You might configure these in your .env or somewhere else.
  * For example, if you have VITE_BEDROCK_MODEL_ID / systemPrompt somewhere:
@@ -214,23 +214,9 @@ export class Chat {
    * or a router. Here, we just show a placeholder:
    */
   private async executeToolRequest(toolUse: ToolUse): Promise<ToolResultBlock> {
-    // For example, you might have:
-    // const tool = clientTools.find((t) => t.name === toolUse.name);
-    // if (!tool) throw new Error("Tool not found");
-    // const result = await tool.execute(toolUse.input);
-
-    // Here is a dummy response just as an example
-    return {
-      toolUseId: toolUse.toolUseId,
-      content: [
-        {
-          text: `Dummy result from tool [${
-            toolUse.name
-          }] with input: ${JSON.stringify(toolUse.input)}`,
-        },
-      ],
-      status: "success",
-    };
+    // @todo improve the typing on this.
+    const result = chatBot.executeToolRequest(toolUse);
+    return result;
   }
 
   /**
