@@ -21,6 +21,7 @@ export class MessageTable {
     if (!this.container) return;
     const messages = chatContext.getMessages();
 
+    // Build the table HTML
     this.container.innerHTML = `
       <table class="chat-admin-table">
         <thead>
@@ -35,47 +36,69 @@ export class MessageTable {
         <tbody>
           ${messages
             .map((message, index) => {
-              const content = message.content?.[0]?.text || "";
+              // Convert all content blocks into a single string
+              const combinedContent = (message.content || [])
+                .map((block) => {
+                  if (block.text) {
+                    return block.text;
+                  }
+                  if (block.toolResult) {
+                    return `Tool result: ${JSON.stringify(block.toolResult)}`;
+                  }
+                  if (block.toolUse) {
+                    return `Tool use: ${JSON.stringify(block.toolUse)}`;
+                  }
+                  return "[Unknown block type]";
+                })
+                .join(" | "); // You can choose any separator you like
+
+              // Basic date/time (or you could store a timestamp in the message object)
               const timestamp = new Date().toLocaleString();
 
               return `
-              <tr data-message-index="${index}" draggable="true" class="message-row">
-                <td class="drag-handle">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <circle cx="9" cy="12" r="1"></circle>
-                    <circle cx="9" cy="5" r="1"></circle>
-                    <circle cx="9" cy="19" r="1"></circle>
-                    <circle cx="15" cy="12" r="1"></circle>
-                    <circle cx="15" cy="5" r="1"></circle>
-                    <circle cx="15" cy="19" r="1"></circle>
-                  </svg>
-                </td>
-                <td>
-                  <span class="role-badge role-${message.role}">${message.role}</span>
-                </td>
-                <td class="message-content">${content}</td>
-                <td>${timestamp}</td>
-                <td>
-                  <div class="action-buttons">
-                    <button class="action-btn view-btn" data-action="view" data-index="${index}">
-                      View
-                    </button>
-                    <button class="action-btn edit-btn" data-action="edit" data-index="${index}">
-                      Edit
-                    </button>
-                    <button class="action-btn delete-btn" data-action="delete" data-index="${index}">
-                      Delete
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            `;
+                <tr data-message-index="${index}" draggable="true" class="message-row">
+                  <td class="drag-handle">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16"
+                         viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                         stroke-width="2">
+                      <circle cx="9" cy="12" r="1"></circle>
+                      <circle cx="9" cy="5" r="1"></circle>
+                      <circle cx="9" cy="19" r="1"></circle>
+                      <circle cx="15" cy="12" r="1"></circle>
+                      <circle cx="15" cy="5" r="1"></circle>
+                      <circle cx="15" cy="19" r="1"></circle>
+                    </svg>
+                  </td>
+                  <td>
+                    <span class="role-badge role-${message.role}">${message.role}</span>
+                  </td>
+                  <td class="message-content">${combinedContent}</td>
+                  <td>${timestamp}</td>
+                  <td>
+                    <div class="action-buttons">
+                      <button class="action-btn view-btn"
+                              data-action="view" data-index="${index}">
+                        View
+                      </button>
+                      <button class="action-btn edit-btn"
+                              data-action="edit" data-index="${index}">
+                        Edit
+                      </button>
+                      <button class="action-btn delete-btn"
+                              data-action="delete" data-index="${index}">
+                        Delete
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              `;
             })
             .join("")}
         </tbody>
       </table>
     `;
 
+    // Attach event listeners
     this.setupEventListeners();
   }
 

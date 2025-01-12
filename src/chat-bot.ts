@@ -64,45 +64,48 @@ Remember: Your goal is to provide helpful and accurate information while making 
     }
   }
 
-  public async generateResponse(messages: Message[]): Promise<string> {
-    const truncatedMessages = this.truncateMessages(messages);
-
+  public async generateResponse(): Promise<string> {
     try {
+      // Get all messages directly from chatContext
+      const messages = chatContext.getMessages();
+
+      // Call Bedrock with the current message history
       const response: ConverseResponse = await postBedrock(
         this.modelId,
-        truncatedMessages,
+        messages,
         this.systemPrompt
       );
 
-      // Check for tool use first
+      // Check if the model wants to use a tool
       if (response.stopReason === "tool_use") {
-        const toolUse = response.output?.message?.content?.find(
+        const message = response.output?.message;
+        const toolUse = message?.content?.find(
           (content) => content.toolUse
         )?.toolUse;
 
-        if (toolUse) {
-          // Add tool request to chat this doesn't make ay sense why wouldn't I just update the chat context and then generateResponse just takes the chat context and doesn't get passed it.
-          chatContext.addAssistantMessage(
-            `I need to use the ${
-              toolUse.name
-            } tool. Making request to: ${JSON.stringify(toolUse.input)}`
-          );
+        if (message && toolUse) {
+          // Add the assistant's request to use a tool
+          chatContext.addMessage(message);
+
           try {
-            // Execute tool
-            const toolResult = await this.executeToolRequest(
+            // Execute the requested tool
+            const toolResult: ToolResultBlock = await this.executeToolRequest(
               toolUse as ToolUse
             );
 
-            // Add tool result to chat
-            chatContext.addUserMessage(
-              `Tool ${toolUse.name} returned: ${JSON.stringify(toolResult)}`
-            );
+            // Add a "user" message describing the tool result
+            // chatContext.addMessage({
+            //   role: "user",
+            //   content: [
+            //     {
+            //       text: `Tool ${toolUse.name} returned: ${JSON.stringify(
+            //         toolResult
+            //       )}`,
+            //     },
+            //   ],
+            // });
 
-            truncatedMessages.push({
-              role: "assistant",
-              content: response.output?.message?.content || [],
-            });
-
+            // Also append a toolResult block if necessary
             const toolResultContent: ToolResultBlock = {
               toolUseId: toolUse.toolUseId,
               content: [
@@ -113,30 +116,26 @@ Remember: Your goal is to provide helpful and accurate information while making 
               status: "success",
             };
 
-            truncatedMessages.push({
+            // Add another message if you want the LLM to see that “toolResult” property:
+            chatContext.addMessage({
               role: "user",
-              content: [
-                {
-                  toolResult: toolResultContent,
-                },
-              ],
+              content: [{ toolResult: toolResultContent }],
             });
 
-            // Continue conversation with tool result
-            return this.generateResponse(truncatedMessages);
+            // Recursively call generateResponse() so the LLM can interpret the tool result
+            return this.generateResponse();
           } catch (error: any) {
-            // Add error to chat
-            // (todo handle this)
-
-            chatContext.addUserMessage(
-              `Tool execution failed: ${error.message}`
-            );
+            // Add an error message if the tool execution fails
+            chatContext.addMessage({
+              role: "user",
+              content: [{ text: `Tool execution failed: ${error.message}` }],
+            });
             throw error;
           }
         }
       }
 
-      // Extract regular text content
+      // If there's no tool use, just extract the text content
       const messageContent = response.output?.message?.content;
       if (!messageContent || messageContent.length === 0) {
         throw new Error("No content in response");
@@ -153,6 +152,7 @@ Remember: Your goal is to provide helpful and accurate information while making 
       throw error;
     }
   }
+
   // need to find a better way to do this.
   // There may be issues here with out of order or user message not first.
   private truncateMessages(messages: Message[]): Message[] {

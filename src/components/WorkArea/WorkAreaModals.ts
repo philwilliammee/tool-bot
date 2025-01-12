@@ -148,17 +148,39 @@ export class WorkAreaModals {
     document.body.appendChild(this.newDialog);
   }
 
+  /**
+   * Show all text blocks in the message. If there are tool results, etc.,
+   * you can also handle them here, or keep it simple (like below).
+   */
   public showViewModal(message: Message): void {
     const detailsElement = this.viewDialog.querySelector(".message-details");
     if (detailsElement) {
-      const content = message.content?.[0]?.text || "";
+      // Build a multiline string that shows each block in the message
+      const allBlocks = (message.content || [])
+        .map((block) => {
+          if (block.text) {
+            // Plain text
+            return block.text;
+          } else if (block.toolResult) {
+            // Tool result
+            return `TOOL RESULT:\n${JSON.stringify(block.toolResult, null, 2)}`;
+          } else if (block.toolUse) {
+            // Tool usage
+            return `TOOL USAGE:\n${JSON.stringify(block.toolUse, null, 2)}`;
+          } else {
+            // Unknown type
+            return "[Unknown block type]";
+          }
+        })
+        .join("\n---\n"); // separator of your choice
+
       detailsElement.innerHTML = `
         <div class="message-detail">
           <strong>Role:</strong> ${message.role}
         </div>
         <div class="message-detail">
           <strong>Content:</strong>
-          <pre>${content}</pre>
+          <pre>${allBlocks}</pre>
         </div>
         <div class="message-detail">
           <strong>Timestamp:</strong> ${new Date().toLocaleString()}
@@ -172,6 +194,8 @@ export class WorkAreaModals {
     message: Message,
     onSave: (content: string) => void
   ): void {
+    // For simplicity, just show/edit the FIRST text block
+    // If you'd like to handle multiple text blocks, update accordingly
     const textarea = this.editDialog.querySelector(
       "#messageContent"
     ) as HTMLTextAreaElement;

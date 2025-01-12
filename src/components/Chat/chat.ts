@@ -1,10 +1,22 @@
-import { Message } from "@aws-sdk/client-bedrock-runtime";
+import {
+  ConverseResponse,
+  Message,
+  ToolResultBlock,
+} from "@aws-sdk/client-bedrock-runtime";
 import { chatContext } from "../../chat-context";
 import { ButtonSpinner } from "../ButtonSpinner/ButtonSpinner";
-import { chatBot } from "../../chat-bot";
 import { store } from "../../stores/AppStore";
 import { effect } from "@preact/signals-core";
 import { WorkArea } from "../WorkArea/WorkArea";
+import { postBedrock } from "../../apiClient";
+import { ToolUse } from "../../types/tool.types";
+
+/**
+ * Optional: You might configure these in your .env or somewhere else.
+ * For example, if you have VITE_BEDROCK_MODEL_ID / systemPrompt somewhere:
+ */
+const DEFAULT_SYSTEM_PROMPT = `You are a helpful assistant with tools.`;
+const DEFAULT_MODEL_ID = import.meta.env.VITE_BEDROCK_MODEL_ID || "my-model-id";
 
 interface ChatMessage {
   role: "user" | "assistant";
@@ -23,6 +35,10 @@ export class Chat {
   private button: HTMLButtonElement;
   private workArea: HTMLElement;
   private cleanupFns: Array<() => void> = [];
+
+  // You can inject or hardcode these. Shown here as properties:
+  private modelId: string = DEFAULT_MODEL_ID;
+  private systemPrompt: string = DEFAULT_SYSTEM_PROMPT;
 
   constructor(dependencies: ChatDependencies) {
     // Store work area reference
@@ -45,10 +61,10 @@ export class Chat {
     this.button.onclick = this.handleGenerate;
     this.promptInput.onkeydown = this.handleKeyDown;
 
-    // Initialize styles and listeners
+    // Listen for message changes in the context
     chatContext.onMessagesChange(this.updateChatUI);
 
-    // Setup loading state effect
+    // Loading state effect
     this.cleanupFns.push(
       effect(() => {
         const isGenerating = store.isGenerating.value;
@@ -57,7 +73,7 @@ export class Chat {
       })
     );
 
-    // Setup error prompt handling
+    // Error prompt handling
     this.cleanupFns.push(
       effect(() => {
         const errorPrompt = store.pendingErrorPrompt.value;
@@ -76,9 +92,31 @@ export class Chat {
 
   private handleGenerate = (e: MouseEvent): void => {
     e.preventDefault();
-    if (!store.isGenerating.value) {
-      this.generateResponse();
+
+    // If we’re already generating, skip
+    if (store.isGenerating.value) return;
+
+    // 1) Get the typed text
+    const prompt = this.promptInput.value.trim();
+    if (!prompt) {
+      // Optionally show a toast or just return
+      store.showToast("Please type something before sending");
+      return;
     }
+
+    // 2) Add user message to chatContext
+    chatContext.addMessage({
+      role: "user",
+      content: [{ text: prompt }],
+    });
+
+    // Clear the textbox now or after the LLM response
+    this.promptInput.value = "";
+
+    // 3) Call generateResponse
+    this.generateResponse().catch((err) => {
+      console.error("Error generating response:", err);
+    });
   };
 
   private handleKeyDown = (e: KeyboardEvent): void => {
@@ -88,50 +126,121 @@ export class Chat {
     }
   };
 
-  private async generateResponse(retries = 1): Promise<void> {
-    const prompt = this.promptInput?.value.trim();
-    if (!prompt || store.isGenerating.value) return;
-
-    chatContext.addUserMessage(prompt);
-    store.setGenerating(true);
-    store.setError(null);
-
+  /**
+   * Main method to generate a response from the bedrock model.
+   * If the response requires a tool, we use `executeToolRequest()`
+   * and store the result in chatContext, then recurse.
+   */
+  public async generateResponse(): Promise<string> {
     try {
-      for (let attempt = 0; attempt <= retries; attempt++) {
-        try {
-          const messages = chatContext.getTruncatedHistory();
-          const response = await chatBot.generateResponse(messages);
+      store.setGenerating(true);
 
-          chatContext.addAssistantMessage(response);
-          this.promptInput.value = "";
-          store.showToast("Response generated successfully ✨");
-          break;
-        } catch (error: any) {
-          if (attempt === retries) throw error;
-          const errorMessage = `Attempt ${attempt + 1} failed: ${
-            error.message
-          }. Retrying...`;
-          chatContext.addAssistantMessage(errorMessage);
-          store.showToast(`Retrying attempt ${attempt + 1} of ${retries} ⏳`);
-          await new Promise((resolve) => setTimeout(resolve, 1000));
+      // 1) Pull messages from chatContext
+      const messages = chatContext.getMessages();
+
+      // 2) Call Bedrock
+      const response: ConverseResponse = await postBedrock(
+        this.modelId,
+        messages,
+        this.systemPrompt
+      );
+
+      // 3) Check for tool use
+      if (response.stopReason === "tool_use") {
+        const message = response.output?.message;
+        const toolUse = message?.content?.find((c) => c.toolUse)?.toolUse;
+
+        if (message && toolUse) {
+          chatContext.addMessage(message);
+          try {
+            const toolResult: ToolResultBlock = await this.executeToolRequest(
+              toolUse as ToolUse
+            );
+
+            // Build toolResult block
+            const toolResultContent: ToolResultBlock = {
+              toolUseId: toolUse.toolUseId,
+              content: [{ text: JSON.stringify(toolResult) }],
+              status: "success",
+            };
+
+            // Add new user message with toolResult
+            chatContext.addMessage({
+              role: "user",
+              content: [{ toolResult: toolResultContent }],
+            });
+
+            // Recurse
+            return this.generateResponse();
+          } catch (error: any) {
+            chatContext.addMessage({
+              role: "user",
+              content: [{ text: `Tool execution failed: ${error.message}` }],
+            });
+            throw error;
+          }
         }
       }
-    } catch (error: any) {
-      store.setError(error.message);
-      chatContext.addAssistantMessage(
-        `Error generating response: ${error.message}`
-      );
-      store.showToast("Error generating response ❌");
+
+      // 4) If no tool usage, just parse text
+      const messageContent = response.output?.message?.content;
+      if (!messageContent || messageContent.length === 0) {
+        throw new Error("No content in response");
+      }
+
+      const textContent = messageContent.find((block) => block.text)?.text;
+      if (!textContent) {
+        throw new Error("No text content found in response");
+      }
+
+      // 5) Add the assistant’s message to chat context so the UI sees it
+      chatContext.addMessage({
+        role: "assistant",
+        content: messageContent, // the entire array of content blocks
+      });
+
+      return textContent;
+    } catch (error) {
+      console.error("Response generation failed:", error);
+      throw error;
     } finally {
       store.setGenerating(false);
     }
   }
 
+  /**
+   * Example method that looks up the correct tool
+   * and calls it. You may have a "clientTools" array
+   * or a router. Here, we just show a placeholder:
+   */
+  private async executeToolRequest(toolUse: ToolUse): Promise<ToolResultBlock> {
+    // For example, you might have:
+    // const tool = clientTools.find((t) => t.name === toolUse.name);
+    // if (!tool) throw new Error("Tool not found");
+    // const result = await tool.execute(toolUse.input);
+
+    // Here is a dummy response just as an example
+    return {
+      toolUseId: toolUse.toolUseId,
+      content: [
+        {
+          text: `Dummy result from tool [${
+            toolUse.name
+          }] with input: ${JSON.stringify(toolUse.input)}`,
+        },
+      ],
+      status: "success",
+    };
+  }
+
+  /**
+   * Renders the chat messages to the UI whenever chatContext updates.
+   */
   private updateChatUI = (messages: Message[]): void => {
     this.chatMessages.innerHTML = "";
     let lastAssistantMessageIndex = -1;
 
-    // Find the index of the last assistant message
+    // Find the last assistant message index
     for (let i = messages.length - 1; i >= 0; i--) {
       if (messages[i].role === "assistant") {
         lastAssistantMessageIndex = i;
@@ -139,32 +248,39 @@ export class Chat {
       }
     }
 
+    // Render each message
     messages.forEach((message, index) => {
-      if (message.role === "user") {
-        message.content?.forEach((content) => {
-          this.appendMessageToDOM(
-            {
-              role: message.role || "user",
-              message: content.text || "",
-              timestamp: new Date(),
-            },
-            index === lastAssistantMessageIndex
-          );
-        });
-      } else {
-        const content = message.content?.[0]?.text;
-        if (content) {
-          this.appendMessageToDOM(
-            {
-              role: message.role || "assistant",
-              message: content,
-              timestamp: new Date(),
-            },
-            index === lastAssistantMessageIndex
-          );
+      // Each message can have multiple content blocks
+      // We'll render each piece of text separately
+      message.content?.forEach((block) => {
+        // If block.text exists, treat it as regular text
+        if (block.text) {
+          const role = message.role || "assistant";
+          const chatMsg: ChatMessage = {
+            role,
+            message: block.text,
+            timestamp: new Date(),
+          };
+          const isLatestAIMessage = index === lastAssistantMessageIndex;
+          this.appendMessageToDOM(chatMsg, isLatestAIMessage);
+        } else if (block.toolResult) {
+          // If there's a toolResult block, you can display it differently if desired
+          // We'll just show JSON for now:
+          const role = message.role || "assistant";
+          const toolResultString = JSON.stringify(block.toolResult, null, 2);
+          const chatMsg: ChatMessage = {
+            role,
+            message: `Tool Result:\n${toolResultString}`,
+            timestamp: new Date(),
+          };
+          this.appendMessageToDOM(chatMsg, false);
         }
-      }
+        // If there's a .toolUse or other property, handle it similarly
+      });
     });
+
+    // Ensure we scroll to the bottom
+    this.chatMessages.scrollTop = this.chatMessages.scrollHeight;
   };
 
   private appendMessageToDOM(
@@ -179,6 +295,7 @@ export class Chat {
 
     const formattedContent = this.formatMessageContent(message.message);
 
+    // If content > 300 chars, we do "read more"
     if (message.message.length > 300) {
       const previewContent = document.createElement("div");
       previewContent.className = "message-preview";
@@ -199,7 +316,7 @@ export class Chat {
           : "Show less";
       };
 
-      // Set initial state based on whether this is the latest AI message
+      // If not the latest AI message, default to preview
       if (!isLatestAIMessage) {
         fullContent.classList.add("hidden");
         previewContent.classList.remove("hidden");
@@ -213,22 +330,23 @@ export class Chat {
       contentWrapper.appendChild(fullContent);
       contentWrapper.appendChild(toggleButton);
     } else {
+      // If short content, just display
       contentWrapper.innerHTML = formattedContent;
     }
 
     messageElement.appendChild(contentWrapper);
     this.chatMessages.appendChild(messageElement);
-    this.chatMessages.scrollTop = this.chatMessages.scrollHeight;
   }
 
   private formatMessageContent(content: string): string {
+    // Basic formatting + code block highlighting
     return content
       .replace(/\n/g, "<br>")
       .replace(
         /```([\s\S]*?)```/g,
         (_, code) => `
-      <pre class="code-block"><code>${code.trim()}</code></pre>
-    `
+          <pre class="code-block"><code>${code.trim()}</code></pre>
+        `
       )
       .replace(/`([^`]+)`/g, "<code>$1</code>");
   }
