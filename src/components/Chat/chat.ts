@@ -1,13 +1,9 @@
-import { ConverseResponse, Message } from "@aws-sdk/client-bedrock-runtime";
+import { Message } from "@aws-sdk/client-bedrock-runtime";
 import { ButtonSpinner } from "../ButtonSpinner/ButtonSpinner";
 import { store } from "../../stores/AppStore";
 import { effect } from "@preact/signals-core";
 import { WorkArea } from "../WorkArea/WorkArea";
-import { postBedrock } from "../../apiClient";
 import { chatContext } from "./chat-context";
-
-const DEFAULT_SYSTEM_PROMPT = `You are a helpful assistant with tools.`;
-const DEFAULT_MODEL_ID = import.meta.env.VITE_BEDROCK_MODEL_ID || "my-model-id";
 
 interface ChatMessage {
   role: "user" | "assistant";
@@ -27,10 +23,6 @@ export class Chat {
   private workArea: HTMLElement;
   private cleanupFns: Array<() => void> = [];
 
-  // Model & system prompt
-  private modelId: string = DEFAULT_MODEL_ID;
-  private systemPrompt: string = DEFAULT_SYSTEM_PROMPT;
-
   constructor(dependencies: ChatDependencies) {
     // 1) WorkArea for the message table & modals
     this.workArea = dependencies.workArea;
@@ -46,7 +38,7 @@ export class Chat {
       throw new Error("Required DOM elements not found");
     }
 
-    // 3) Spinner & generate button
+    // 3) Spinner & send button
     this.buttonSpinner = new ButtonSpinner();
     this.button = this.buttonSpinner.getElement();
     this.button.onclick = this.handleGenerate;
@@ -65,7 +57,7 @@ export class Chat {
       })
     );
 
-    //   b) If there's a pending error prompt
+    //   b) If there's a pending error prompt, fill the input
     this.cleanupFns.push(
       effect(() => {
         const errorPrompt = store.pendingErrorPrompt.value;
@@ -79,12 +71,12 @@ export class Chat {
   private async handleErrorPrompt(prompt: string) {
     this.promptInput.value = prompt;
     store.clearPendingErrorPrompt();
-    // await this.generateResponse();
+    // No LLM call here — the user can just press send or we can auto-send if desired
   }
 
   private handleGenerate = (e: MouseEvent): void => {
     e.preventDefault();
-    if (store.isGenerating.value) return; // skip if generating
+    if (store.isGenerating.value) return; // skip if currently generating
 
     // 1) Grab text
     const prompt = this.promptInput.value.trim();
@@ -99,11 +91,8 @@ export class Chat {
       content: [{ text: prompt }],
     });
 
-    // 3) Clear input and call generate
+    // 3) Clear input
     this.promptInput.value = "";
-    // this.generateResponse().catch((err) => {
-    //   console.error("Error generating response:", err);
-    // });
   };
 
   private handleKeyDown = (e: KeyboardEvent): void => {
@@ -114,59 +103,12 @@ export class Chat {
   };
 
   /**
-   * Because `chatContext` also calls the LLM automatically
-   * when a user message is added (in the updated chatContext),
-   * we might not even need generateResponse() if you want
-   * fully automated flow. However, here it remains in case you
-   * still want a manual call.
-   */
-  // public async generateResponse(): Promise<string> {
-  //   try {
-  //     store.setGenerating(true);
-
-  //     // 1) Pull messages from chatContext
-  //     const messages = chatContext.getMessages();
-
-  //     // 2) Call bedrock
-  //     const response: ConverseResponse = await postBedrock(
-  //       this.modelId,
-  //       messages,
-  //       this.systemPrompt
-  //     );
-
-  //     // 3) Check content
-  //     const messageContent = response.output?.message?.content;
-  //     if (!messageContent || messageContent.length === 0) {
-  //       throw new Error("No content in response");
-  //     }
-
-  //     const textContent = messageContent.find((b) => b.text)?.text;
-  //     if (!textContent) {
-  //       throw new Error("No text content found in response");
-  //     }
-
-  //     // 4) Add the assistant’s message so the UI sees it
-  //     // If .toolUse is present, chatContext will handle it
-  //     chatContext.addMessage({
-  //       role: "assistant",
-  //       content: messageContent,
-  //     });
-
-  //     return textContent;
-  //   } catch (error) {
-  //     console.error("Response generation failed:", error);
-  //     throw error;
-  //   } finally {
-  //     store.setGenerating(false);
-  //   }
-  // }
-
-  /**
    * Whenever chatContext changes, re-render the chat window.
    */
   private updateChatUI = (messages: Message[]): void => {
     this.chatMessages.innerHTML = "";
 
+    // Find the last assistant message index for the "read more" logic
     let lastAssistantIdx = -1;
     for (let i = messages.length - 1; i >= 0; i--) {
       if (messages[i].role === "assistant") {
@@ -175,7 +117,7 @@ export class Chat {
       }
     }
 
-    // Render each block
+    // Render each message block
     messages.forEach((message, index) => {
       message.content?.forEach((block) => {
         if (block.text) {
@@ -185,9 +127,10 @@ export class Chat {
             message: block.text,
             timestamp: new Date(),
           };
-          this.appendMessageToDOM(chatMsg, index === lastAssistantIdx);
+          const isLatestAIMessage = index === lastAssistantIdx;
+          this.appendMessageToDOM(chatMsg, isLatestAIMessage);
         } else if (block.toolResult) {
-          // If there's a toolResult
+          // Tool result (JSON)
           const toolResultJson = JSON.stringify(block.toolResult, null, 2);
           const chatMsg: ChatMessage = {
             role: message.role || "assistant",
@@ -196,11 +139,11 @@ export class Chat {
           };
           this.appendMessageToDOM(chatMsg, false);
         }
-        // If there's a toolUse or something else, handle similarly
+        // If there's .toolUse or other block types, handle similarly
       });
     });
 
-    // Scroll to the bottom
+    // Scroll to bottom
     this.chatMessages.scrollTop = this.chatMessages.scrollHeight;
   };
 
@@ -247,7 +190,7 @@ export class Chat {
       contentWrapper.appendChild(full);
       contentWrapper.appendChild(toggleBtn);
     } else {
-      // short content
+      // Short content, display as-is
       contentWrapper.innerHTML = formatted;
     }
 
@@ -256,7 +199,7 @@ export class Chat {
   }
 
   private formatMessageContent(content: string): string {
-    // Simple formatting
+    // Basic formatting + code block highlighting
     return content
       .replace(/\n/g, "<br>")
       .replace(
