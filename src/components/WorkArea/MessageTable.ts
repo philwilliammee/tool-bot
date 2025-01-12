@@ -1,5 +1,5 @@
 import { Message } from "@aws-sdk/client-bedrock-runtime";
-import { chatContext } from "../../chat-context";
+import { chatContext } from "../Chat/chat-context";
 
 export class MessageTable {
   private container: HTMLElement | null = null;

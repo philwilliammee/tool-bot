@@ -1,5 +1,5 @@
 import { Message } from "@aws-sdk/client-bedrock-runtime";
-import { chatContext } from "../../chat-context";
+import { chatContext } from "../Chat/chat-context";
 import { store } from "../../stores/AppStore";
 import { MessageTable } from "./MessageTable";
 import { WorkAreaModals } from "./WorkAreaModals";
