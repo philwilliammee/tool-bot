@@ -103,29 +103,77 @@ npm run dev</code></pre>
 </ol>
 
 <h2>Development Roadmap</h2>
-## Development Roadmap
-- [x] Chat admin editor interface
-- [hold for later] Improved error handling and validation
-- [x] Message persistence
-- [x] Enhanced conversation context management
-- [x] Basic tool support (fetch, math)
-- [ ] Enhance HTML Tool capabilities
-  - [ ] Add visualization templates
-  - [ ] Support for common chart types
-  - [ ] Interactive component library
-  - [ ] CSS framework integration
-- [ ] Centralize tool registry system
-  - [ ] Single source of truth for tool configurations
-  - [ ] Simplified tool registration process
-  - [ ] Better type safety for tools
-- [ ] Additional tool support
+<ul>
+  <li>✅ Chat admin editor interface</li>
+  <li>⏸️ Improved error handling and validation (on hold)</li>
+  <li>✅ Message persistence</li>
+  <li>✅ Enhanced conversation context management</li>
+  <li>✅ Basic tool support (fetch, math)</li>
+  <li>🚧 HTML Tool Development
+    <ul>
+      <li>✅ Basic HTML rendering in iframe</li>
+      <li>✅ Tool integration with Bedrock</li>
+      <li>⏳ Add visualization templates</li>
+      <li>⏳ Support for common chart types</li>
+      <li>⏳ Interactive component library</li>
+    </ul>
+  </li>
+  <li>✅ UI Improvements
+    <ul>
+      <li>✅ Tab-based interface for Preview/Work Area</li>
+      <li>✅ Signal-based state management for UI</li>
+      <li>✅ Improved tool output formatting</li>
+    </ul>
+  </li>
+  <li>⏳ Centralize tool registry system
+    <ul>
+      <li>Single source of truth for tool configurations</li>
+      <li>Simplified tool registration process</li>
+      <li>Better type safety for tools</li>
+    </ul>
+  </li>
+</ul>
 
 <p>We now support an <strong>automated chat flow</strong> where the context automatically calls the LLM on new user messages, and if an <code>assistant</code> message contains a <code>toolUse</code> request, the appropriate tool is invoked automatically.</p>
 
 <hr />
 
 <h2>Tool Usage Examples</h2>
-<p>Below are some usage examples illustrating the <strong>Fetch Tool</strong> and <strong>Calculator Tool</strong>.</p>
+<p>Below are usage examples illustrating our supported tools.</p>
+
+<h3>HTML Generation Tool</h3>
+<p>Examples of queries the assistant can handle:</p>
+<ul>
+  <li>"Create a simple todo list interface"</li>
+  <li>"Generate a bar chart visualization"</li>
+  <li>"Make an interactive color picker"</li>
+  <li>"Create a responsive grid layout"</li>
+</ul>
+
+<h4>Example Interaction:</h4>
+<pre><code>User: Create a simple color picker with preview
+Assistant: I'll create an interactive color picker with a preview area.
+
+{tool_use: html, input: {
+  "html": "
+    <div class='widget'>
+      <style>
+        .color-preview {
+          width: 100px;
+          height: 100px;
+          border: 1px solid #ccc;
+        }
+      </style>
+      <input type='color' id='picker'>
+      <div id='preview' class='color-preview'></div>
+      <script>
+        picker.oninput = e => preview.style.backgroundColor = e.target.value;
+      </script>
+    </div>
+  "
+}}
+
+I've created a color picker that shows a live preview of the selected color.</code></pre>
 
 <h3>HTTP Fetch Tool</h3>
 <p>Examples of queries the assistant can handle:</p>
@@ -140,9 +188,10 @@ npm run dev</code></pre>
 <pre><code>User: Could you fetch information about the React repository from GitHub's API?
 Assistant: I'll fetch that information for you from GitHub's API.
 
-{tool_use: fetch_url, url: "https://api.github.com/repos/facebook/react"}
+{tool_use: fetch_url, url: "<https://api.github.com/repos/facebook/react"}>
 
 Based on the repository data:
+
 - Stars: 214,000+
 - Description: A declarative, efficient, and flexible JavaScript library for building user interfaces
 - Latest update: [date]
@@ -173,6 +222,14 @@ The sum is 100.</code></pre>
 
 <h3>Tool Limitations</h3>
 <ul>
+  <li>HTML Tool:
+    <ul>
+      <li>Renders in sandboxed iframe environment</li>
+      <li>Supports standard HTML, CSS, and JavaScript</li>
+      <li>Limited to client-side functionality</li>
+      <li>Scripts run in isolated context</li>
+    </ul>
+  </li>
   <li>Fetch Tool:
     <ul>
       <li>HTTPS URLs only</li>
@@ -188,4 +245,12 @@ The sum is 100.</code></pre>
       <li>Numbers must be within safe JavaScript number range</li>
     </ul>
   </li>
+</ul>
+
+<h3>Interface Features</h3>
+<ul>
+  <li><strong>Preview/Work Area Tabs:</strong> Toggle between HTML preview and chat administration</li>
+  <li><strong>Improved Message Display:</strong> Better formatting for tool usage and results</li>
+  <li><strong>State Management:</strong> Centralized signal-based state handling</li>
+  <li><strong>Responsive Layout:</strong> Adapts to different screen sizes</li>
 </ul>
