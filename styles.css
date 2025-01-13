@@ -329,15 +329,19 @@ h1 {
   color: white;
 }
 
+.cancel-btn {
+  color: #6b7280;
+}
+
 .action-btn:hover {
   opacity: 0.9;
 }
 
-.message-table-container,
-#message-table-container {
+#work-area-tab {
   flex: 1;
-  overflow: auto;
+  overflow: auto;;
 }
+
 
 .message-content {
   max-width: 300px;
@@ -596,4 +600,66 @@ code {
 /* Loading animation for file-button */
 @keyframes button-spin {
   to { transform: translate(-50%, -50%) rotate(360deg); }
+}
+
+/* ============================
+    13) TAB STYLES
+============================ */
+.tabs {
+  display: flex;
+  border-bottom: 1px solid #e5e7eb;
+  background: white;
+  padding: 0 1rem;
+}
+
+.tab-button {
+  padding: 0.75rem 1.5rem;
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-size: 0.875rem;
+  color: #6b7280;
+  border-bottom: 2px solid transparent;
+  transition: all 0.2s;
+}
+
+.tab-button:hover {
+  color: #3b82f6;
+}
+
+.tab-button.active {
+  color: #3b82f6;
+  border-bottom-color: #3b82f6;
+}
+
+.tab-content {
+  position: absolute;
+  width: 100%;
+  height: calc(100% - 45px);
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.2s ease;
+  background: white;
+}
+
+.tab-content.active {
+  opacity: 1;
+  visibility: visible;
+}
+
+.iframe-container {
+  height: 100%;
+  width: 100%;
+  background: white;
+}
+
+.tab-container {
+  position: relative;
+  height: 100%;
+  overflow: hidden;
+}
+
+.role-badge.role-unknown {
+  background-color: #e5e7eb;
+  color: #6b7280;
 }

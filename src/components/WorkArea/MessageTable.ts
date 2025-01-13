@@ -4,6 +4,8 @@ import { chatContext } from "../Chat/chat-context";
 export class MessageTable {
   private container: HTMLElement | null = null;
   private draggedElement: HTMLElement | null = null;
+  private table: HTMLTableElement | null = null;
+  private tbody: HTMLTableSectionElement | null = null;
 
   constructor(
     private onView: (index: number) => void,
@@ -14,91 +16,130 @@ export class MessageTable {
 
   public mount(container: HTMLElement): void {
     this.container = container;
+    this.initializeTable();
     this.update();
   }
 
-  public update(): void {
+  private initializeTable(): void {
     if (!this.container) return;
+
+    // Create table
+    this.table = document.createElement("table");
+    this.table.className = "chat-admin-table";
+
+    // Create header
+    const thead = document.createElement("thead");
+    const headerRow = document.createElement("tr");
+
+    ["", "Role", "Content", "Timestamp", "Actions"].forEach((headerText) => {
+      const th = document.createElement("th");
+      th.textContent = headerText;
+      headerRow.appendChild(th);
+    });
+
+    thead.appendChild(headerRow);
+    this.table.appendChild(thead);
+
+    // Create tbody
+    this.tbody = document.createElement("tbody");
+    this.table.appendChild(this.tbody);
+
+    this.container.appendChild(this.table);
+  }
+
+  private createMessageRow(
+    message: Message,
+    index: number
+  ): HTMLTableRowElement {
+    const row = document.createElement("tr");
+    row.className = "message-row";
+    row.draggable = true;
+    row.dataset.messageIndex = index.toString();
+
+    // Drag handle cell
+    const dragCell = document.createElement("td");
+    dragCell.className = "drag-handle";
+    dragCell.innerHTML = `
+<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16"
+  viewBox="0 0 24 24" fill="none" stroke="currentColor"
+  stroke-width="2">
+  <circle cx="9" cy="12" r="1"></circle>
+  <circle cx="9" cy="5" r="1"></circle>
+  <circle cx="9" cy="19" r="1"></circle>
+  <circle cx="15" cy="12" r="1"></circle>
+  <circle cx="15" cy="5" r="1"></circle>
+  <circle cx="15" cy="19" r="1"></circle>
+</svg>`;
+
+    // Role cell
+    const roleCell = document.createElement("td");
+    const roleSpan = document.createElement("span");
+    const role = message.role || "unknown"; // Provide default value if undefined
+    roleSpan.className = `role-badge role-${role}`;
+    roleSpan.textContent = role;
+    roleCell.appendChild(roleSpan);
+
+    // Content cell
+    const contentCell = document.createElement("td");
+    contentCell.className = "message-content";
+
+    // Handle different content blocks
+    (message.content || []).forEach((block) => {
+      if (block.text) {
+        const textDiv = document.createElement("div");
+        textDiv.textContent = block.text;
+        contentCell.appendChild(textDiv);
+      } else if (block.toolResult || block.toolUse) {
+        const pre = document.createElement("pre");
+        pre.className = "tool-code";
+
+        const type = block.toolResult ? "Tool Result" : "Tool Usage";
+        const content = block.toolResult || block.toolUse;
+
+        pre.textContent = `${type}:\n${JSON.stringify(content, null, 2)}`;
+        contentCell.appendChild(pre);
+      }
+    });
+
+    // Timestamp cell
+    const timestampCell = document.createElement("td");
+    timestampCell.textContent = new Date().toLocaleString();
+
+    // Actions cell
+    const actionsCell = document.createElement("td");
+    const actionsDiv = document.createElement("div");
+    actionsDiv.className = "action-buttons";
+
+    ["view", "edit", "delete"].forEach((action) => {
+      const button = document.createElement("button");
+      button.className = `action-btn ${action}-btn`;
+      button.textContent = action.charAt(0).toUpperCase() + action.slice(1);
+      button.dataset.action = action;
+      button.dataset.index = index.toString();
+      actionsDiv.appendChild(button);
+    });
+
+    actionsCell.appendChild(actionsDiv);
+
+    // Append all cells
+    row.append(dragCell, roleCell, contentCell, timestampCell, actionsCell);
+
+    return row;
+  }
+
+  public update(): void {
+    if (!this.tbody) return;
+
+    // Clear existing rows
+    this.tbody.innerHTML = "";
+
+    // Add new rows
     const messages = chatContext.getMessages();
+    messages.forEach((message, index) => {
+      const row = this.createMessageRow(message, index);
+      this.tbody?.appendChild(row);
+    });
 
-    // Build the table HTML
-    this.container.innerHTML = `
-      <table class="chat-admin-table">
-        <thead>
-          <tr>
-            <th></th>
-            <th>Role</th>
-            <th>Content</th>
-            <th>Timestamp</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${messages
-            .map((message, index) => {
-              // Convert all content blocks into a single string
-              const combinedContent = (message.content || [])
-                .map((block) => {
-                  if (block.text) {
-                    return block.text;
-                  }
-                  if (block.toolResult) {
-                    return `Tool result: ${JSON.stringify(block.toolResult)}`;
-                  }
-                  if (block.toolUse) {
-                    return `Tool use: ${JSON.stringify(block.toolUse)}`;
-                  }
-                  return "[Unknown block type]";
-                })
-                .join(" | ");
-
-              // Basic date/time (or you could store a timestamp in the message object)
-              const timestamp = new Date().toLocaleString();
-
-              return `
-                <tr data-message-index="${index}" draggable="true" class="message-row">
-                  <td class="drag-handle">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16"
-                         viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                         stroke-width="2">
-                      <circle cx="9" cy="12" r="1"></circle>
-                      <circle cx="9" cy="5" r="1"></circle>
-                      <circle cx="9" cy="19" r="1"></circle>
-                      <circle cx="15" cy="12" r="1"></circle>
-                      <circle cx="15" cy="5" r="1"></circle>
-                      <circle cx="15" cy="19" r="1"></circle>
-                    </svg>
-                  </td>
-                  <td>
-                    <span class="role-badge role-${message.role}">${message.role}</span>
-                  </td>
-                  <td class="message-content">${combinedContent}</td>
-                  <td>${timestamp}</td>
-                  <td>
-                    <div class="action-buttons">
-                      <button class="action-btn view-btn"
-                              data-action="view" data-index="${index}">
-                        View
-                      </button>
-                      <button class="action-btn edit-btn"
-                              data-action="edit" data-index="${index}">
-                        Edit
-                      </button>
-                      <button class="action-btn delete-btn"
-                              data-action="delete" data-index="${index}">
-                        Delete
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              `;
-            })
-            .join("")}
-        </tbody>
-      </table>
-    `;
-
-    // Attach event listeners
     this.setupEventListeners();
   }
 

@@ -1,11 +1,14 @@
 import { signal, computed } from "@preact/signals-core";
 
+type TabId = "preview" | "work-area";
+
 function createAppStore() {
   // Core signals
   const toastMessage = signal<string | null>(null);
   const isGenerating = signal(false);
   const error = signal<string | null>(null);
   const pendingErrorPrompt = signal<string | null>(null);
+  const activeTab = signal<TabId>("preview");
 
   return {
     // Expose signals
@@ -13,6 +16,7 @@ function createAppStore() {
     error,
     toastMessage,
     pendingErrorPrompt,
+    activeTab,
 
     // Methods
     setError(errorMessage: string | null) {
@@ -35,10 +39,16 @@ function createAppStore() {
       pendingErrorPrompt.value = null;
     },
 
+    // New tab methods
+    setActiveTab(tabId: TabId) {
+      activeTab.value = tabId;
+    },
+
     clear() {
       error.value = null;
       toastMessage.value = null;
       pendingErrorPrompt.value = null;
+      activeTab.value = "preview";
     },
   };
 }

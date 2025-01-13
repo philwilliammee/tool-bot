@@ -73,19 +73,46 @@
                 </div>
 
                 <div class="right-column">
-                    <div
-                        id="iframe-container"
-                        class="iframe-container"
-                    >
-                        <iframe
-                            id="html-tool-frame"
-                            sandbox="allow-scripts allow-same-origin allow-modals"
-                            style="width: 100%; height: 100%;"
-                        ></iframe>
+                    <div class="tabs">
+                        <button
+                            class="tab-button active"
+                            data-tab="preview"
+                        >
+                            Preview
+                        </button>
+                        <button
+                            class="tab-button"
+                            data-tab="work-area"
+                        >
+                            Work Area
+                        </button>
                     </div>
 
-                    <!-- Work area content will be dynamically inserted here -->
-                    <div id="work_area"></div>
+                    <div class="tab-container">
+                        <!-- Add this wrapper -->
+                        <div
+                            id="preview-tab"
+                            class="tab-content active"
+                        >
+                            <div
+                                id="iframe-container"
+                                class="iframe-container"
+                            >
+                                <iframe
+                                    id="html-tool-frame"
+                                    sandbox="allow-scripts allow-same-origin allow-modals allow-forms"
+                                    style="width: 100%; height: 100%; border: none;"
+                                ></iframe>
+                            </div>
+                        </div>
+
+                        <div
+                            id="work-area-tab"
+                            class="tab-content"
+                        >
+                            <div id="work_area"></div>
+                        </div>
+                    </div>
                 </div>
             </div>
 

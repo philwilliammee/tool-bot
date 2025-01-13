@@ -111,6 +111,7 @@ export class ChatContext {
    * Finds and executes the requested tool, then appends the toolResult
    * as a new "user" message.
    */
+  // @TODO: use tool registry instead of switch.
   private async handleToolUse(toolUse: ToolUse): Promise<void> {
     let result: any;
     switch (toolUse.name) {

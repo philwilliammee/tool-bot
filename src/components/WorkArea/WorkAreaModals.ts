@@ -28,22 +28,30 @@ export class WorkAreaModals {
   private createViewModal(): void {
     this.viewDialog = document.createElement("dialog");
     this.viewDialog.className = "modal view-modal";
-    this.viewDialog.innerHTML = `
-      <div class="modal-content">
-        <h3>View Message</h3>
-        <div class="message-details"></div>
-        <div class="modal-actions">
-          <button class="btn btn-blue close-btn">Close</button>
-        </div>
-      </div>
-    `;
 
-    this.viewDialog
-      .querySelector(".close-btn")
-      ?.addEventListener("click", () => {
-        this.viewDialog.close();
-      });
+    const content = document.createElement("div");
+    content.className = "modal-content";
 
+    // Header
+    const header = document.createElement("h3");
+    header.textContent = "View Message";
+
+    // Message details container
+    const details = document.createElement("div");
+    details.className = "message-details";
+
+    // Actions
+    const actions = document.createElement("div");
+    actions.className = "modal-actions";
+
+    const closeBtn = document.createElement("button");
+    closeBtn.className = "btn btn-blue close-btn";
+    closeBtn.textContent = "Close";
+    closeBtn.addEventListener("click", () => this.viewDialog.close());
+
+    actions.appendChild(closeBtn);
+    content.append(header, details, actions);
+    this.viewDialog.appendChild(content);
     document.body.appendChild(this.viewDialog);
   }
 
@@ -154,39 +162,88 @@ export class WorkAreaModals {
    */
   public showViewModal(message: Message): void {
     const detailsElement = this.viewDialog.querySelector(".message-details");
-    if (detailsElement) {
-      // Build a multiline string that shows each block in the message
-      const allBlocks = (message.content || [])
-        .map((block) => {
-          if (block.text) {
-            // Plain text
-            return block.text;
-          } else if (block.toolResult) {
-            // Tool result
-            return `TOOL RESULT:\n${JSON.stringify(block.toolResult, null, 2)}`;
-          } else if (block.toolUse) {
-            // Tool usage
-            return `TOOL USAGE:\n${JSON.stringify(block.toolUse, null, 2)}`;
-          } else {
-            // Unknown type
-            return "[Unknown block type]";
-          }
-        })
-        .join("\n---\n"); // separator of your choice
+    if (!detailsElement) return;
 
-      detailsElement.innerHTML = `
-        <div class="message-detail">
-          <strong>Role:</strong> ${message.role}
-        </div>
-        <div class="message-detail">
-          <strong>Content:</strong>
-          <pre>${allBlocks}</pre>
-        </div>
-        <div class="message-detail">
-          <strong>Timestamp:</strong> ${new Date().toLocaleString()}
-        </div>
-      `;
-    }
+    // Clear previous content
+    detailsElement.innerHTML = "";
+
+    // Role detail
+    const roleDetail = document.createElement("div");
+    roleDetail.className = "message-detail";
+
+    const roleLabel = document.createElement("strong");
+    roleLabel.textContent = "Role: ";
+
+    const roleValue = document.createElement("span");
+    roleValue.textContent = message.role || "unknown";
+
+    roleDetail.append(roleLabel, roleValue);
+
+    // Content detail
+    const contentDetail = document.createElement("div");
+    contentDetail.className = "message-detail";
+
+    const contentLabel = document.createElement("strong");
+    contentLabel.textContent = "Content: ";
+
+    const contentPre = document.createElement("pre");
+
+    // Process each content block
+    (message.content || []).forEach((block, index) => {
+      const blockDiv = document.createElement("div");
+
+      if (block.text) {
+        blockDiv.textContent = block.text;
+      } else if (block.toolResult) {
+        const pre = document.createElement("pre");
+        pre.className = "tool-code";
+        pre.textContent = `TOOL RESULT:\n${JSON.stringify(
+          block.toolResult,
+          null,
+          2
+        )}`;
+        blockDiv.appendChild(pre);
+      } else if (block.toolUse) {
+        const pre = document.createElement("pre");
+        pre.className = "tool-code";
+        pre.textContent = `TOOL USAGE:\n${JSON.stringify(
+          block.toolUse,
+          null,
+          2
+        )}`;
+        blockDiv.appendChild(pre);
+      } else {
+        blockDiv.textContent = "[Unknown block type]";
+      }
+
+      // Add separator if not last block
+      if (index < (message.content?.length || 0) - 1) {
+        const separator = document.createElement("div");
+        separator.className = "content-separator";
+        separator.textContent = "---";
+        contentPre.append(blockDiv, separator);
+      } else {
+        contentPre.appendChild(blockDiv);
+      }
+    });
+
+    contentDetail.append(contentLabel, contentPre);
+
+    // Timestamp detail
+    const timeDetail = document.createElement("div");
+    timeDetail.className = "message-detail";
+
+    const timeLabel = document.createElement("strong");
+    timeLabel.textContent = "Timestamp: ";
+
+    const timeValue = document.createElement("span");
+    timeValue.textContent = new Date().toLocaleString();
+
+    timeDetail.append(timeLabel, timeValue);
+
+    // Add all details
+    detailsElement.append(roleDetail, contentDetail, timeDetail);
+
     this.viewDialog.showModal();
   }
 
