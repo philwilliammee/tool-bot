@@ -103,13 +103,22 @@ npm run dev</code></pre>
 </ol>
 
 <h2>Development Roadmap</h2>
-<ul>
-  <li>[x] Chat admin editor interface</li>
-  <li>[hold for later] Improved error handling and validation</li>
-  <li>[x] Message persistence</li>
-  <li>[x] Enhanced conversation context management</li>
-  <li>[ ] Additional tool support</li>
-</ul>
+## Development Roadmap
+- [x] Chat admin editor interface
+- [hold for later] Improved error handling and validation
+- [x] Message persistence
+- [x] Enhanced conversation context management
+- [x] Basic tool support (fetch, math)
+- [ ] Enhance HTML Tool capabilities
+  - [ ] Add visualization templates
+  - [ ] Support for common chart types
+  - [ ] Interactive component library
+  - [ ] CSS framework integration
+- [ ] Centralize tool registry system
+  - [ ] Single source of truth for tool configurations
+  - [ ] Simplified tool registration process
+  - [ ] Better type safety for tools
+- [ ] Additional tool support
 
 <p>We now support an <strong>automated chat flow</strong> where the context automatically calls the LLM on new user messages, and if an <code>assistant</code> message contains a <code>toolUse</code> request, the appropriate tool is invoked automatically.</p>
 

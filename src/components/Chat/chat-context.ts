@@ -9,6 +9,7 @@ import { ToolUse } from "../../types/tool.types";
 import { fetchTool } from "../../tools/fetch/fetch.tool";
 import { postBedrock } from "../../apiClient"; // so we can call bedrock here
 import { store } from "../../stores/AppStore"; // for isGenerating and error handling?
+import { htmlTool } from "../../tools/htmlTool/htmlTool";
 
 const STORAGE_KEY = "chat-messages";
 
@@ -118,6 +119,9 @@ export class ChatContext {
         break;
       case "math":
         result = await mathTool.execute(toolUse.input);
+        break;
+      case "html":
+        result = await htmlTool.execute(toolUse.input);
         break;
       default:
         throw new Error(`Unknown tool requested: ${toolUse.name}`);

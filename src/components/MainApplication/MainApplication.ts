@@ -17,7 +17,7 @@ export class MainApplication {
   }
 
   private initializeDOMElements(): void {
-    this.workArea = document.querySelector(".right-column") as HTMLElement;
+    this.workArea = document.querySelector("#work_area") as HTMLElement;
 
     if (!this.workArea) {
       throw new Error("Required DOM elements not found");
