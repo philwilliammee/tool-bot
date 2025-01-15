@@ -19,9 +19,8 @@ export class Toast {
     }
 
     this.cleanup = effect(() => {
-      const message = store.toastMessage.value;
-      if (message) {
-        this.show(message);
+      if (store.hasToast.value) {
+        this.show(store.toastMessage.value!);
       }
     });
   }

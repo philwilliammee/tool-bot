@@ -51,9 +51,14 @@ export class Chat {
     //   a) Show spinner if generating
     this.cleanupFns.push(
       effect(() => {
-        const isGenerating = store.isGenerating.value;
-        this.promptInput.disabled = isGenerating;
-        isGenerating ? this.buttonSpinner.show() : this.buttonSpinner.hide();
+        // Use computed values for cleaner conditions
+        this.promptInput.disabled = store.shouldDisableInput.value;
+
+        if (store.isLoading.value) {
+          this.buttonSpinner.show();
+        } else {
+          this.buttonSpinner.hide();
+        }
       })
     );
 
