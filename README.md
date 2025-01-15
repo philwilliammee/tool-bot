@@ -138,6 +138,9 @@ npm run dev</code></pre>
 
 <hr />
 
+<h2>General great prompts</h2>
+generate a 9th grade graphing algebra problem. Generate the output in html use latext if possible and do graphing of the equation.
+
 <h2>Tool Usage Examples</h2>
 <p>Below are usage examples illustrating our supported tools.</p>
 

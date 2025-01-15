@@ -1,26 +1,58 @@
 import { Message } from "@aws-sdk/client-bedrock-runtime";
 import { chatContext } from "../Chat/chat-context";
+import { store } from "../../stores/AppStore";
+import { effect } from "@preact/signals-core";
 
 export class MessageTable {
   private container: HTMLElement | null = null;
-  private draggedElement: HTMLElement | null = null;
   private table: HTMLTableElement | null = null;
   private tbody: HTMLTableSectionElement | null = null;
+  private initialized: boolean = false;
+  private cleanupFns: Array<() => void> = []; // Add cleanup functions array
 
   constructor(
     private onView: (index: number) => void,
     private onEdit: (index: number) => void,
-    private onDelete: (index: number) => void,
-    private onReorder: (fromIndex: number, toIndex: number) => void
-  ) {}
+    private onDelete: (index: number) => void
+  ) {
+    console.log("MessageTable component initialized");
+  }
 
   public mount(container: HTMLElement): void {
     this.container = container;
-    this.initializeTable();
-    this.update();
+    this.render();
+
+    // Subscribe to chat context changes - no cleanup function needed here
+    chatContext.onMessagesChange(() => {
+      this.render();
+    });
+
+    // Subscribe to store changes for button states
+    const storeCleanup = effect(() => {
+      if (this.table) {
+        const buttons = this.table.querySelectorAll(".action-btn");
+        buttons.forEach((button) => {
+          (button as HTMLButtonElement).disabled = store.isGenerating.value;
+        });
+      }
+    });
+
+    // Only add the effect cleanup to our cleanup functions
+    this.cleanupFns.push(storeCleanup);
   }
 
-  private initializeTable(): void {
+  private render(): void {
+    if (!this.container) return;
+
+    if (!this.initialized) {
+      this.initializeStructure();
+      this.initialized = true;
+    }
+
+    this.updateContent();
+  }
+
+  private initializeStructure(): void {
     if (!this.container) return;
 
     // Create table
@@ -31,7 +63,7 @@ export class MessageTable {
     const thead = document.createElement("thead");
     const headerRow = document.createElement("tr");
 
-    ["", "Role", "Content", "Timestamp", "Actions"].forEach((headerText) => {
+    ["Role", "Content", "Timestamp", "Actions"].forEach((headerText) => {
       const th = document.createElement("th");
       th.textContent = headerText;
       headerRow.appendChild(th);
@@ -40,11 +72,39 @@ export class MessageTable {
     thead.appendChild(headerRow);
     this.table.appendChild(thead);
 
-    // Create tbody
     this.tbody = document.createElement("tbody");
     this.table.appendChild(this.tbody);
 
     this.container.appendChild(this.table);
+  }
+
+  private updateContent(): void {
+    if (!this.tbody) return;
+
+    this.tbody.innerHTML = "";
+    const messages = chatContext.getMessages();
+
+    if (messages.length === 0) {
+      this.renderEmptyState();
+      return;
+    }
+
+    messages.forEach((message, index) => {
+      const row = this.createMessageRow(message, index);
+      this.tbody?.appendChild(row);
+    });
+  }
+
+  private renderEmptyState(): void {
+    if (!this.tbody) return;
+
+    const emptyRow = document.createElement("tr");
+    const cell = document.createElement("td");
+    cell.colSpan = 4;
+    cell.className = "empty-state";
+    cell.textContent = "No messages available";
+    emptyRow.appendChild(cell);
+    this.tbody.appendChild(emptyRow);
   }
 
   private createMessageRow(
@@ -53,191 +113,106 @@ export class MessageTable {
   ): HTMLTableRowElement {
     const row = document.createElement("tr");
     row.className = "message-row";
-    row.draggable = true;
-    row.dataset.messageIndex = index.toString();
+    row.dataset.index = index.toString(); // Add for easier debugging
 
-    // Drag handle cell
-    const dragCell = document.createElement("td");
-    dragCell.className = "drag-handle";
-    dragCell.innerHTML = `
-<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16"
-  viewBox="0 0 24 24" fill="none" stroke="currentColor"
-  stroke-width="2">
-  <circle cx="9" cy="12" r="1"></circle>
-  <circle cx="9" cy="5" r="1"></circle>
-  <circle cx="9" cy="19" r="1"></circle>
-  <circle cx="15" cy="12" r="1"></circle>
-  <circle cx="15" cy="5" r="1"></circle>
-  <circle cx="15" cy="19" r="1"></circle>
-</svg>`;
+    const cells = {
+      role: this.createRoleCell(message),
+      content: this.createContentCell(message),
+      timestamp: this.createTimestampCell(),
+      actions: this.createActionsCell(index),
+    };
 
-    // Role cell
-    const roleCell = document.createElement("td");
+    row.append(cells.role, cells.content, cells.timestamp, cells.actions);
+    return row;
+  }
+
+  private createRoleCell(message: Message): HTMLTableCellElement {
+    const cell = document.createElement("td");
     const roleSpan = document.createElement("span");
-    const role = message.role || "unknown"; // Provide default value if undefined
+    const role = message.role || "unknown";
     roleSpan.className = `role-badge role-${role}`;
     roleSpan.textContent = role;
-    roleCell.appendChild(roleSpan);
+    cell.appendChild(roleSpan);
+    return cell;
+  }
 
-    // Content cell
-    const contentCell = document.createElement("td");
-    contentCell.className = "message-content";
+  private createContentCell(message: Message): HTMLTableCellElement {
+    const cell = document.createElement("td");
+    cell.className = "message-content";
 
-    // Handle different content blocks
     (message.content || []).forEach((block) => {
       if (block.text) {
         const textDiv = document.createElement("div");
         textDiv.textContent = block.text;
-        contentCell.appendChild(textDiv);
+        cell.appendChild(textDiv);
       } else if (block.toolResult || block.toolUse) {
         const pre = document.createElement("pre");
         pre.className = "tool-code";
-
         const type = block.toolResult ? "Tool Result" : "Tool Usage";
         const content = block.toolResult || block.toolUse;
-
         pre.textContent = `${type}:\n${JSON.stringify(content, null, 2)}`;
-        contentCell.appendChild(pre);
+        cell.appendChild(pre);
       }
     });
 
-    // Timestamp cell
-    const timestampCell = document.createElement("td");
-    timestampCell.textContent = new Date().toLocaleString();
+    return cell;
+  }
 
-    // Actions cell
-    const actionsCell = document.createElement("td");
+  private createTimestampCell(): HTMLTableCellElement {
+    const cell = document.createElement("td");
+    cell.textContent = new Date().toLocaleString();
+    return cell;
+  }
+
+  private createActionsCell(index: number): HTMLTableCellElement {
+    const cell = document.createElement("td");
     const actionsDiv = document.createElement("div");
     actionsDiv.className = "action-buttons";
 
-    ["view", "edit", "delete"].forEach((action) => {
+    const actions = [
+      { name: "view", label: "View", handler: () => this.onView(index) },
+      { name: "edit", label: "Edit", handler: () => this.onEdit(index) },
+      { name: "delete", label: "Delete", handler: () => this.onDelete(index) },
+    ];
+
+    actions.forEach(({ name, label, handler }) => {
       const button = document.createElement("button");
-      button.className = `action-btn ${action}-btn`;
-      button.textContent = action.charAt(0).toUpperCase() + action.slice(1);
-      button.dataset.action = action;
-      button.dataset.index = index.toString();
+      button.className = `action-btn ${name}-btn`;
+      button.textContent = label;
+      button.disabled = store.isGenerating.value;
+      // some issues here with this onclick handler. Be careful modifying this.
+      button.onclick = (e: MouseEvent) => {
+        e.preventDefault();
+        if (!store.isGenerating.value) {
+          // maybe this can be removed?
+          handler();
+        }
+      };
       actionsDiv.appendChild(button);
     });
 
-    actionsCell.appendChild(actionsDiv);
-
-    // Append all cells
-    row.append(dragCell, roleCell, contentCell, timestampCell, actionsCell);
-
-    return row;
+    cell.appendChild(actionsDiv);
+    return cell;
   }
 
   public update(): void {
-    if (!this.tbody) return;
-
-    // Clear existing rows
-    this.tbody.innerHTML = "";
-
-    // Add new rows
-    const messages = chatContext.getMessages();
-    messages.forEach((message, index) => {
-      const row = this.createMessageRow(message, index);
-      this.tbody?.appendChild(row);
-    });
-
-    this.setupEventListeners();
-  }
-
-  private setupEventListeners(): void {
-    if (!this.container) return;
-
-    // Action buttons
-    this.container.querySelectorAll(".action-btn").forEach((button) => {
-      button.addEventListener("click", (e) => {
-        const target = e.target as HTMLButtonElement;
-        const action = target.dataset.action;
-        const index = parseInt(target.dataset.index || "0", 10);
-
-        switch (action) {
-          case "view":
-            this.onView(index);
-            break;
-          case "edit":
-            this.onEdit(index);
-            break;
-          case "delete":
-            this.onDelete(index);
-            break;
-        }
-      });
-    });
-
-    // Drag and drop
-    const rows = this.container.getElementsByClassName("message-row");
-    Array.from(rows).forEach((row: any) => {
-      row.addEventListener("dragstart", this.handleDragStart.bind(this));
-      row.addEventListener("dragenter", this.handleDragEnter.bind(this));
-      row.addEventListener("dragover", this.handleDragOver.bind(this));
-      row.addEventListener("dragleave", this.handleDragLeave.bind(this));
-      row.addEventListener("drop", this.handleDrop.bind(this));
-      row.addEventListener("dragend", this.handleDragEnd.bind(this));
-    });
-  }
-
-  private handleDragStart(e: DragEvent): void {
-    const target = e.target as HTMLElement;
-    if (!target.closest(".message-row")) return;
-
-    this.draggedElement = target.closest(".message-row");
-    if (this.draggedElement) {
-      this.draggedElement.classList.add("dragging");
-      e.dataTransfer?.setData("text/plain", ""); // Required for Firefox
-    }
-  }
-
-  private handleDragEnter(e: DragEvent): void {
-    e.preventDefault();
-    const target = e.target as HTMLElement;
-    const row = target.closest(".message-row");
-    if (row && row !== this.draggedElement) {
-      row.classList.add("drag-over");
-    }
-  }
-
-  private handleDragOver(e: DragEvent): void {
-    e.preventDefault();
-  }
-
-  private handleDragLeave(e: DragEvent): void {
-    const target = e.target as HTMLElement;
-    const row = target.closest(".message-row");
-    if (row) {
-      row.classList.remove("drag-over");
-    }
-  }
-
-  private handleDrop(e: DragEvent): void {
-    e.preventDefault();
-    const target = e.target as HTMLElement;
-    const dropRow = target.closest(".message-row") as HTMLElement;
-
-    if (this.draggedElement && dropRow && this.draggedElement !== dropRow) {
-      const fromIndex = parseInt(
-        this.draggedElement.dataset.messageIndex || "0",
-        10
-      );
-      const toIndex = parseInt(dropRow.dataset.messageIndex || "0", 10);
-
-      this.onReorder(fromIndex, toIndex);
-      dropRow.classList.remove("drag-over");
-    }
-  }
-
-  private handleDragEnd(): void {
-    if (this.draggedElement) {
-      this.draggedElement.classList.remove("dragging");
-      this.draggedElement = null;
-    }
+    this.render();
   }
 
   public destroy(): void {
+    // Clean up all subscriptions
+    this.cleanupFns.forEach((cleanup) => cleanup());
+    this.cleanupFns = [];
+
+    // Clear DOM
     if (this.container) {
       this.container.innerHTML = "";
     }
+
+    // Reset state
+    this.initialized = false;
+    this.table = null;
+    this.tbody = null;
+    this.container = null;
   }
 }

@@ -1,249 +1,212 @@
 import { Message } from "@aws-sdk/client-bedrock-runtime";
 
 export class WorkAreaModals {
+  private initialized: boolean = false;
   private viewDialog!: HTMLDialogElement;
   private editDialog!: HTMLDialogElement;
   private newDialog!: HTMLDialogElement;
+  private modals: HTMLDialogElement[] = [];
+
+  // Callbacks storage
+  private editCallback: ((content: string) => void) | null = null;
+  private newMessageCallback:
+    | ((role: "user" | "assistant", content: string) => void)
+    | null = null;
 
   constructor() {
+    this.initialize();
+  }
+
+  private initialize(): void {
+    if (this.initialized) return;
+
     this.createModals();
-    this.setupGlobalModalEvents();
+    this.setupGlobalEvents();
+    this.initialized = true;
   }
 
   private createModals(): void {
-    this.createViewModal();
-    this.createEditModal();
-    this.createNewModal();
+    // Create all modals
+    this.viewDialog = this.createModal("view-modal");
+    this.editDialog = this.createModal("edit-modal");
+    this.newDialog = this.createModal("new-modal");
+
+    this.modals = [this.viewDialog, this.editDialog, this.newDialog];
+    this.modals.forEach((modal) => document.body.appendChild(modal));
   }
 
-  private setupGlobalModalEvents(): void {
-    // Close modals when clicking outside
-    [this.viewDialog, this.editDialog, this.newDialog].forEach((dialog) => {
+  private createModal(className: string): HTMLDialogElement {
+    const dialog = document.createElement("dialog");
+    dialog.className = `modal ${className}`;
+    const content = document.createElement("div");
+    content.className = "modal-content";
+    dialog.appendChild(content);
+    return dialog;
+  }
+
+  private setupGlobalEvents(): void {
+    // Close on outside click
+    this.modals.forEach((dialog) => {
       dialog.addEventListener("click", (e) => {
         if (e.target === dialog) dialog.close();
       });
+
+      // Cleanup form on close
+      dialog.addEventListener("close", () => {
+        const form = dialog.querySelector("form");
+        if (form) form.reset();
+      });
     });
   }
 
-  private createViewModal(): void {
-    this.viewDialog = document.createElement("dialog");
-    this.viewDialog.className = "modal view-modal";
+  private renderViewModal(message: Message): void {
+    const content = this.viewDialog.querySelector(".modal-content");
+    if (!content) return;
 
-    const content = document.createElement("div");
-    content.className = "modal-content";
-
-    // Header
-    const header = document.createElement("h3");
-    header.textContent = "View Message";
-
-    // Message details container
-    const details = document.createElement("div");
-    details.className = "message-details";
-
-    // Actions
-    const actions = document.createElement("div");
-    actions.className = "modal-actions";
-
-    const closeBtn = document.createElement("button");
-    closeBtn.className = "btn btn-blue close-btn";
-    closeBtn.textContent = "Close";
-    closeBtn.addEventListener("click", () => this.viewDialog.close());
-
-    actions.appendChild(closeBtn);
-    content.append(header, details, actions);
-    this.viewDialog.appendChild(content);
-    document.body.appendChild(this.viewDialog);
-  }
-
-  private createEditModal(): void {
-    this.editDialog = document.createElement("dialog");
-    this.editDialog.className = "modal edit-modal";
-    this.editDialog.innerHTML = `
-      <div class="modal-content">
-        <h3>Edit Message</h3>
-        <form class="edit-form">
-          <div class="form-group">
-            <label for="messageContent">Message Content</label>
-            <textarea id="messageContent" rows="4" required></textarea>
-          </div>
-          <div class="modal-actions">
-            <button type="button" class="btn btn-danger cancel-btn">Cancel</button>
-            <button type="submit" class="btn btn-blue save-btn">Save Changes</button>
-          </div>
-        </form>
+    content.innerHTML = `
+      <h3>View Message</h3>
+      <div class="message-details">
+        <div class="message-detail">
+          <strong>Role: </strong>
+          <span>${message.role || "unknown"}</span>
+        </div>
+        <div class="message-detail">
+          <strong>Content: </strong>
+          <pre>${this.formatMessageContent(message)}</pre>
+        </div>
+        <div class="message-detail">
+          <strong>Timestamp: </strong>
+          <span>${new Date().toLocaleString()}</span>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-blue close-btn">Close</button>
       </div>
     `;
 
-    const form = this.editDialog.querySelector(
-      ".edit-form"
-    ) as HTMLFormElement | null;
-    form?.addEventListener("submit", (e) => {
-      e.preventDefault();
-      const textarea = this.editDialog.querySelector(
-        "#messageContent"
-      ) as HTMLTextAreaElement;
-      const callback = (this.editDialog as any).onSave;
-      if (callback && textarea.value.trim()) {
-        callback(textarea.value.trim());
-        this.editDialog.close();
-      }
-    });
-
-    this.editDialog
-      .querySelector(".cancel-btn")
-      ?.addEventListener("click", () => {
-        this.editDialog.close();
-      });
-
-    document.body.appendChild(this.editDialog);
+    content
+      .querySelector(".close-btn")
+      ?.addEventListener("click", () => this.viewDialog.close());
   }
 
-  private createNewModal(): void {
-    this.newDialog = document.createElement("dialog");
-    this.newDialog.className = "modal new-modal";
-    this.newDialog.innerHTML = `
-      <div class="modal-content">
-        <h3>New Message</h3>
-        <form class="new-message-form">
-          <div class="form-group">
-            <label for="messageRole">Role</label>
-            <select id="messageRole" required>
-              <option value="user">User</option>
-              <option value="assistant">Assistant</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label for="newMessageContent">Message Content</label>
-            <textarea id="newMessageContent" rows="4" required></textarea>
-          </div>
-          <div class="modal-actions">
-            <button type="button" class="btn btn-danger cancel-btn">Cancel</button>
-            <button type="submit" class="btn btn-blue save-btn">Add Message</button>
-          </div>
-        </form>
-      </div>
+  private renderEditModal(message: Message): void {
+    const content = this.editDialog.querySelector(".modal-content");
+    if (!content) return;
+
+    const initialContent = message.content?.[0]?.text || "";
+
+    content.innerHTML = `
+      <h3>Edit Message</h3>
+      <form class="edit-form">
+        <div class="form-group">
+          <label for="messageContent">Message Content</label>
+          <textarea id="messageContent" rows="4" required>${initialContent}</textarea>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn btn-danger cancel-btn">Cancel</button>
+          <button type="submit" class="btn btn-blue save-btn">Save Changes</button>
+        </div>
+      </form>
     `;
 
-    const form = this.newDialog.querySelector(
-      ".new-message-form"
-    ) as HTMLFormElement | null;
-    form?.addEventListener("submit", (e) => {
-      e.preventDefault();
-      const roleSelect = this.newDialog.querySelector(
-        "#messageRole"
-      ) as HTMLSelectElement;
-      const textarea = this.newDialog.querySelector(
-        "#newMessageContent"
-      ) as HTMLTextAreaElement;
-      const callback = (this.newDialog as any).onAdd;
+    const form = content.querySelector(".edit-form") as HTMLFormElement;
+    form?.addEventListener("submit", this.handleEditSubmit.bind(this));
 
-      if (callback && roleSelect.value && textarea.value.trim()) {
-        callback(
-          roleSelect.value as "user" | "assistant",
-          textarea.value.trim()
-        );
-        this.newDialog.close();
-        form.reset();
-      }
-    });
-
-    this.newDialog
+    content
       .querySelector(".cancel-btn")
-      ?.addEventListener("click", () => {
-        this.newDialog.close();
-      });
-
-    document.body.appendChild(this.newDialog);
+      ?.addEventListener("click", () => this.editDialog.close());
   }
 
-  /**
-   * Show all text blocks in the message. If there are tool results, etc.,
-   * you can also handle them here, or keep it simple (like below).
-   */
-  public showViewModal(message: Message): void {
-    const detailsElement = this.viewDialog.querySelector(".message-details");
-    if (!detailsElement) return;
+  private renderNewMessageModal(): void {
+    const content = this.newDialog.querySelector(".modal-content");
+    if (!content) return;
 
-    // Clear previous content
-    detailsElement.innerHTML = "";
+    content.innerHTML = `
+      <h3>New Message</h3>
+      <form class="new-message-form">
+        <div class="form-group">
+          <label for="messageRole">Role</label>
+          <select id="messageRole" required>
+            <option value="user">User</option>
+            <option value="assistant">Assistant</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="newMessageContent">Message Content</label>
+          <textarea id="newMessageContent" rows="4" required></textarea>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn btn-danger cancel-btn">Cancel</button>
+          <button type="submit" class="btn btn-blue save-btn">Add Message</button>
+        </div>
+      </form>
+    `;
 
-    // Role detail
-    const roleDetail = document.createElement("div");
-    roleDetail.className = "message-detail";
+    const form = content.querySelector(".new-message-form") as HTMLFormElement;
+    form?.addEventListener("submit", this.handleNewMessageSubmit.bind(this));
 
-    const roleLabel = document.createElement("strong");
-    roleLabel.textContent = "Role: ";
+    content
+      .querySelector(".cancel-btn")
+      ?.addEventListener("click", () => this.newDialog.close());
+  }
 
-    const roleValue = document.createElement("span");
-    roleValue.textContent = message.role || "unknown";
-
-    roleDetail.append(roleLabel, roleValue);
-
-    // Content detail
-    const contentDetail = document.createElement("div");
-    contentDetail.className = "message-detail";
-
-    const contentLabel = document.createElement("strong");
-    contentLabel.textContent = "Content: ";
-
-    const contentPre = document.createElement("pre");
-
-    // Process each content block
-    (message.content || []).forEach((block, index) => {
-      const blockDiv = document.createElement("div");
-
+  private formatMessageContent(message: Message): string {
+    let content = "";
+    message.content?.forEach((block, index) => {
       if (block.text) {
-        blockDiv.textContent = block.text;
+        content += block.text;
       } else if (block.toolResult) {
-        const pre = document.createElement("pre");
-        pre.className = "tool-code";
-        pre.textContent = `TOOL RESULT:\n${JSON.stringify(
-          block.toolResult,
-          null,
-          2
-        )}`;
-        blockDiv.appendChild(pre);
+        content += `TOOL RESULT:\n${JSON.stringify(block.toolResult, null, 2)}`;
       } else if (block.toolUse) {
-        const pre = document.createElement("pre");
-        pre.className = "tool-code";
-        pre.textContent = `TOOL USAGE:\n${JSON.stringify(
-          block.toolUse,
-          null,
-          2
-        )}`;
-        blockDiv.appendChild(pre);
+        content += `TOOL USAGE:\n${JSON.stringify(block.toolUse, null, 2)}`;
       } else {
-        blockDiv.textContent = "[Unknown block type]";
+        content += "[Unknown block type]";
       }
 
-      // Add separator if not last block
       if (index < (message.content?.length || 0) - 1) {
-        const separator = document.createElement("div");
-        separator.className = "content-separator";
-        separator.textContent = "---";
-        contentPre.append(blockDiv, separator);
-      } else {
-        contentPre.appendChild(blockDiv);
+        content += "\n---\n";
       }
     });
+    return content;
+  }
 
-    contentDetail.append(contentLabel, contentPre);
+  private handleEditSubmit(e: Event): void {
+    e.preventDefault();
+    if (!this.editCallback) return;
 
-    // Timestamp detail
-    const timeDetail = document.createElement("div");
-    timeDetail.className = "message-detail";
+    const form = e.target as HTMLFormElement;
+    const textarea = form.querySelector(
+      "#messageContent"
+    ) as HTMLTextAreaElement;
 
-    const timeLabel = document.createElement("strong");
-    timeLabel.textContent = "Timestamp: ";
+    if (textarea.value.trim()) {
+      this.editCallback(textarea.value.trim());
+      this.editDialog.close();
+    }
+  }
 
-    const timeValue = document.createElement("span");
-    timeValue.textContent = new Date().toLocaleString();
+  private handleNewMessageSubmit(e: Event): void {
+    e.preventDefault();
+    if (!this.newMessageCallback) return;
 
-    timeDetail.append(timeLabel, timeValue);
+    const form = e.target as HTMLFormElement;
+    const roleSelect = form.querySelector("#messageRole") as HTMLSelectElement;
+    const textarea = form.querySelector(
+      "#newMessageContent"
+    ) as HTMLTextAreaElement;
 
-    // Add all details
-    detailsElement.append(roleDetail, contentDetail, timeDetail);
+    if (roleSelect.value && textarea.value.trim()) {
+      this.newMessageCallback(
+        roleSelect.value as "user" | "assistant",
+        textarea.value.trim()
+      );
+      this.newDialog.close();
+    }
+  }
 
+  // Public API
+  public showViewModal(message: Message): void {
+    this.renderViewModal(message);
     this.viewDialog.showModal();
   }
 
@@ -251,32 +214,25 @@ export class WorkAreaModals {
     message: Message,
     onSave: (content: string) => void
   ): void {
-    // For simplicity, just show/edit the FIRST text block
-    // If you'd like to handle multiple text blocks, update accordingly
-    const textarea = this.editDialog.querySelector(
-      "#messageContent"
-    ) as HTMLTextAreaElement;
-    if (textarea) {
-      textarea.value = message.content?.[0]?.text || "";
-    }
-    (this.editDialog as any).onSave = onSave;
+    this.editCallback = onSave;
+    this.renderEditModal(message);
     this.editDialog.showModal();
   }
 
   public showNewMessageModal(
     onAdd: (role: "user" | "assistant", content: string) => void
   ): void {
-    const form = this.newDialog.querySelector("form");
-    if (form) {
-      form.reset();
-    }
-    (this.newDialog as any).onAdd = onAdd;
+    this.newMessageCallback = onAdd;
+    this.renderNewMessageModal();
     this.newDialog.showModal();
   }
 
   public destroy(): void {
-    this.viewDialog.remove();
-    this.editDialog.remove();
-    this.newDialog.remove();
+    this.modals.forEach((modal) => {
+      modal.remove();
+    });
+    this.initialized = false;
+    this.editCallback = null;
+    this.newMessageCallback = null;
   }
 }
