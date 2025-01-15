@@ -2,6 +2,7 @@ import { Message } from "@aws-sdk/client-bedrock-runtime";
 import { chatContext } from "../Chat/chat-context";
 import { store } from "../../stores/AppStore";
 import { effect } from "@preact/signals-core";
+import { htmlTool } from "../../tools/htmlTool/htmlTool";
 
 export class MessageTable {
   private container: HTMLElement | null = null;
@@ -169,25 +170,66 @@ export class MessageTable {
     const actionsDiv = document.createElement("div");
     actionsDiv.className = "action-buttons";
 
-    const actions = [
+    const message = chatContext.getMessages()[index];
+    const actions = [];
+
+    // @TODO Here can we apply the re-apply to each tooltip
+    // Add re-execute action for HTML tool messages
+    if (message.content?.some((block) => block.toolUse?.name === "html")) {
+      const htmlToolUse = message.content.find(
+        (block) => block.toolUse?.name === "html"
+      );
+      if (htmlToolUse?.toolUse) {
+        actions.push({
+          name: "re-execute",
+          label: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"></path>
+            <path d="M21 3v5h-5"></path>
+            <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"></path>
+            <path d="M8 16H3v5"></path>
+          </svg>`,
+          handler: async () => {
+            if (!store.isGenerating.value) {
+              try {
+                const result = await htmlTool.execute(
+                  htmlToolUse.toolUse.input
+                );
+                store.setActiveTab("preview");
+              } catch (error) {
+                console.error("Failed to re-execute HTML:", error);
+                store.showToast("Failed to re-execute HTML");
+              }
+            }
+          },
+        });
+      }
+    }
+
+    // Add standard actions
+    actions.push(
       { name: "view", label: "View", handler: () => this.onView(index) },
       { name: "edit", label: "Edit", handler: () => this.onEdit(index) },
-      { name: "delete", label: "Delete", handler: () => this.onDelete(index) },
-    ];
+      { name: "delete", label: "Delete", handler: () => this.onDelete(index) }
+    );
 
     actions.forEach(({ name, label, handler }) => {
       const button = document.createElement("button");
       button.className = `action-btn ${name}-btn`;
-      button.textContent = label;
+      if (name === "re-execute") {
+        button.innerHTML = label; // Use innerHTML for SVG
+        button.title = "Re-execute HTML"; // Add tooltip
+      } else {
+        button.textContent = label;
+      }
       button.disabled = store.isGenerating.value;
-      // some issues here with this onclick handler. Be careful modifying this.
+
       button.onclick = (e: MouseEvent) => {
         e.preventDefault();
         if (!store.isGenerating.value) {
-          // maybe this can be removed?
           handler();
         }
       };
+
       actionsDiv.appendChild(button);
     });
 

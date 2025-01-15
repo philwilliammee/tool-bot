@@ -16,19 +16,38 @@ interface ChatDependencies {
 }
 
 export class Chat {
-  private buttonSpinner: ButtonSpinner;
-  private promptInput: HTMLTextAreaElement;
-  private chatMessages: HTMLElement;
-  private button: HTMLButtonElement;
+  private buttonSpinner!: ButtonSpinner;
+  private promptInput!: HTMLTextAreaElement;
+  private chatMessages!: HTMLElement;
+  private button!: HTMLButtonElement;
   private workArea: HTMLElement;
   private cleanupFns: Array<() => void> = [];
+  private initialized: boolean = false;
 
   constructor(dependencies: ChatDependencies) {
-    // 1) WorkArea for the message table & modals
     this.workArea = dependencies.workArea;
-    new WorkArea(this.workArea);
+    this.initialize();
+  }
 
-    // 2) Get DOM elements
+  private initialize(): void {
+    try {
+      // Initialize WorkArea
+      new WorkArea(this.workArea);
+
+      // Get DOM elements
+      this.initializeDOMElements();
+      this.initializeButtonSpinner();
+
+      this.render();
+      this.setupEventListeners();
+      this.setupEffects();
+    } catch (error) {
+      console.error("Failed to initialize Chat:", error);
+      throw error;
+    }
+  }
+
+  private initializeDOMElements(): void {
     this.promptInput = document.querySelector(
       ".prompt-input"
     ) as HTMLTextAreaElement;
@@ -37,32 +56,86 @@ export class Chat {
     if (!this.promptInput || !this.chatMessages) {
       throw new Error("Required DOM elements not found");
     }
+  }
 
-    // 3) Spinner & send button
+  private initializeButtonSpinner(): void {
     this.buttonSpinner = new ButtonSpinner();
     this.button = this.buttonSpinner.getElement();
+  }
+
+  private render(): void {
+    if (!this.initialized) {
+      // First time initialization if needed
+      this.initialized = true;
+    }
+
+    // Update chat messages
+    const messages = chatContext.getMessages();
+    this.renderMessages(messages);
+  }
+
+  private renderMessages(messages: Message[]): void {
+    this.chatMessages.innerHTML = "";
+
+    let lastAssistantIdx = this.findLastAssistantIndex(messages);
+
+    messages.forEach((message, index) => {
+      message.content?.forEach((block) => {
+        if (block.text) {
+          const chatMsg: ChatMessage = {
+            role: message.role || "assistant",
+            message: block.text,
+            timestamp: new Date(),
+          };
+          const isLatestAI = index === lastAssistantIdx;
+          this.appendMessageToDOM(chatMsg, isLatestAI);
+        } else if (block.toolResult) {
+          const toolResultJson = JSON.stringify(block.toolResult, null, 2);
+          const chatMsg: ChatMessage = {
+            role: message.role || "assistant",
+            message: `Tool Result:\n${toolResultJson}`,
+            timestamp: new Date(),
+          };
+          this.appendMessageToDOM(chatMsg, false);
+        }
+      });
+    });
+
+    this.scrollToBottom();
+  }
+
+  private findLastAssistantIndex(messages: Message[]): number {
+    for (let i = messages.length - 1; i >= 0; i--) {
+      if (messages[i].role === "assistant") {
+        return i;
+      }
+    }
+    return -1;
+  }
+
+  private scrollToBottom(): void {
+    this.chatMessages.scrollTop = this.chatMessages.scrollHeight;
+  }
+
+  private setupEventListeners(): void {
     this.button.onclick = this.handleGenerate;
     this.promptInput.onkeydown = this.handleKeyDown;
 
-    // 4) Listen for message changes & re-render
-    chatContext.onMessagesChange(this.updateChatUI);
+    const cleanup = chatContext.onMessagesChange(() => {
+      this.render();
+    });
+    this.cleanupFns.push(cleanup);
+  }
 
-    // 5) Signals-based effects
-    //   a) Show spinner if generating
+  private setupEffects(): void {
     this.cleanupFns.push(
       effect(() => {
-        // Use computed values for cleaner conditions
-        this.promptInput.disabled = store.shouldDisableInput.value;
-
-        if (store.isLoading.value) {
-          this.buttonSpinner.show();
-        } else {
-          this.buttonSpinner.hide();
-        }
+        const isGenerating = store.isGenerating.value;
+        this.promptInput.disabled = isGenerating;
+        isGenerating ? this.buttonSpinner.show() : this.buttonSpinner.hide();
       })
     );
 
-    //   b) If there's a pending error prompt, fill the input
     this.cleanupFns.push(
       effect(() => {
         const errorPrompt = store.pendingErrorPrompt.value;
@@ -107,51 +180,6 @@ export class Chat {
     }
   };
 
-  /**
-   * Whenever chatContext changes, re-render the chat window.
-   */
-  private updateChatUI = (messages: Message[]): void => {
-    this.chatMessages.innerHTML = "";
-
-    // Find the last assistant message index for the "read more" logic
-    let lastAssistantIdx = -1;
-    for (let i = messages.length - 1; i >= 0; i--) {
-      if (messages[i].role === "assistant") {
-        lastAssistantIdx = i;
-        break;
-      }
-    }
-
-    // Render each message block
-    messages.forEach((message, index) => {
-      message.content?.forEach((block) => {
-        if (block.text) {
-          // Normal text
-          const chatMsg: ChatMessage = {
-            role: message.role || "assistant",
-            message: block.text,
-            timestamp: new Date(),
-          };
-          const isLatestAIMessage = index === lastAssistantIdx;
-          this.appendMessageToDOM(chatMsg, isLatestAIMessage);
-        } else if (block.toolResult) {
-          // Tool result (JSON)
-          const toolResultJson = JSON.stringify(block.toolResult, null, 2);
-          const chatMsg: ChatMessage = {
-            role: message.role || "assistant",
-            message: `Tool Result:\n${toolResultJson}`,
-            timestamp: new Date(),
-          };
-          this.appendMessageToDOM(chatMsg, false);
-        }
-        // If there's .toolUse or other block types, handle similarly
-      });
-    });
-
-    // Scroll to bottom
-    this.chatMessages.scrollTop = this.chatMessages.scrollHeight;
-  };
-
   private appendMessageToDOM(message: ChatMessage, isLatestAI: boolean): void {
     const msgElem = document.createElement("div");
     msgElem.className = `chat-message ${message.role}`;
@@ -159,17 +187,15 @@ export class Chat {
     const contentWrapper = document.createElement("div");
     contentWrapper.className = "message-content-wrapper";
 
-    const formatted = this.formatMessageContent(message.message);
-
     if (message.message.length > 300) {
       // "Read more" approach
       const preview = document.createElement("div");
       preview.className = "message-preview";
-      preview.innerHTML = formatted.slice(0, 300) + "...";
+      preview.textContent = message.message.slice(0, 300) + "...";
 
       const full = document.createElement("div");
       full.className = "message-full-content";
-      full.innerHTML = formatted;
+      full.textContent = message.message; // Use textContent instead of innerHTML
 
       const toggleBtn = document.createElement("button");
       toggleBtn.className = "read-more-btn";
@@ -196,31 +222,49 @@ export class Chat {
       contentWrapper.appendChild(toggleBtn);
     } else {
       // Short content, display as-is
-      contentWrapper.innerHTML = formatted;
+      contentWrapper.textContent = message.message; // Use textContent instead of innerHTML
     }
 
     msgElem.appendChild(contentWrapper);
     this.chatMessages.appendChild(msgElem);
   }
 
-  private formatMessageContent(content: string): string {
-    // Basic formatting + code block highlighting
-    return content
-      .replace(/\n/g, "<br>")
-      .replace(
-        /```([\s\S]*?)```/g,
-        (_, code) => `
-          <pre class="code-block"><code>${code.trim()}</code></pre>
-        `
-      )
-      .replace(/`([^`]+)`/g, "<code>$1</code>");
-  }
+  // private formatMessageContent(content: string): string {
+  //   // Basic formatting + code block highlighting
+  //   return content
+  //     .replace(/\n/g, "<br>")
+  //     .replace(
+  //       /```([\s\S]*?)```/g,
+  //       (_, code) => `
+  //         <pre class="code-block"><code>${code.trim()}</code></pre>
+  //       `
+  //     )
+  //     .replace(/`([^`]+)`/g, "<code>$1</code>");
+  // }
 
   public destroy(): void {
-    // Cleanup
-    this.cleanupFns.forEach((fn) => fn());
-    this.button.onclick = null;
-    this.promptInput.onkeydown = null;
-    this.buttonSpinner.destroy();
+    try {
+      // Cleanup effects and subscriptions
+      this.cleanupFns.forEach((fn) => fn());
+      this.cleanupFns = [];
+
+      // Remove event listeners
+      if (this.button) {
+        this.button.onclick = null;
+      }
+      if (this.promptInput) {
+        this.promptInput.onkeydown = null;
+      }
+
+      // Cleanup components
+      if (this.buttonSpinner) {
+        this.buttonSpinner.destroy();
+      }
+
+      // Reset state
+      this.initialized = false;
+    } catch (error) {
+      console.error("Error during Chat cleanup:", error);
+    }
   }
 }

@@ -663,3 +663,18 @@ code {
   background-color: #e5e7eb;
   color: #6b7280;
 }
+
+.re-execute-btn {
+  background-color: #0891b2;
+  padding: 0.5rem;
+  line-height: 0; /* This helps center the SVG */
+  color: white;
+}
+
+.re-execute-btn:hover {
+  background-color: #0e7490;
+}
+
+.re-execute-btn svg {
+  vertical-align: middle;
+}

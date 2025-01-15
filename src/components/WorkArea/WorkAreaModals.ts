@@ -59,34 +59,92 @@ export class WorkAreaModals {
     });
   }
 
+  // private renderViewModal(message: Message): void {
+  //   const content = this.viewDialog.querySelector(".modal-content");
+  //   if (!content) return;
+
+  //   is this better:
+  //   content.innerHTML = `
+  //   <h3>View Message</h3>
+  //   <div class="message-details">
+  //     <div class="message-detail">
+  //       <strong>Role: </strong>
+  //       <span>${message.role || "unknown"}</span>
+  //     </div>
+  //     <div class="message-detail">
+  //       <strong>Content: </strong>
+  //       <pre>${this.formatMessageContent(message)}</pre>
+  //     </div>
+  //     <div class="message-detail">
+  //       <strong>Timestamp: </strong>
+  //       <span>${new Date().toLocaleString()}</span>
+  //     </div>
+  //   </div>
+  //   <div class="modal-actions">
+  //     <button type="button" class="btn btn-blue close-btn">Close</button>
+  //   </div>
+  // `;
+
+  // content
+  //   .querySelector(".close-btn")
+  //   ?.addEventListener("click", () => this.viewDialog.close());
+  // }
+
+  // Is this really better than the above?
   private renderViewModal(message: Message): void {
     const content = this.viewDialog.querySelector(".modal-content");
     if (!content) return;
 
-    content.innerHTML = `
-      <h3>View Message</h3>
-      <div class="message-details">
-        <div class="message-detail">
-          <strong>Role: </strong>
-          <span>${message.role || "unknown"}</span>
-        </div>
-        <div class="message-detail">
-          <strong>Content: </strong>
-          <pre>${this.formatMessageContent(message)}</pre>
-        </div>
-        <div class="message-detail">
-          <strong>Timestamp: </strong>
-          <span>${new Date().toLocaleString()}</span>
-        </div>
-      </div>
-      <div class="modal-actions">
-        <button type="button" class="btn btn-blue close-btn">Close</button>
-      </div>
-    `;
+    // Clear existing content
+    content.innerHTML = "";
 
-    content
-      .querySelector(".close-btn")
-      ?.addEventListener("click", () => this.viewDialog.close());
+    // Create elements
+    const header = document.createElement("h3");
+    header.textContent = "View Message";
+
+    const details = document.createElement("div");
+    details.className = "message-details";
+
+    // Role detail
+    const roleDetail = document.createElement("div");
+    roleDetail.className = "message-detail";
+    const roleLabel = document.createElement("strong");
+    roleLabel.textContent = "Role: ";
+    const roleValue = document.createElement("span");
+    roleValue.textContent = message.role || "unknown";
+    roleDetail.append(roleLabel, roleValue);
+
+    // Content detail
+    const contentDetail = document.createElement("div");
+    contentDetail.className = "message-detail";
+    const contentLabel = document.createElement("strong");
+    contentLabel.textContent = "Content: ";
+    const contentPre = document.createElement("pre");
+    contentPre.textContent = this.formatMessageContent(message);
+    contentDetail.append(contentLabel, contentPre);
+
+    // Timestamp detail
+    const timeDetail = document.createElement("div");
+    timeDetail.className = "message-detail";
+    const timeLabel = document.createElement("strong");
+    timeLabel.textContent = "Timestamp: ";
+    const timeValue = document.createElement("span");
+    timeValue.textContent = new Date().toLocaleString();
+    timeDetail.append(timeLabel, timeValue);
+
+    // Actions
+    const actions = document.createElement("div");
+    actions.className = "modal-actions";
+    const closeBtn = document.createElement("button");
+    closeBtn.type = "button";
+    closeBtn.className = "btn btn-blue close-btn";
+    closeBtn.textContent = "Close";
+    closeBtn.onclick = () => this.viewDialog.close();
+    actions.appendChild(closeBtn);
+
+    // Append all elements
+    details.append(roleDetail, contentDetail, timeDetail);
+    content.append(header, details, actions);
   }
 
   private renderEditModal(message: Message): void {

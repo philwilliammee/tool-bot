@@ -172,8 +172,14 @@ export class ChatContext {
   }
 
   // Subscribe for UI updates
-  public onMessagesChange(callback: (msgs: Message[]) => void) {
+  public onMessagesChange(callback: (msgs: Message[]) => void): () => void {
     this.messageChangeCallbacks.push(callback);
+    // Return cleanup function
+    return () => {
+      this.messageChangeCallbacks = this.messageChangeCallbacks.filter(
+        (cb) => cb !== callback
+      );
+    };
   }
 
   private notifyMessageChange(): void {
