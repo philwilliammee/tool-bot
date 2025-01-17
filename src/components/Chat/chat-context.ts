@@ -7,6 +7,7 @@ import {
 import { mathTool } from "../../tools/math/math.tool";
 import { ToolUse } from "../../types/tool.types";
 import { fetchTool } from "../../tools/fetch/fetch.tool";
+import { ldapTool } from "../../tools/ldapTool/ldap.tool";
 import { postBedrock } from "../../apiClient"; // so we can call bedrock here
 import { store } from "../../stores/AppStore"; // for isGenerating and error handling?
 import { htmlTool } from "../../tools/htmlTool/htmlTool";
@@ -123,6 +124,9 @@ export class ChatContext {
         break;
       case "html":
         result = await htmlTool.execute(toolUse.input);
+        break;
+      case "ldap_search":
+        result = await ldapTool.execute(toolUse.input);
         break;
       default:
         throw new Error(`Unknown tool requested: ${toolUse.name}`);

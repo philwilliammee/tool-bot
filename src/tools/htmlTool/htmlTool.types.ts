@@ -5,7 +5,7 @@ export interface HtmlToolInput {
 }
 
 export interface HtmlToolResponse {
-  html: string;
+  // html: string;
   error?: boolean;
   message?: string;
   renderedElement?: HTMLElement;

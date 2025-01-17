@@ -1,5 +1,5 @@
 // server/tools/fetch/fetch.controller.ts
-import { Router, Request, Response } from "express";
+import { Router } from "express";
 import { FetchToolService } from "./fetch.service";
 import { FetchToolInput } from "./fetch.types";
 

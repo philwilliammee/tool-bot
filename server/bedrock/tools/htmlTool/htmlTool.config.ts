@@ -6,8 +6,10 @@ export const htmlToolConfig: ToolConfiguration = {
     {
       toolSpec: {
         name: "html",
-        description:
-          "Generate and render HTML content. Use for visualizations, layouts, and web development assistance.",
+        description: `
+Generate and render HTML content. Use for visualizations, layouts, and web development assistance.
+Use basic CDN imports like <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+`,
         inputSchema: {
           json: {
             type: "object",

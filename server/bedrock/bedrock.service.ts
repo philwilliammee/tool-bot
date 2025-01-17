@@ -9,6 +9,7 @@ import {
 import { fetchToolConfig } from "./tools/fetch/fetch.config";
 import { mathToolConfig } from "./tools/mathTool/mathTool.config";
 import { htmlToolConfig } from "./tools/htmlTool/htmlTool.config";
+import { ldapToolConfig } from "./tools/ldapTool/ldapTool.config";
 
 export interface BedrockServiceConfig {
   region: string;
@@ -105,11 +106,13 @@ export class BedrockService {
     const fetchToolToolsConfig = fetchToolConfig.tools || [];
     const mathToolConfigToolsConfig = mathToolConfig.tools || [];
     const htmlToolConfigToolsConfig = htmlToolConfig.tools || [];
+    const ldapToolConfigToolsConfig = ldapToolConfig.tools || [];
     return {
       tools: [
         ...fetchToolToolsConfig,
         ...mathToolConfigToolsConfig,
         ...htmlToolConfigToolsConfig,
+        ...ldapToolConfigToolsConfig,
       ],
     };
   }
