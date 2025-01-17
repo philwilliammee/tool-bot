@@ -2,5 +2,5 @@
 export interface ClientTool {
   name: string;
   execute: (input: any) => Promise<any>;
-  systemPrompt: string;
+  systemPrompt?: string;
 }

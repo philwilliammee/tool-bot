@@ -4,11 +4,11 @@ import { BedrockService } from "./bedrock.service";
 
 const router = express.Router();
 const bedrockService = new BedrockService({
-  region: process.env.VITE_AWS_REGION || "us-east-1",
+  region: process.env.AWS_REGION || "us-east-1",
   credentials: {
-    accessKeyId: process.env.VITE_AWS_ACCESS_KEY || "",
-    secretAccessKey: process.env.VITE_AWS_SECRET_KEY || "",
-    sessionToken: process.env.VITE_AWS_SESSION_TOKEN || "",
+    accessKeyId: process.env.AWS_ACCESS_KEY || "",
+    secretAccessKey: process.env.AWS_SECRET_KEY || "",
+    sessionToken: process.env.AWS_SESSION_TOKEN || "",
   },
 });
 
