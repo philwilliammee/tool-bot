@@ -1,5 +1,7 @@
 <h1>AI Chat Assistant</h1>
 
+REQUIRED: Node 20.6.0 or higher
+
 <p>An AI-powered chat bot that can help with various tasks through natural language conversation. Engage in meaningful dialogue, get help with questions, and explore different topics through an intuitive chat interface.</p>
 
 <blockquote>
@@ -25,7 +27,7 @@ cp example.env .env</code></pre>
 
   <li>Configure AWS credentials in <code>.env</code>:
     <pre><code>AWS_REGION=your-aws-region
-BEDROCK_MODEL_ID=your-model-id
+VITE_BEDROCK_MODEL_ID=your-model-id
 AWS_ACCESS_KEY=your-aws-access-key
 AWS_SECRET_KEY=your-aws-secret-key</code></pre>
   </li>
@@ -257,6 +259,8 @@ The sum is 100.</code></pre>
   <li><strong>State Management:</strong> Centralized signal-based state handling</li>
   <li><strong>Responsive Layout:</strong> Adapts to different screen sizes</li>
 </ul>
+
+## More example prompts:
 
 IF preview is visible work area doesn't load.
 
