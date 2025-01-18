@@ -13,15 +13,8 @@ export const htmlTool: ClientTool = {
         throw new Error("HTML tool iframe not found");
       }
 
-      // Write the HTML content to the iframe
-      const doc = iframe.contentDocument;
-      if (!doc) {
-        throw new Error("Could not access iframe document");
-      }
-
-      // Write the full HTML document with some default styles
-      doc.open();
-      doc.write(`
+      // Create the HTML content
+      const htmlContent = `
         <!DOCTYPE html>
         <html>
           <head>
@@ -55,8 +48,10 @@ export const htmlTool: ClientTool = {
             ${input.html}
           </body>
         </html>
-      `);
-      doc.close();
+      `;
+
+      // Set the srcdoc attribute
+      iframe.srcdoc = htmlContent;
 
       return {
         message: "HTML rendered successfully",

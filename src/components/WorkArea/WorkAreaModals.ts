@@ -20,28 +20,22 @@ export class WorkAreaModals {
   private initialize(): void {
     if (this.initialized) return;
 
-    this.createModals();
-    this.setupGlobalEvents();
-    this.initialized = true;
-  }
+    // Get existing modals instead of creating them
+    this.viewDialog = document.getElementById(
+      "view-modal"
+    ) as HTMLDialogElement;
+    this.editDialog = document.getElementById(
+      "edit-modal"
+    ) as HTMLDialogElement;
+    this.newDialog = document.getElementById("new-modal") as HTMLDialogElement;
 
-  private createModals(): void {
-    // Create all modals
-    this.viewDialog = this.createModal("view-modal");
-    this.editDialog = this.createModal("edit-modal");
-    this.newDialog = this.createModal("new-modal");
+    if (!this.viewDialog || !this.editDialog || !this.newDialog) {
+      throw new Error("Required modal elements not found in DOM");
+    }
 
     this.modals = [this.viewDialog, this.editDialog, this.newDialog];
-    this.modals.forEach((modal) => document.body.appendChild(modal));
-  }
-
-  private createModal(className: string): HTMLDialogElement {
-    const dialog = document.createElement("dialog");
-    dialog.className = `modal ${className}`;
-    const content = document.createElement("div");
-    content.className = "modal-content";
-    dialog.appendChild(content);
-    return dialog;
+    this.setupGlobalEvents();
+    this.initialized = true;
   }
 
   private setupGlobalEvents(): void {
@@ -57,155 +51,46 @@ export class WorkAreaModals {
         if (form) form.reset();
       });
     });
+
+    // Setup form submit handlers
+    this.editDialog
+      .querySelector(".edit-form")
+      ?.addEventListener("submit", this.handleEditSubmit.bind(this));
+
+    this.newDialog
+      .querySelector(".new-message-form")
+      ?.addEventListener("submit", this.handleNewMessageSubmit.bind(this));
+
+    // Setup cancel buttons
+    this.modals.forEach((modal) => {
+      modal
+        .querySelector(".cancel-btn")
+        ?.addEventListener("click", () => modal.close());
+      modal
+        .querySelector(".close-btn")
+        ?.addEventListener("click", () => modal.close());
+    });
   }
 
-  // private renderViewModal(message: Message): void {
-  //   const content = this.viewDialog.querySelector(".modal-content");
-  //   if (!content) return;
+  private updateViewModal(message: Message): void {
+    const roleElement = this.viewDialog.querySelector(".role-value");
+    const contentElement = this.viewDialog.querySelector(".content-value");
+    const timestampElement = this.viewDialog.querySelector(".timestamp-value");
 
-  //   is this better:
-  //   content.innerHTML = `
-  //   <h3>View Message</h3>
-  //   <div class="message-details">
-  //     <div class="message-detail">
-  //       <strong>Role: </strong>
-  //       <span>${message.role || "unknown"}</span>
-  //     </div>
-  //     <div class="message-detail">
-  //       <strong>Content: </strong>
-  //       <pre>${this.formatMessageContent(message)}</pre>
-  //     </div>
-  //     <div class="message-detail">
-  //       <strong>Timestamp: </strong>
-  //       <span>${new Date().toLocaleString()}</span>
-  //     </div>
-  //   </div>
-  //   <div class="modal-actions">
-  //     <button type="button" class="btn btn-blue close-btn">Close</button>
-  //   </div>
-  // `;
-
-  // content
-  //   .querySelector(".close-btn")
-  //   ?.addEventListener("click", () => this.viewDialog.close());
-  // }
-
-  // Is this really better than the above?
-  private renderViewModal(message: Message): void {
-    const content = this.viewDialog.querySelector(".modal-content");
-    if (!content) return;
-
-    // Clear existing content
-    content.innerHTML = "";
-
-    // Create elements
-    const header = document.createElement("h3");
-    header.textContent = "View Message";
-
-    const details = document.createElement("div");
-    details.className = "message-details";
-
-    // Role detail
-    const roleDetail = document.createElement("div");
-    roleDetail.className = "message-detail";
-    const roleLabel = document.createElement("strong");
-    roleLabel.textContent = "Role: ";
-    const roleValue = document.createElement("span");
-    roleValue.textContent = message.role || "unknown";
-    roleDetail.append(roleLabel, roleValue);
-
-    // Content detail
-    const contentDetail = document.createElement("div");
-    contentDetail.className = "message-detail";
-    const contentLabel = document.createElement("strong");
-    contentLabel.textContent = "Content: ";
-    const contentPre = document.createElement("pre");
-    contentPre.textContent = this.formatMessageContent(message);
-    contentDetail.append(contentLabel, contentPre);
-
-    // Timestamp detail
-    const timeDetail = document.createElement("div");
-    timeDetail.className = "message-detail";
-    const timeLabel = document.createElement("strong");
-    timeLabel.textContent = "Timestamp: ";
-    const timeValue = document.createElement("span");
-    timeValue.textContent = new Date().toLocaleString();
-    timeDetail.append(timeLabel, timeValue);
-
-    // Actions
-    const actions = document.createElement("div");
-    actions.className = "modal-actions";
-    const closeBtn = document.createElement("button");
-    closeBtn.type = "button";
-    closeBtn.className = "btn btn-blue close-btn";
-    closeBtn.textContent = "Close";
-    closeBtn.onclick = () => this.viewDialog.close();
-    actions.appendChild(closeBtn);
-
-    // Append all elements
-    details.append(roleDetail, contentDetail, timeDetail);
-    content.append(header, details, actions);
+    if (roleElement) roleElement.textContent = message.role || "unknown";
+    if (contentElement)
+      contentElement.textContent = this.formatMessageContent(message);
+    if (timestampElement)
+      timestampElement.textContent = new Date().toLocaleString();
   }
 
-  private renderEditModal(message: Message): void {
-    const content = this.editDialog.querySelector(".modal-content");
-    if (!content) return;
-
-    const initialContent = message.content?.[0]?.text || "";
-
-    content.innerHTML = `
-      <h3>Edit Message</h3>
-      <form class="edit-form">
-        <div class="form-group">
-          <label for="messageContent">Message Content</label>
-          <textarea id="messageContent" rows="4" required>${initialContent}</textarea>
-        </div>
-        <div class="modal-actions">
-          <button type="button" class="btn btn-danger cancel-btn">Cancel</button>
-          <button type="submit" class="btn btn-blue save-btn">Save Changes</button>
-        </div>
-      </form>
-    `;
-
-    const form = content.querySelector(".edit-form") as HTMLFormElement;
-    form?.addEventListener("submit", this.handleEditSubmit.bind(this));
-
-    content
-      .querySelector(".cancel-btn")
-      ?.addEventListener("click", () => this.editDialog.close());
-  }
-
-  private renderNewMessageModal(): void {
-    const content = this.newDialog.querySelector(".modal-content");
-    if (!content) return;
-
-    content.innerHTML = `
-      <h3>New Message</h3>
-      <form class="new-message-form">
-        <div class="form-group">
-          <label for="messageRole">Role</label>
-          <select id="messageRole" required>
-            <option value="user">User</option>
-            <option value="assistant">Assistant</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label for="newMessageContent">Message Content</label>
-          <textarea id="newMessageContent" rows="4" required></textarea>
-        </div>
-        <div class="modal-actions">
-          <button type="button" class="btn btn-danger cancel-btn">Cancel</button>
-          <button type="submit" class="btn btn-blue save-btn">Add Message</button>
-        </div>
-      </form>
-    `;
-
-    const form = content.querySelector(".new-message-form") as HTMLFormElement;
-    form?.addEventListener("submit", this.handleNewMessageSubmit.bind(this));
-
-    content
-      .querySelector(".cancel-btn")
-      ?.addEventListener("click", () => this.newDialog.close());
+  private updateEditModal(message: Message): void {
+    const textarea = this.editDialog.querySelector(
+      "#messageContent"
+    ) as HTMLTextAreaElement;
+    if (textarea) {
+      textarea.value = message.content?.[0]?.text || "";
+    }
   }
 
   private formatMessageContent(message: Message): string {
@@ -264,7 +149,7 @@ export class WorkAreaModals {
 
   // Public API
   public showViewModal(message: Message): void {
-    this.renderViewModal(message);
+    this.updateViewModal(message);
     this.viewDialog.showModal();
   }
 
@@ -273,7 +158,7 @@ export class WorkAreaModals {
     onSave: (content: string) => void
   ): void {
     this.editCallback = onSave;
-    this.renderEditModal(message);
+    this.updateEditModal(message);
     this.editDialog.showModal();
   }
 
@@ -281,14 +166,16 @@ export class WorkAreaModals {
     onAdd: (role: "user" | "assistant", content: string) => void
   ): void {
     this.newMessageCallback = onAdd;
-    this.renderNewMessageModal();
     this.newDialog.showModal();
   }
 
   public destroy(): void {
+    // Remove event listeners
     this.modals.forEach((modal) => {
-      modal.remove();
+      const newModal = modal.cloneNode(true);
+      modal.parentNode?.replaceChild(newModal, modal);
     });
+
     this.initialized = false;
     this.editCallback = null;
     this.newMessageCallback = null;

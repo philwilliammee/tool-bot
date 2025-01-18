@@ -30,6 +30,7 @@ export class Chat {
   }
 
   private initialize(): void {
+    console.log("Chat component initialized");
     try {
       // Initialize WorkArea
       new WorkArea(this.workArea);
@@ -63,15 +64,18 @@ export class Chat {
     this.button = this.buttonSpinner.getElement();
   }
 
+  // In Chat.ts
   private render(): void {
     if (!this.initialized) {
-      // First time initialization if needed
+      // First time initialization should happen regardless of active tab
       this.initialized = true;
     }
 
-    // Update chat messages
-    const messages = chatContext.getMessages();
-    this.renderMessages(messages);
+    // Update chat messages if they exist
+    if (this.chatMessages) {
+      const messages = chatContext.getMessages();
+      this.renderMessages(messages);
+    }
   }
 
   private renderMessages(messages: Message[]): void {
@@ -181,66 +185,63 @@ export class Chat {
   };
 
   private appendMessageToDOM(message: ChatMessage, isLatestAI: boolean): void {
-    const msgElem = document.createElement("div");
-    msgElem.className = `chat-message ${message.role}`;
+    // Get appropriate template based on message type
+    const templateId = `${message.role}-message-template`;
+    const template = document.getElementById(templateId) as HTMLTemplateElement;
+    if (!template) {
+      console.error(`Template not found: ${templateId}`);
+      return;
+    }
 
-    const contentWrapper = document.createElement("div");
-    contentWrapper.className = "message-content-wrapper";
+    // Clone the template
+    const msgElem = template.content.cloneNode(true) as HTMLElement;
+    const contentWrapper = msgElem.querySelector(".message-content-wrapper");
+
+    if (!contentWrapper) {
+      console.error("Required elements not found in template");
+      return;
+    }
 
     if (message.message.length > 300) {
-      // "Read more" approach
       const preview = document.createElement("div");
       preview.className = "message-preview";
       preview.textContent = message.message.slice(0, 300) + "...";
 
       const full = document.createElement("div");
       full.className = "message-full-content";
-      full.textContent = message.message; // Use textContent instead of innerHTML
+      full.textContent = message.message;
 
       const toggleBtn = document.createElement("button");
       toggleBtn.className = "read-more-btn";
-      toggleBtn.textContent = "Show less";
-      toggleBtn.onclick = () => {
+      toggleBtn.textContent = "Read more";
+
+      toggleBtn.addEventListener("click", () => {
         full.classList.toggle("hidden");
         preview.classList.toggle("hidden");
         toggleBtn.textContent = full.classList.contains("hidden")
           ? "Read more"
           : "Show less";
-      };
-
-      if (!isLatestAI) {
-        full.classList.add("hidden");
-        preview.classList.remove("hidden");
-        toggleBtn.textContent = "Read more";
-      } else {
-        full.classList.remove("hidden");
-        preview.classList.add("hidden");
-      }
+      });
 
       contentWrapper.appendChild(preview);
       contentWrapper.appendChild(full);
       contentWrapper.appendChild(toggleBtn);
+
+      if (!isLatestAI) {
+        full.classList.add("hidden");
+        preview.classList.remove("hidden");
+      } else {
+        full.classList.remove("hidden");
+        preview.classList.add("hidden");
+        toggleBtn.textContent = "Show less";
+      }
     } else {
-      // Short content, display as-is
-      contentWrapper.textContent = message.message; // Use textContent instead of innerHTML
+      // Short message, just show content
+      contentWrapper.textContent = message.message;
     }
 
-    msgElem.appendChild(contentWrapper);
     this.chatMessages.appendChild(msgElem);
   }
-
-  // private formatMessageContent(content: string): string {
-  //   // Basic formatting + code block highlighting
-  //   return content
-  //     .replace(/\n/g, "<br>")
-  //     .replace(
-  //       /```([\s\S]*?)```/g,
-  //       (_, code) => `
-  //         <pre class="code-block"><code>${code.trim()}</code></pre>
-  //       `
-  //     )
-  //     .replace(/`([^`]+)`/g, "<code>$1</code>");
-  // }
 
   public destroy(): void {
     try {

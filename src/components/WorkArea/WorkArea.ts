@@ -5,15 +5,13 @@ import { MessageTable } from "./MessageTable";
 import { WorkAreaModals } from "./WorkAreaModals";
 
 export class WorkArea {
-  private element: HTMLElement;
   private modals: WorkAreaModals;
   private messageTable: MessageTable;
   private initialized: boolean = false;
   private cleanupFns: Array<() => void> = [];
 
-  constructor(container: HTMLElement) {
+  constructor(private element: HTMLElement) {
     console.log("WorkArea component initialized");
-    this.element = container;
     this.modals = new WorkAreaModals();
     this.messageTable = new MessageTable(
       this.handleViewMessage.bind(this),
@@ -25,7 +23,11 @@ export class WorkArea {
   }
 
   private initialize(): void {
-    this.render();
+    // Initialize message table
+    this.messageTable.mount();
+
+    // Setup event listeners
+    this.setupEventListeners();
 
     // Setup reactive effects
     this.cleanupFns.push(
@@ -45,65 +47,19 @@ export class WorkArea {
       })
     );
 
+    // Update counts when messages change
     chatContext.onMessagesChange(() => {
-      this.render();
+      this.updateDynamicContent();
     });
+
+    this.initialized = true;
   }
 
-  private render(): void {
-    // Don't update if not visible
-    if (store.activeTab.value !== "work-area") return;
-
-    if (!this.initialized) {
-      this.element.innerHTML = `
-        <div class="work-area-header">
-          <div class="work-area-title-group">
-            <h2 class="work-area-title">Chat Admin Interface</h2>
-            <span class="message-count">${
-              chatContext.getMessages().length
-            } messages</span>
-          </div>
-          <div class="work-area-actions">
-            <button class="btn btn-danger delete-all-btn">
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16"
-                   viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                   stroke-width="2">
-                <path d="M3 6h18"></path>
-                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"></path>
-                <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-              </svg>
-              Delete All
-            </button>
-            <button class="btn btn-blue new-message-btn">
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16"
-                   viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                   stroke-width="2">
-                <line x1="12" y1="5" x2="12" y2="19"></line>
-                <line x1="5" y1="12" x2="19" y2="12"></line>
-              </svg>
-              New Message
-            </button>
-          </div>
-        </div>
-        <div id="message-table-container"></div>
-      `;
-
-      // Mount message table
-      const tableContainer = this.element.querySelector(
-        "#message-table-container"
-      ) as HTMLElement | null;
-      if (tableContainer) {
-        this.messageTable.mount(tableContainer);
-      }
-
-      this.setupEventListeners();
-      this.initialized = true;
+  private updateDynamicContent(): void {
+    if (store.activeTab.value === "work-area") {
+      this.updateMessageCount();
+      this.updateButtonStates();
     }
-
-    // Update dynamic content
-    this.updateMessageCount();
-    // this.updateMessageTable(); // message table now updates on its own.
-    this.updateButtonStates();
   }
 
   private updateMessageCount(): void {
@@ -112,14 +68,6 @@ export class WorkArea {
       countElement.textContent = `${chatContext.getMessages().length} messages`;
     }
   }
-
-  // private updateMessageTable(): void {
-  //   if (store.isGenerating.value) {
-  //     // Could add loading state visualization here
-  //     return;
-  //   }
-  //   this.messageTable.update();
-  // }
 
   private updateButtonStates(): void {
     const deleteAllBtn = this.element.querySelector(
@@ -145,7 +93,7 @@ export class WorkArea {
   }
 
   private enableInteractions(): void {
-    this.updateButtonStates(); // This will properly re-enable buttons based on state
+    this.updateButtonStates();
   }
 
   private setupEventListeners(): void {
@@ -203,8 +151,6 @@ export class WorkArea {
   private handleViewMessage(index: number): void {
     const message = chatContext.getMessages()[index];
     if (!message || store.isGenerating.value) return;
-
-    // Just show the modal without using handleMessageOperation
     this.modals.showViewModal(message);
   }
 
@@ -212,9 +158,7 @@ export class WorkArea {
     const message = chatContext.getMessages()[index];
     if (!message || store.isGenerating.value) return;
 
-    // Show modal without wrapping in handleMessageOperation
     this.modals.showEditModal(message, (newContent) => {
-      // handleMessageOperation only when saving
       this.handleMessageOperation(() => {
         chatContext.updateMessage(index, newContent);
       }, "Message updated successfully");
@@ -231,14 +175,6 @@ export class WorkArea {
     }
   }
 
-  private handleReorderMessages(fromIndex: number, toIndex: number): void {
-    if (store.isGenerating.value) return;
-
-    this.handleMessageOperation(() => {
-      chatContext.reorderMessages(fromIndex, toIndex);
-    }, "Messages reordered");
-  }
-
   public destroy(): void {
     // Cleanup all effects
     this.cleanupFns.forEach((cleanup) => cleanup());
@@ -246,8 +182,5 @@ export class WorkArea {
     // Cleanup components
     this.modals.destroy();
     this.messageTable.destroy();
-
-    // Clear DOM
-    this.element.innerHTML = "";
   }
 }
