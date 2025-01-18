@@ -1,7 +1,7 @@
-// src/components/ButtonSpinner/ButtonSpinner.ts
 export class ButtonSpinner {
   private button: HTMLButtonElement;
   private originalContent: string;
+  private spinnerTemplate: HTMLTemplateElement;
 
   constructor() {
     const button = document.querySelector(".generate-btn") as HTMLButtonElement;
@@ -9,17 +9,22 @@ export class ButtonSpinner {
       throw new Error("Generate button not found in DOM");
     }
 
+    const template = document.getElementById(
+      "spinner-template"
+    ) as HTMLTemplateElement;
+    if (!template) {
+      throw new Error("Spinner template not found");
+    }
+
     this.button = button;
     this.originalContent = this.button.innerHTML;
+    this.spinnerTemplate = template;
   }
 
-  // requires css class: animate-spin
   public show(): void {
-    this.button.innerHTML = `
-      <svg class="animate-spin" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M21 12a9 9 0 1 1-6.219-8.56"></path>
-      </svg>
-    `;
+    const spinner = this.spinnerTemplate.content.cloneNode(true);
+    this.button.innerHTML = "";
+    this.button.appendChild(spinner);
     this.button.disabled = true;
   }
 
