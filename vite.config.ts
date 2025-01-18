@@ -1,4 +1,4 @@
-import { defineConfig } from "vite";
+import { defineConfig, UserConfigExport } from "vitest/config";
 
 export default defineConfig({
   plugins: [],
@@ -10,9 +10,11 @@ export default defineConfig({
       "/api": {
         target: "http://localhost:3001",
         changeOrigin: true,
-        // Remove the rewrite to keep the /api prefix
-        // rewrite: (path) => path.replace(/^\/api/, ""),
       },
     },
   },
-});
+  test: {
+    globals: true,
+    environment: "node",
+  },
+} satisfies UserConfigExport);

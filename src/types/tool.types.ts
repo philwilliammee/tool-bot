@@ -1,4 +1,6 @@
 // src/types/tool.types.ts
+import { Message } from "@aws-sdk/client-bedrock-runtime";
+
 export interface ToolUse {
   name: string;
   toolUseId: string;
@@ -12,4 +14,13 @@ export interface ToolResponse {
   error?: boolean;
   message?: string;
   contentType?: string;
+}
+
+export interface MessageExtended extends Message {
+  metadata?: {
+    isArchived?: boolean;
+    hasToolUse?: boolean;
+    hasToolResult?: boolean;
+    sequenceNumber?: number;
+  };
 }

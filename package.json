@@ -4,6 +4,7 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
+    "test": "vitest run",
     "dev:client": "vite",
     "dev:server": "nodemon --watch server --watch server.ts --ext ts --exec \"vite-node --env-file=.env server.ts\"",
     "dev": "concurrently \"npm run dev:client\" \"npm run dev:server\"",

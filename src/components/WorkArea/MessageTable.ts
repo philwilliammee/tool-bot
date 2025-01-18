@@ -3,6 +3,7 @@ import { chatContext } from "../Chat/chat-context";
 import { store } from "../../stores/AppStore";
 import { effect } from "@preact/signals-core";
 import { htmlTool } from "../../tools/htmlTool/htmlTool";
+import { MessageExtended } from "../../types/tool.types";
 
 export class MessageTable {
   private tbody: HTMLTableSectionElement | null = null;
@@ -18,7 +19,6 @@ export class MessageTable {
   }
 
   public mount(): void {
-    // Get existing table body
     this.tbody = document.getElementById(
       "message-table-body"
     ) as HTMLTableSectionElement;
@@ -27,12 +27,10 @@ export class MessageTable {
       return;
     }
 
-    // Subscribe to chat context changes
     const chatCleanup = chatContext.onMessagesChange(() => {
       this.updateContent();
     });
 
-    // Subscribe to store changes for button states
     const storeCleanup = effect(() => {
       const buttons = this.tbody?.querySelectorAll(".action-btn");
       buttons?.forEach((button) => {
@@ -56,7 +54,7 @@ export class MessageTable {
     }
 
     messages.forEach((message, index) => {
-      const row = this.createMessageRow(message, index);
+      const row = this.createMessageRow(message as MessageExtended, index);
       this.tbody?.appendChild(row);
     });
   }
@@ -71,7 +69,10 @@ export class MessageTable {
     this.tbody.appendChild(clone);
   }
 
-  private createMessageRow(message: Message, index: number): HTMLElement {
+  private createMessageRow(
+    message: MessageExtended,
+    index: number
+  ): HTMLElement {
     const template = document.getElementById(
       "message-row-template"
     ) as HTMLTemplateElement;
@@ -80,6 +81,12 @@ export class MessageTable {
     const clone = template.content.cloneNode(true) as HTMLElement;
     const row = clone.querySelector("tr");
     if (!row) throw new Error("Row not found in template");
+
+    // Add archived class if message is archived
+    if (message.metadata?.isArchived) {
+      row.classList.add("archived-message");
+      row.title = "Archived message - not included in context window";
+    }
 
     // Set row metadata
     row.dataset.index = index.toString();
@@ -90,6 +97,19 @@ export class MessageTable {
       const role = message.role || "unknown";
       roleBadge.className = `role-badge role-${role}`;
       roleBadge.textContent = role;
+
+      // Add archive badge if message is archived
+      if (message.metadata?.isArchived) {
+        const badgeTemplate = document.getElementById(
+          "archive-badge-template"
+        ) as HTMLTemplateElement;
+        if (badgeTemplate) {
+          const badgeClone = badgeTemplate.content.cloneNode(
+            true
+          ) as HTMLElement;
+          roleBadge.parentElement?.appendChild(badgeClone);
+        }
+      }
     }
 
     // Update content
@@ -116,7 +136,7 @@ export class MessageTable {
     return row;
   }
 
-  private fillContentCell(cell: Element, message: Message): void {
+  private fillContentCell(cell: Element, message: MessageExtended): void {
     (message.content || []).forEach((block) => {
       if (block.text) {
         const textDiv = document.createElement("div");
@@ -135,7 +155,7 @@ export class MessageTable {
 
   private setupActionButtons(
     row: Element,
-    message: Message,
+    message: MessageExtended,
     index: number
   ): void {
     const actionButtons = row.querySelector(".action-buttons");

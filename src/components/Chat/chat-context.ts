@@ -1,63 +1,70 @@
-// chatContext.ts
 import {
   Message,
   ToolResultBlock,
   ConverseResponse,
 } from "@aws-sdk/client-bedrock-runtime";
 import { mathTool } from "../../tools/math/math.tool";
-import { ToolUse } from "../../types/tool.types";
+import { MessageExtended, ToolUse } from "../../types/tool.types";
 import { fetchTool } from "../../tools/fetch/fetch.tool";
 import { ldapTool } from "../../tools/ldapTool/ldap.tool";
-import { postBedrock } from "../../apiClient"; // so we can call bedrock here
-import { store } from "../../stores/AppStore"; // for isGenerating and error handling?
+import { postBedrock } from "../../apiClient";
+import { store } from "../../stores/AppStore";
 import { htmlTool } from "../../tools/htmlTool/htmlTool";
+import { extendMessages } from "../../utils/messageUtils";
 
 const STORAGE_KEY = "chat-messages";
+const DEFAULT_THRESHOLD = 6;
 
 export class ChatContext {
-  private messages: Message[] = [];
-  private messageChangeCallbacks: Array<(msgs: Message[]) => void> = [];
+  private messages: MessageExtended[] = [];
+  private messageChangeCallbacks: Array<(msgs: MessageExtended[]) => void> = [];
+  private threshold: number = DEFAULT_THRESHOLD;
 
-  // (Optional) A system prompt or model ID, if needed:
   private modelId: string =
     import.meta.env.VITE_BEDROCK_MODEL_ID || "my-model-id";
   private systemPrompt: string = "You are a helpful assistant with tools.";
 
-  constructor() {
+  constructor(threshold?: number) {
+    if (threshold) this.threshold = threshold;
     this.loadFromStorage();
   }
 
-  /**
-   * Single method: addMessage
-   * - Merges content if same role as the last message
-   * - Checks if new message is an assistant toolUse request
-   * - Checks if new message is from user => call LLM automatically
-   */
+  public setThreshold(threshold: number): void {
+    this.threshold = threshold;
+    this.updateMessageMetadata();
+  }
+
+  private updateMessageMetadata(): void {
+    this.messages = extendMessages(this.messages, this.threshold);
+    this.notifyMessageChange();
+  }
+
   public addMessage(newMessage: Message): void {
-    // 1) Merge if same role
     const lastIndex = this.messages.length - 1;
     const lastMessage = this.messages[lastIndex];
+
     if (lastMessage && lastMessage.role === newMessage.role) {
       const updatedContent = [
         ...(lastMessage.content || []),
         ...(newMessage.content || []),
       ];
-      this.messages[lastIndex] = { ...lastMessage, content: updatedContent };
+      this.messages[lastIndex] = {
+        ...lastMessage,
+        content: updatedContent,
+      };
     } else {
-      this.messages.push(newMessage);
+      const extendedMessage = extendMessages([newMessage], this.threshold)[0];
+      this.messages.push(extendedMessage);
     }
 
-    this.notifyMessageChange();
+    this.updateMessageMetadata();
 
-    // 2) If it's an assistant message, check for toolUse
     if (newMessage.role === "assistant") {
       const toolUseBlock = newMessage.content?.find((b) => b.toolUse)
         ?.toolUse as ToolUse;
       if (toolUseBlock) {
-        // We found an immediate request to use a tool.
         this.handleToolUse(toolUseBlock).catch((err) => {
           console.error("Tool use failed:", err);
-          // Insert an error message for the user
           this.addMessage({
             role: "user",
             content: [{ text: `Tool execution failed: ${err.message}` }],
@@ -66,29 +73,26 @@ export class ChatContext {
       }
     }
 
-    // 3) If it's a user message, call LLM automatically
-    if (newMessage.role === "user") {
-      // If we’re already generating, or if there's no text, skip
-      if (!store.isGenerating.value) {
-        this.callBedrockLLM().catch((err) => {
-          console.error("Error calling Bedrock in chatContext:", err);
-          store.setError(err.message);
-        });
-      }
+    if (newMessage.role === "user" && !store.isGenerating.value) {
+      this.callBedrockLLM().catch((err) => {
+        console.error("Error calling Bedrock in chatContext:", err);
+        store.setError(err.message);
+      });
     }
   }
 
-  /**
-   * This calls the Bedrock LLM with the current messages.
-   * On success, we add the assistant's message to chatContext.
-   */
   private async callBedrockLLM(): Promise<void> {
     try {
       store.setGenerating(true);
 
+      // Only send enabled messages to the API
+      const activeMessages = this.messages.filter(
+        (msg) => !msg.metadata?.isArchived
+      );
+
       const response: ConverseResponse = await postBedrock(
         this.modelId,
-        this.messages,
+        activeMessages,
         this.systemPrompt
       );
 
@@ -96,6 +100,7 @@ export class ChatContext {
       if (!messageContent || messageContent.length === 0) {
         throw new Error("No content in LLM response");
       }
+
       this.addMessage({
         role: "assistant",
         content: messageContent,

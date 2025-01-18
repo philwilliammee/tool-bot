@@ -67,8 +67,6 @@ export class BedrockService {
 
       const command = new ConverseCommand(input);
       const response: ConverseResponse = await this.client.send(command);
-      console.log("Response:", response);
-
       return response;
     } catch (error: any) {
       console.error("Execute error:", {

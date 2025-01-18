@@ -5,6 +5,9 @@ export async function postBedrock(
   messages: Message[],
   systemPrompt: string
 ): Promise<ConverseResponse> {
+  console.log(
+    `[API CLIENT] POST request with modelId: ${modelId} and messages count: ${messages.length}`
+  );
   const response = await fetch("/api/bedrock", {
     method: "POST",
     headers: { "Content-Type": "application/json" },

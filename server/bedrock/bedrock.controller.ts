@@ -15,6 +15,9 @@ const bedrockService = new BedrockService({
 router.post("/", async (req, res) => {
   try {
     const { modelId, messages, systemPrompt } = req.body;
+    console.log(
+      `[ROUTER] POST request with modelId: ${modelId} and messages count: ${messages.length}`
+    );
     const response = await bedrockService.converse(
       modelId,
       messages,
