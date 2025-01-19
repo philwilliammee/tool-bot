@@ -1,12 +1,19 @@
-import { Router } from "express";
-import { ServerTool, ServerToolRegistry } from "./tool.interface";
-import { ToolConfiguration } from "@aws-sdk/client-bedrock-runtime";
+// Tool implementations
 import { fetchTool } from "../fetch-tool/server/fetch.service";
 import { ldapTool } from "../ldap-tool/server/ldap.service";
-import { htmlToolConfig } from "../html-tool/config";
+import { fileTreeTool } from "../file-tree-tool/server/file-tree.service";
+import { projectReaderTool } from "../project-reader-tool/server/project-reader.service";
+
+// Bedrock configs
 import { fetchToolConfig } from "../fetch-tool/config";
-import { mathToolConfig } from "../math-tool/config";
 import { ldapToolConfig } from "../ldap-tool/config";
+import { htmlToolConfig } from "../html-tool/config";
+import { mathToolConfig } from "../math-tool/config";
+import { fileTreeConfig } from "../file-tree-tool/config";
+import { projectReaderConfig } from "../project-reader-tool/config";
+import { ToolConfiguration } from "@aws-sdk/client-bedrock-runtime";
+import { Router } from "express";
+import { ServerToolRegistry, ServerTool } from "./tool.interface";
 
 class ToolRegistry {
   private tools: ServerToolRegistry = {};
@@ -16,6 +23,8 @@ class ToolRegistry {
     this.router = Router();
     this.registerTool(fetchTool);
     this.registerTool(ldapTool);
+    this.registerTool(fileTreeTool);
+    this.registerTool(projectReaderTool);
     this.setupRoutes();
   }
 
@@ -49,6 +58,8 @@ class ToolRegistry {
         ...(ldapToolConfig.tools || []),
         ...(htmlToolConfig.tools || []),
         ...(mathToolConfig.tools || []),
+        ...(fileTreeConfig.tools || []),
+        ...(projectReaderConfig.tools || []),
       ],
     };
   }

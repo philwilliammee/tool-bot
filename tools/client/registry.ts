@@ -3,6 +3,8 @@ import { htmlTool } from "../html-tool/client/html.client";
 import { mathTool } from "../math-tool/client/math.client";
 import { fetchTool } from "../fetch-tool/client/fetch.client";
 import { ldapTool } from "../ldap-tool/client/ldap.client";
+import { fileTreeTool } from "../file-tree-tool/client/file-tree.client";
+import { projectReaderTool } from "../project-reader-tool/client/project-reader.client";
 
 class ToolRegistry {
   private tools: ClientToolRegistry = {};
@@ -12,6 +14,8 @@ class ToolRegistry {
     this.registerTool(mathTool);
     this.registerTool(fetchTool);
     this.registerTool(ldapTool);
+    this.registerTool(fileTreeTool);
+    this.registerTool(projectReaderTool);
   }
 
   private registerTool(tool: ClientTool): void {
