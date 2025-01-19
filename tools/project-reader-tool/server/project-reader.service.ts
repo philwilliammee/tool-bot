@@ -14,62 +14,47 @@ import {
 import fs from "fs/promises";
 import path from "path";
 import { glob } from "glob";
-import { promisify } from "util";
-
-const globPromise = promisify(glob);
 
 class ProjectReaderService {
-  private async readSingleFile(
-    filePath: string,
-    maxSize: number
-  ): Promise<FileContent> {
-    const stats = await fs.stat(filePath);
-
-    if (stats.size > maxSize) {
-      throw new Error(
-        `File ${filePath} exceeds size limit of ${maxSize} bytes`
-      );
-    }
-
-    if (isBinaryFile(filePath)) {
-      throw new Error(`Binary file ${filePath} cannot be read`);
-    }
-
-    const content = await fs.readFile(filePath, "utf-8");
-
-    return {
-      path: filePath,
-      content,
-      size: stats.size,
-      type: path.extname(filePath) || "text/plain",
-      lastModified: stats.mtimeMs,
-    };
-  }
-
   private async findFiles(
     basePath: string,
     patterns: string[],
     exclude: string[]
   ): Promise<string[]> {
-    const allFiles: string[] = [];
+    console.log("Starting file search:", { basePath, patterns, exclude });
+
+    const allFiles = new Set<string>();
 
     for (const pattern of patterns) {
-      const files = (await globPromise(pattern, {
-        cwd: basePath,
-        ignore: exclude,
-        nodir: true,
-        dot: true,
-      })) as string[];
+      console.log(`Processing pattern: ${pattern}`);
+      try {
+        const files = await glob(pattern, {
+          cwd: basePath,
+          ignore: exclude,
+          nodir: true,
+          dot: true,
+          absolute: true,
+          follow: false,
+        });
 
-      allFiles.push(...files.map((f) => path.join(basePath, f)));
+        console.log(`Found ${files.length} files for pattern ${pattern}`);
+        files.forEach((file) => allFiles.add(file));
+      } catch (error) {
+        console.error(`Error processing pattern ${pattern}:`, error);
+      }
     }
 
-    return [...new Set(allFiles)]; // Remove duplicates
+    const result = Array.from(allFiles);
+    console.log(`Total unique files found: ${result.length}`);
+    return result;
   }
 
   async readFiles(input: ProjectReaderInput): Promise<ProjectReaderResponse> {
+    console.log("Starting readFiles with input:", input);
+
     const basePath = PROJECT_READER_CONFIG.ALLOWED_BASE_PATH;
     const requestedPath = path.join(basePath, input.path);
+    console.log("Resolved path:", requestedPath);
 
     if (!isPathSafe(requestedPath)) {
       throw new Error("Access to this path is not allowed");
@@ -80,31 +65,20 @@ class ProjectReaderService {
       PROJECT_READER_CONFIG.MAX_FILES_LIMIT
     );
 
-    const maxSize = Math.min(
-      input.maxSize || PROJECT_READER_CONFIG.MAX_FILE_SIZE,
-      PROJECT_READER_CONFIG.MAX_FILE_SIZE
-    );
-
-    const exclude = [
-      ...PROJECT_READER_CONFIG.DEFAULT_EXCLUDES,
-      ...(input.exclude || []),
-    ];
-
     try {
       let filesToProcess: string[] = [];
 
       if (input.mode === "single") {
         filesToProcess = [requestedPath];
       } else {
-        if (!input.patterns || input.patterns.length === 0) {
-          throw new Error("Patterns are required for multi mode");
-        }
         filesToProcess = await this.findFiles(
           requestedPath,
-          input.patterns,
-          exclude
+          input.patterns || [],
+          input.exclude || []
         );
       }
+
+      console.log(`Found ${filesToProcess.length} files to process`);
 
       // Sort files for consistent ordering
       filesToProcess.sort();
@@ -112,32 +86,49 @@ class ProjectReaderService {
       const results: FileContent[] = [];
       let totalSize = 0;
       let truncated = false;
+      let processedCount = 0;
 
-      for (const file of filesToProcess.slice(0, maxFiles)) {
+      for (const file of filesToProcess) {
+        if (processedCount >= maxFiles) {
+          console.log("Reached maxFiles limit");
+          truncated = true;
+          break;
+        }
+
         try {
-          const fileContent = await this.readSingleFile(file, maxSize);
+          const stats = await fs.stat(file);
 
-          // Check total size limit
           if (
-            totalSize + fileContent.size >
-            PROJECT_READER_CONFIG.MAX_TOTAL_SIZE
+            stats.size > (input.maxSize || PROJECT_READER_CONFIG.MAX_FILE_SIZE)
           ) {
+            console.log(`Skipping ${file}: exceeds size limit`);
+            continue;
+          }
+
+          if (totalSize + stats.size > PROJECT_READER_CONFIG.MAX_TOTAL_SIZE) {
+            console.log("Reached total size limit");
             truncated = true;
             break;
           }
 
-          totalSize += fileContent.size;
-          results.push(fileContent);
+          if (!isBinaryFile(file)) {
+            const content = await fs.readFile(file, "utf-8");
+            results.push({
+              path: path.relative(basePath, file),
+              content,
+              size: stats.size,
+              type: path.extname(file) || "text/plain",
+              lastModified: stats.mtimeMs,
+            });
+            totalSize += stats.size;
+            processedCount++;
+          }
         } catch (error) {
-          console.warn(`Skipping file ${file}:`, error);
-          continue;
+          console.warn(`Error processing file ${file}:`, error);
         }
       }
 
-      if (filesToProcess.length > maxFiles) {
-        truncated = true;
-      }
-
+      console.log(`Successfully processed ${results.length} files`);
       return {
         files: results,
         totalFiles: results.length,
@@ -145,6 +136,7 @@ class ProjectReaderService {
         truncated,
       };
     } catch (error: any) {
+      console.error("Error in readFiles:", error);
       throw new Error(`Failed to read files: ${error.message}`);
     }
   }
@@ -156,9 +148,15 @@ export const projectReaderTool: ServerTool = {
   name: "project_reader",
   route: "/project-reader",
   handler: async (req: Request, res: Response): Promise<void> => {
+    console.log("Received project reader request");
+
     try {
       const input: ProjectReaderInput = req.body;
+      console.log("Processing request with input:", input);
+
       const result = await projectReaderService.readFiles(input);
+      console.log("Sending response with", result.files.length, "files");
+
       res.json(result);
     } catch (error: any) {
       console.error("Project reader error:", error);
