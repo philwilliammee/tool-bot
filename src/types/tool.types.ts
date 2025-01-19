@@ -22,5 +22,7 @@ export interface MessageExtended extends Message {
     hasToolUse?: boolean;
     hasToolResult?: boolean;
     sequenceNumber?: number;
+    tags?: string[]; // For storing AI-generated labels/tags
+    userRating?: number; // For storing user likes/ratings (e.g., 1 to 5)
   };
 }

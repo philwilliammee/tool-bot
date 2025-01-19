@@ -1,4 +1,3 @@
-// src/server/bedrock/tools/ldapTool/ldapTool.config.ts
 import { ToolConfiguration } from "@aws-sdk/client-bedrock-runtime";
 
 export const ldapToolConfig: ToolConfiguration = {

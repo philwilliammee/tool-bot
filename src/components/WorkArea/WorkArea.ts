@@ -3,6 +3,7 @@ import { chatContext } from "../Chat/chat-context";
 import { store } from "../../stores/AppStore";
 import { MessageTable } from "./MessageTable";
 import { WorkAreaModals } from "./WorkAreaModals";
+import { MessageExtended } from "../../types/tool.types";
 
 export class WorkArea {
   private modals: WorkAreaModals;
@@ -12,7 +13,7 @@ export class WorkArea {
 
   constructor(private element: HTMLElement) {
     console.log("WorkArea component initialized");
-    this.modals = new WorkAreaModals();
+    this.modals = new WorkAreaModals(); // Make sure this is defined as a class property
     this.messageTable = new MessageTable(
       this.handleViewMessage.bind(this),
       this.handleEditMessage.bind(this),
@@ -101,11 +102,15 @@ export class WorkArea {
       .querySelector(".new-message-btn")
       ?.addEventListener("click", () => {
         this.handleMessageOperation(() => {
-          this.modals.showNewMessageModal((role, content) => {
+          this.modals.showNewMessageModal((role, content, tags, rating) => {
             chatContext.addMessage({
               role,
               content: [{ text: content }],
-            });
+              metadata: {
+                tags,
+                userRating: rating,
+              },
+            } as MessageExtended);
           });
         }, "New message added");
       });
@@ -155,12 +160,13 @@ export class WorkArea {
   }
 
   private handleEditMessage(index: number): void {
-    const message = chatContext.getMessages()[index];
+    const message = chatContext.getMessages()[index] as MessageExtended;
     if (!message || store.isGenerating.value) return;
 
-    this.modals.showEditModal(message, (newContent) => {
+    this.modals.showEditModal(message, () => {
       this.handleMessageOperation(() => {
-        chatContext.updateMessage(index, newContent);
+        // The actual update is now handled within the WorkAreaModals class
+        // We just need to provide the success callback
       }, "Message updated successfully");
     });
   }

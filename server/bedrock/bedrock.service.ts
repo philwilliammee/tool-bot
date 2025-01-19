@@ -4,12 +4,8 @@ import {
   ConverseResponse,
   Message,
   SystemContentBlock,
-  ToolConfiguration,
 } from "@aws-sdk/client-bedrock-runtime";
-import { fetchToolConfig } from "./tools/fetch/fetch.config";
-import { mathToolConfig } from "./tools/mathTool/mathTool.config";
-import { htmlToolConfig } from "./tools/htmlTool/htmlTool.config";
-import { ldapToolConfig } from "./tools/ldapTool/ldapTool.config";
+import { serverRegistry } from "../../tools/server/registry";
 
 export interface BedrockServiceConfig {
   region: string;
@@ -58,7 +54,7 @@ export class BedrockService {
         modelId,
         system,
         messages,
-        toolConfig: this.getToolConfig(),
+        toolConfig: serverRegistry.getToolConfig(),
         inferenceConfig: {
           temperature: 0.7,
           maxTokens: 8000,
@@ -98,20 +94,5 @@ export class BedrockService {
       }
       throw error;
     }
-  }
-
-  private getToolConfig(): ToolConfiguration {
-    const fetchToolToolsConfig = fetchToolConfig.tools || [];
-    const mathToolConfigToolsConfig = mathToolConfig.tools || [];
-    const htmlToolConfigToolsConfig = htmlToolConfig.tools || [];
-    const ldapToolConfigToolsConfig = ldapToolConfig.tools || [];
-    return {
-      tools: [
-        ...fetchToolToolsConfig,
-        ...mathToolConfigToolsConfig,
-        ...htmlToolConfigToolsConfig,
-        ...ldapToolConfigToolsConfig,
-      ],
-    };
   }
 }

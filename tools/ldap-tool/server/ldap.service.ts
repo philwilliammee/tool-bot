@@ -1,0 +1,87 @@
+import { ServerTool } from "../../server/tool.interface";
+import { Request, Response } from "express";
+import { Client, SearchOptions } from "ldapts";
+import { ldapConfig, LdapData, LdapSearchInput } from "./ldap.types";
+
+class LdapService {
+  private base = "ou=People,o=Cornell University,c=US";
+  private cache: Map<string, LdapData[]> = new Map();
+  private dn: string;
+
+  constructor() {
+    this.dn = `uid=${ldapConfig.user},ou=Directory Administrators,o=Cornell University,c=US`;
+  }
+
+  public async searchUser(searchTerm: string): Promise<LdapData[]> {
+    if (!searchTerm || searchTerm.length < 2) {
+      return [];
+    }
+
+    const filter = `(|(uid=${searchTerm}*)(sn=${searchTerm}*)(cn=${searchTerm}*))`;
+    return this.getLdapRecords(filter);
+  }
+
+  private async getLdapRecords(filter: string): Promise<LdapData[]> {
+    if (this.cache.has(filter)) {
+      return this.cache.get(filter) as LdapData[];
+    }
+
+    const client = new Client({
+      url: ldapConfig.url,
+      connectTimeout: 10000,
+    });
+
+    try {
+      await client.bind(this.dn, ldapConfig.password);
+
+      const ldapSearchOptions: SearchOptions = {
+        scope: "sub",
+        filter,
+        sizeLimit: 100,
+        timeLimit: 60,
+      };
+
+      const { searchEntries } = await client.search(
+        this.base,
+        ldapSearchOptions
+      );
+      const entries = searchEntries as LdapData[];
+      this.cache.set(filter, entries);
+      return entries;
+    } finally {
+      client.unbind();
+    }
+  }
+}
+
+const ldapService = new LdapService();
+
+export const ldapTool: ServerTool = {
+  name: "ldap_search",
+  route: "/ldap-search",
+  handler: async (req: Request, res: Response): Promise<void> => {
+    try {
+      const { searchTerm } = req.body as LdapSearchInput;
+
+      if (!searchTerm || typeof searchTerm !== "string") {
+        res.status(400).json({
+          error: true,
+          message: "Search term is required",
+        });
+        return;
+      }
+
+      const results = await ldapService.searchUser(searchTerm);
+      res.json({
+        status: "success",
+        data: results,
+      });
+    } catch (error: any) {
+      console.error("LDAP search error:", error);
+      res.status(500).json({
+        error: true,
+        message: error.message || "Failed to search LDAP",
+      });
+    }
+  },
+};

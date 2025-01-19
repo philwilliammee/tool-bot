@@ -1,4 +1,3 @@
-// server/tools/fetch/fetch.config.ts
 import { ToolConfiguration } from "@aws-sdk/client-bedrock-runtime";
 
 export const fetchToolConfig: ToolConfiguration = {
@@ -10,8 +9,7 @@ export const fetchToolConfig: ToolConfiguration = {
 * for weather queries use: https://api.open-meteo.com/v1/forecast?latitude={lat}&longitude={lon}
 * for Cornell IT users and IT info search you can use: https://it.cornell.edu/search?search-help-query=YOUR_QUERY_HERE&btnG=go&sitesearch=on
 * for General Cornell search https://www.cornell.edu/search/?q=YOUR_QUERY_HERE
-* for Cornell articles search https://news.cornell.edu/search?search_api_fulltext=YOUR_QUERY_HERE
-`,
+* for Cornell articles search https://news.cornell.edu/search?search_api_fulltext=YOUR_QUERY_HERE`,
         inputSchema: {
           json: {
             type: "object",
