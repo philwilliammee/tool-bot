@@ -6,8 +6,14 @@
             name="viewport"
             content="width=device-width, initial-scale=1.0"
         >
-        <meta name="description" content="AI Chat Assistant with various tools">
-        <meta name="theme-color" content="#3b82f6">
+        <meta
+            name="description"
+            content="AI Chat Assistant with various tools"
+        >
+        <meta
+            name="theme-color"
+            content="#3b82f6"
+        >
         <title>AI Chat Assistant</title>
         <link rel="stylesheet" href="styles.css">
         <link rel="icon" type="image/svg+xml" href="/fav.png">
@@ -118,6 +124,41 @@
                                         <h2 class="work-area-title">Chat Admin Interface</h2>
                                         <span class="message-count">0 messages</span>
                                     </div>
+                                    <!-- Add this after the work-area-title-group div and before work-area-actions -->
+                                    <div class="work-area-filters">
+                                        <div class="search-container">
+                                            <input
+                                                type="text"
+                                                id="message-search"
+                                                class="search-input"
+                                                placeholder="Search messages..."
+                                            >
+                                        </div>
+                                        <div class="filter-container">
+                                            <select id="role-filter" class="filter-select">
+                                                <option value="">All Roles</option>
+                                                <option value="user">User</option>
+                                                <option value="assistant">Assistant</option>
+                                            </select>
+                                            <select id="rating-filter" class="filter-select">
+                                                <option value="">All Ratings</option>
+                                                <option value="1">Liked</option>
+                                                <option value="0">Not Liked</option>
+                                            </select>
+                                            <select id="tool-filter" class="filter-select">
+                                                <option value="">All Messages</option>
+                                                <option value="any">Any Tool Use</option>
+                                                <option value="html">HTML Tool</option>
+                                                <option value="fetch_url">Fetch Tool</option>
+                                                <option value="math">Math Tool</option>
+                                                <option value="ldap_search">LDAP Tool</option>
+                                            </select>
+                                            <label class="filter-checkbox-label">
+                                                <input type="checkbox" id="archived-filter">
+                                                Include Archived
+                                            </label>
+                                        </div>
+                                    </div>
                                     <div class="work-area-actions">
                                         <button class="btn btn-danger delete-all-btn">
                                             <svg
@@ -167,6 +208,7 @@
                                         <tr>
                                             <th>Role</th>
                                             <th>Content</th>
+                                            <th>Rating</th>
                                             <th>Timestamp</th>
                                             <th>Actions</th>
                                         </tr>
@@ -191,7 +233,7 @@
             <p class="toast-content"></p>
         </dialog>
 
-        <!-- View Modal -->
+        <!-- View Modal: Update to show tags and rating -->
         <dialog
             id="view-modal"
             class="modal"
@@ -206,6 +248,14 @@
                     <div class="message-detail">
                         <strong>Content:</strong>
                         <pre class="content-value"></pre>
+                    </div>
+                    <div class="message-detail">
+                        <strong>Tags:</strong>
+                        <div class="tags-value"></div>
+                    </div>
+                    <div class="message-detail">
+                        <strong>Rating:</strong>
+                        <span class="rating-value"></span>
                     </div>
                     <div class="message-detail">
                         <strong>Timestamp:</strong>
@@ -223,7 +273,7 @@
             </div>
         </dialog>
 
-        <!-- Edit Modal -->
+        <!-- Edit Modal: Update to include tags and rating -->
         <dialog
             id="edit-modal"
             class="modal"
@@ -238,6 +288,26 @@
                             rows="4"
                             required
                         ></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="messageTags">Tags (comma-separated)</label>
+                        <input
+                            type="text"
+                            id="messageTags"
+                            class="tag-input"
+                            placeholder="Enter tags..."
+                        >
+                    </div>
+                    <div class="form-group">
+                        <label>Rating</label>
+                        <div class="rating-toggle">
+                            <span class="heart-toggle">🤍</span>
+                            <input
+                                type="hidden"
+                                id="messageRating"
+                                value="0"
+                            >
+                        </div>
                     </div>
                     <div class="modal-actions">
                         <button
@@ -283,6 +353,26 @@
                             required
                         ></textarea>
                     </div>
+                    <div class="form-group">
+                        <label for="newMessageTags">Tags (comma-separated)</label>
+                        <input
+                            type="text"
+                            id="newMessageTags"
+                            class="tag-input"
+                            placeholder="Enter tags..."
+                        >
+                    </div>
+                    <div class="form-group">
+                        <label>Rating</label>
+                        <div class="rating-toggle">
+                            <span class="heart-toggle">🤍</span>
+                            <input
+                                type="hidden"
+                                id="newMessageRating"
+                                value="0"
+                            >
+                        </div>
+                    </div>
                     <div class="modal-actions">
                         <button
                             type="button"
@@ -300,6 +390,7 @@
                 </form>
             </div>
         </dialog>
+
         <!-- Basic message template -->
         <template id="chat-message-template">
             <div class="chat-message">
@@ -347,6 +438,7 @@
                     <span class="role-badge"></span>
                 </td>
                 <td class="message-content"></td>
+                <td class="rating-cell"></td>
                 <td class="timestamp-cell"></td>
                 <td>
                     <div class="action-buttons">
@@ -422,6 +514,19 @@
             </tr>
         </template>
 
+        <!-- Add new template for tag item -->
+        <template id="tag-item-template">
+            <span class="tag-item">
+                <span class="tag-text"></span>
+                <button
+                    class="remove-tag-btn"
+                    title="Remove Tag"
+                >
+                    ×
+                </button>
+            </span>
+        </template>
+
         <!-- Re-execute button template -->
         <template id="re-execute-button-template">
             <button
@@ -465,10 +570,13 @@
         </template>
 
         <template id="archive-badge-template">
-            <span class="archive-badge-pill" title="Archived message">
-              Archived
+            <span
+                class="archive-badge-pill"
+                title="Archived message"
+            >
+                Archived
             </span>
-          </template>
+        </template>
 
         <script
             type="module"

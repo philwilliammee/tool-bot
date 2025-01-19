@@ -1,9 +1,10 @@
-import { ClientTool } from "../tools";
+import { ClientTool } from "../../client/tool.interface";
+import { FetchToolInput, FetchToolResponse } from "../types";
 
 export const fetchTool: ClientTool = {
   name: "fetch_url",
-  execute: async (input: { url: string; method?: "GET" }) => {
-    const response = await fetch("/api/tools/fetch", {
+  execute: async (input: FetchToolInput): Promise<FetchToolResponse> => {
+    const response = await fetch("/api/tools/fetch-url", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(input),

@@ -1,16 +1,17 @@
+import { clientRegistry } from "./../../../tools/client/registry";
 import {
   Message,
   ToolResultBlock,
   ConverseResponse,
 } from "@aws-sdk/client-bedrock-runtime";
-import { mathTool } from "../../tools/math/math.tool";
 import { MessageExtended, ToolUse } from "../../types/tool.types";
-import { fetchTool } from "../../tools/fetch/fetch.tool";
-import { ldapTool } from "../../tools/ldapTool/ldap.tool";
 import { postBedrock } from "../../apiClient";
 import { store } from "../../stores/AppStore";
-import { htmlTool } from "../../tools/htmlTool/htmlTool";
-import { extendMessages } from "../../utils/messageUtils";
+import {
+  extendMessages,
+  updateMessageRating,
+  updateMessageTags,
+} from "../../utils/messageUtils";
 
 const STORAGE_KEY = "chat-messages";
 const DEFAULT_THRESHOLD = 6;
@@ -51,6 +52,10 @@ export class ChatContext {
       this.messages[lastIndex] = {
         ...lastMessage,
         content: updatedContent,
+        metadata: {
+          ...lastMessage.metadata,
+          ...(newMessage as MessageExtended).metadata,
+        },
       };
     } else {
       const extendedMessage = extendMessages([newMessage], this.threshold)[0];
@@ -113,47 +118,73 @@ export class ChatContext {
     }
   }
 
-  /**
-   * Finds and executes the requested tool, then appends the toolResult
-   * as a new "user" message.
-   */
-  // @TODO: use tool registry instead of switch.
   private async handleToolUse(toolUse: ToolUse): Promise<void> {
-    let result: any;
-    switch (toolUse.name) {
-      case "fetch_url":
-        result = await fetchTool.execute(toolUse.input);
-        break;
-      case "math":
-        result = await mathTool.execute(toolUse.input);
-        break;
-      case "html":
-        result = await htmlTool.execute(toolUse.input);
-        break;
-      case "ldap_search":
-        result = await ldapTool.execute(toolUse.input);
-        break;
-      default:
-        throw new Error(`Unknown tool requested: ${toolUse.name}`);
+    const tool = clientRegistry.getTool(toolUse.name);
+    if (!tool) {
+      throw new Error(`Unknown tool requested: ${toolUse.name}`);
     }
 
-    const toolResultContent: ToolResultBlock = {
-      toolUseId: toolUse.toolUseId,
-      content: [{ text: JSON.stringify(result) }],
-      status: "success",
-    };
+    try {
+      const result = await tool.execute(toolUse.input);
 
-    // Insert as a new "user" message
-    this.addMessage({
-      role: "user",
-      content: [{ toolResult: toolResultContent }],
-    });
+      const toolResultContent: ToolResultBlock = {
+        toolUseId: toolUse.toolUseId,
+        content: [{ text: JSON.stringify(result) }],
+        status: "success",
+      };
+
+      this.addMessage({
+        role: "user",
+        content: [{ toolResult: toolResultContent }],
+      });
+    } catch (error: any) {
+      console.error("Tool execution failed:", error);
+      this.addMessage({
+        role: "user",
+        content: [{ text: `Tool execution failed: ${error.message}` }],
+      });
+    }
   }
 
-  // Editing, Deleting, Reordering, etc.
-  public updateMessage(index: number, newContent: string): void {
+  public updateMessage(
+    index: number,
+    update: string | Partial<MessageExtended>
+  ): void {
     if (!this.messages[index]) return;
-    this.messages[index].content = [{ text: newContent }];
+
+    if (typeof update === "string") {
+      // Handle legacy string updates (plain text content)
+      this.messages[index].content = [{ text: update }];
+    } else {
+      // Handle metadata updates while preserving existing message structure
+      this.messages[index] = {
+        ...this.messages[index],
+        ...update,
+        metadata: {
+          ...this.messages[index].metadata,
+          ...update.metadata,
+        },
+      };
+    }
+
+    this.notifyMessageChange();
+  }
+
+  public updateMessageRating(index: number, rating: number): void {
+    const message = this.messages[index];
+    if (!message) return;
+
+    const updatedMessage = updateMessageRating(message, rating);
+    this.messages[index] = updatedMessage;
+    this.notifyMessageChange();
+  }
+
+  public updateMessageTags(index: number, tags: string[]): void {
+    const message = this.messages[index];
+    if (!message) return;
+
+    const updatedMessage = updateMessageTags(message, tags);
+    this.messages[index] = updatedMessage;
     this.notifyMessageChange();
   }
 
@@ -176,14 +207,14 @@ export class ChatContext {
     this.notifyMessageChange();
   }
 
-  public getMessages(): Message[] {
+  public getMessages(): MessageExtended[] {
     return this.messages;
   }
 
-  // Subscribe for UI updates
-  public onMessagesChange(callback: (msgs: Message[]) => void): () => void {
+  public onMessagesChange(
+    callback: (msgs: MessageExtended[]) => void
+  ): () => void {
     this.messageChangeCallbacks.push(callback);
-    // Return cleanup function
     return () => {
       this.messageChangeCallbacks = this.messageChangeCallbacks.filter(
         (cb) => cb !== callback
@@ -200,7 +231,19 @@ export class ChatContext {
     try {
       const stored = localStorage.getItem(STORAGE_KEY);
       if (stored) {
-        this.messages = JSON.parse(stored);
+        const parsedMessages = JSON.parse(stored);
+        // Ensure messages have proper metadata structure
+        this.messages = parsedMessages.map((msg: MessageExtended) => ({
+          ...msg,
+          metadata: {
+            hasToolUse: false,
+            hasToolResult: false,
+            isArchived: false,
+            tags: [],
+            userRating: 0,
+            ...msg.metadata,
+          },
+        }));
         this.notifyMessageChange();
       }
     } catch (error) {

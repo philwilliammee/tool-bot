@@ -12,7 +12,6 @@ export interface FetchToolResponse {
   contentType?: string;
 }
 
-// server/tools/fetch/fetch.config.ts
 export const FETCH_CONFIG = {
   MAX_CONTENT_SIZE: 1024 * 1024,
   TIMEOUT: 5000,

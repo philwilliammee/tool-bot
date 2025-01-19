@@ -1,4 +1,4 @@
-// server/bedrock/tools/htmlTool/htmlTool.config.ts
+// tools/html-tool/config.ts
 import { ToolConfiguration } from "@aws-sdk/client-bedrock-runtime";
 
 export const htmlToolConfig: ToolConfiguration = {
@@ -18,7 +18,6 @@ Use basic CDN imports like <script src="https://cdn.jsdelivr.net/npm/chart.js"><
                 type: "string",
                 description: "Raw HTML markup to render",
               },
-              // Optional metadata for the AI to better understand the context
               context: {
                 type: "string",
                 description:

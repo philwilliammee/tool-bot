@@ -1,4 +1,6 @@
 import { Message } from "@aws-sdk/client-bedrock-runtime";
+import { MessageExtended } from "../../types/tool.types";
+import { chatContext } from "../Chat/chat-context";
 
 export class WorkAreaModals {
   private initialized: boolean = false;
@@ -6,12 +8,7 @@ export class WorkAreaModals {
   private editDialog!: HTMLDialogElement;
   private newDialog!: HTMLDialogElement;
   private modals: HTMLDialogElement[] = [];
-
-  // Callbacks storage
-  private editCallback: ((content: string) => void) | null = null;
-  private newMessageCallback:
-    | ((role: "user" | "assistant", content: string) => void)
-    | null = null;
+  private currentEditIndex: number = -1;
 
   constructor() {
     this.initialize();
@@ -20,7 +17,6 @@ export class WorkAreaModals {
   private initialize(): void {
     if (this.initialized) return;
 
-    // Get existing modals instead of creating them
     this.viewDialog = document.getElementById(
       "view-modal"
     ) as HTMLDialogElement;
@@ -35,33 +31,24 @@ export class WorkAreaModals {
 
     this.modals = [this.viewDialog, this.editDialog, this.newDialog];
     this.setupGlobalEvents();
+    this.setupEditFormEvents();
     this.initialized = true;
   }
 
   private setupGlobalEvents(): void {
-    // Close on outside click
     this.modals.forEach((dialog) => {
       dialog.addEventListener("click", (e) => {
         if (e.target === dialog) dialog.close();
       });
 
-      // Cleanup form on close
       dialog.addEventListener("close", () => {
         const form = dialog.querySelector("form");
         if (form) form.reset();
+        this.currentEditIndex = -1;
       });
     });
 
-    // Setup form submit handlers
-    this.editDialog
-      .querySelector(".edit-form")
-      ?.addEventListener("submit", this.handleEditSubmit.bind(this));
-
-    this.newDialog
-      .querySelector(".new-message-form")
-      ?.addEventListener("submit", this.handleNewMessageSubmit.bind(this));
-
-    // Setup cancel buttons
+    // Setup cancel/close buttons
     this.modals.forEach((modal) => {
       modal
         .querySelector(".cancel-btn")
@@ -72,25 +59,225 @@ export class WorkAreaModals {
     });
   }
 
-  private updateViewModal(message: Message): void {
+  private setupEditFormEvents(): void {
+    const editForm = this.editDialog.querySelector(".edit-form");
+    if (!editForm) return;
+
+    // Setup heart toggle
+    const heartToggle = editForm.querySelector(".heart-toggle") as HTMLElement;
+    const ratingInput = editForm.querySelector(
+      "#messageRating"
+    ) as HTMLInputElement;
+
+    if (heartToggle && ratingInput) {
+      heartToggle.addEventListener("click", () => {
+        const newRating = ratingInput.value === "1" ? "0" : "1";
+        ratingInput.value = newRating;
+        heartToggle.textContent = newRating === "1" ? "❤️" : "🤍";
+      });
+    }
+
+    // Setup form submit
+    editForm.addEventListener("submit", (e) => {
+      e.preventDefault();
+      if (this.currentEditIndex === -1) return;
+
+      const content = (
+        editForm.querySelector("#messageContent") as HTMLTextAreaElement
+      ).value;
+      const tagsInput = (
+        editForm.querySelector("#messageTags") as HTMLInputElement
+      ).value;
+      const rating = parseInt(
+        (editForm.querySelector("#messageRating") as HTMLInputElement).value
+      );
+
+      const tags = tagsInput
+        .split(",")
+        .map((tag) => tag.trim())
+        .filter((tag) => tag.length > 0);
+
+      const message = chatContext.getMessages()[
+        this.currentEditIndex
+      ] as MessageExtended;
+      if (message) {
+        const updatedMessage: MessageExtended = {
+          ...message,
+          content: [{ text: content }],
+          metadata: {
+            ...message.metadata,
+            tags,
+            userRating: rating,
+          },
+        };
+
+        chatContext.updateMessage(this.currentEditIndex, updatedMessage);
+      }
+
+      this.editDialog.close();
+    });
+  }
+
+  public showViewModal(message: MessageExtended): void {
     const roleElement = this.viewDialog.querySelector(".role-value");
     const contentElement = this.viewDialog.querySelector(".content-value");
+    const tagsElement = this.viewDialog.querySelector(".tags-value");
+    const ratingElement = this.viewDialog.querySelector(".rating-value");
     const timestampElement = this.viewDialog.querySelector(".timestamp-value");
 
     if (roleElement) roleElement.textContent = message.role || "unknown";
     if (contentElement)
       contentElement.textContent = this.formatMessageContent(message);
-    if (timestampElement)
+
+    if (tagsElement) {
+      tagsElement.innerHTML = "";
+      if (message.metadata?.tags?.length) {
+        message.metadata.tags.forEach((tag) => {
+          const tagSpan = document.createElement("span");
+          tagSpan.className = "message-tag";
+          tagSpan.textContent = tag;
+          tagsElement.appendChild(tagSpan);
+        });
+      } else {
+        tagsElement.textContent = "No tags";
+      }
+    }
+
+    if (ratingElement) {
+      ratingElement.textContent = message.metadata?.userRating ? "❤️" : "🤍";
+    }
+
+    if (timestampElement) {
       timestampElement.textContent = new Date().toLocaleString();
+    }
+
+    this.viewDialog.showModal();
   }
 
-  private updateEditModal(message: Message): void {
+  // In WorkAreaModals.ts
+
+  public showEditModal(message: MessageExtended, onSave: () => void): void {
     const textarea = this.editDialog.querySelector(
       "#messageContent"
     ) as HTMLTextAreaElement;
+    const tagsInput = this.editDialog.querySelector(
+      "#messageTags"
+    ) as HTMLInputElement;
+    const ratingInput = this.editDialog.querySelector(
+      "#messageRating"
+    ) as HTMLInputElement;
+    const heartToggle = this.editDialog.querySelector(
+      ".heart-toggle"
+    ) as HTMLElement;
+
     if (textarea) {
       textarea.value = message.content?.[0]?.text || "";
     }
+
+    if (tagsInput) {
+      tagsInput.value = message.metadata?.tags?.join(", ") || "";
+    }
+
+    if (ratingInput && heartToggle) {
+      const rating = message.metadata?.userRating || 0;
+      ratingInput.value = rating.toString();
+      heartToggle.textContent = rating ? "❤️" : "🤍";
+    }
+
+    this.currentEditIndex = message.metadata?.sequenceNumber || -1;
+
+    const editForm = this.editDialog.querySelector(".edit-form");
+    if (editForm) {
+      // Remove any existing submit handler
+      const newForm = editForm.cloneNode(true) as HTMLFormElement;
+      editForm.parentNode?.replaceChild(newForm, editForm);
+
+      // Add new submit handler
+      newForm.addEventListener("submit", (e) => {
+        e.preventDefault();
+
+        const content = (
+          newForm.querySelector("#messageContent") as HTMLTextAreaElement
+        ).value;
+        const tagsInput = (
+          newForm.querySelector("#messageTags") as HTMLInputElement
+        ).value;
+        const rating = parseInt(
+          (newForm.querySelector("#messageRating") as HTMLInputElement).value
+        );
+
+        const tags = tagsInput
+          .split(",")
+          .map((tag) => tag.trim())
+          .filter((tag) => tag.length > 0);
+
+        const updatedMessage: MessageExtended = {
+          ...message,
+          content: [{ text: content }],
+          metadata: {
+            ...message.metadata,
+            tags,
+            userRating: rating,
+          },
+        };
+
+        chatContext.updateMessage(this.currentEditIndex, updatedMessage);
+        onSave(); // Call the success callback
+        this.editDialog.close();
+      });
+    }
+
+    this.editDialog.showModal();
+  }
+
+  public showNewMessageModal(
+    onAdd: (
+      role: "user" | "assistant",
+      content: string,
+      tags: string[],
+      rating: number
+    ) => void
+  ): void {
+    const form = this.newDialog.querySelector(".new-message-form");
+    if (!form) return;
+
+    // Reset form and set up submit handler
+    form.addEventListener("submit", (e) => {
+      e.preventDefault();
+
+      const roleSelect = form.querySelector(
+        "#messageRole"
+      ) as HTMLSelectElement;
+      const contentInput = form.querySelector(
+        "#newMessageContent"
+      ) as HTMLTextAreaElement;
+      const tagsInput = form.querySelector(
+        "#newMessageTags"
+      ) as HTMLInputElement;
+      const ratingInput = form.querySelector(
+        "#newMessageRating"
+      ) as HTMLInputElement;
+
+      if (roleSelect?.value && contentInput?.value.trim()) {
+        const tags = tagsInput.value
+          .split(",")
+          .map((tag) => tag.trim())
+          .filter((tag) => tag.length > 0);
+
+        const rating = parseInt(ratingInput.value) || 0;
+
+        onAdd(
+          roleSelect.value as "user" | "assistant",
+          contentInput.value.trim(),
+          tags,
+          rating
+        );
+
+        this.newDialog.close();
+      }
+    });
+
+    this.newDialog.showModal();
   }
 
   private formatMessageContent(message: Message): string {
@@ -113,71 +300,12 @@ export class WorkAreaModals {
     return content;
   }
 
-  private handleEditSubmit(e: Event): void {
-    e.preventDefault();
-    if (!this.editCallback) return;
-
-    const form = e.target as HTMLFormElement;
-    const textarea = form.querySelector(
-      "#messageContent"
-    ) as HTMLTextAreaElement;
-
-    if (textarea.value.trim()) {
-      this.editCallback(textarea.value.trim());
-      this.editDialog.close();
-    }
-  }
-
-  private handleNewMessageSubmit(e: Event): void {
-    e.preventDefault();
-    if (!this.newMessageCallback) return;
-
-    const form = e.target as HTMLFormElement;
-    const roleSelect = form.querySelector("#messageRole") as HTMLSelectElement;
-    const textarea = form.querySelector(
-      "#newMessageContent"
-    ) as HTMLTextAreaElement;
-
-    if (roleSelect.value && textarea.value.trim()) {
-      this.newMessageCallback(
-        roleSelect.value as "user" | "assistant",
-        textarea.value.trim()
-      );
-      this.newDialog.close();
-    }
-  }
-
-  // Public API
-  public showViewModal(message: Message): void {
-    this.updateViewModal(message);
-    this.viewDialog.showModal();
-  }
-
-  public showEditModal(
-    message: Message,
-    onSave: (content: string) => void
-  ): void {
-    this.editCallback = onSave;
-    this.updateEditModal(message);
-    this.editDialog.showModal();
-  }
-
-  public showNewMessageModal(
-    onAdd: (role: "user" | "assistant", content: string) => void
-  ): void {
-    this.newMessageCallback = onAdd;
-    this.newDialog.showModal();
-  }
-
   public destroy(): void {
-    // Remove event listeners
     this.modals.forEach((modal) => {
       const newModal = modal.cloneNode(true);
       modal.parentNode?.replaceChild(newModal, modal);
     });
 
     this.initialized = false;
-    this.editCallback = null;
-    this.newMessageCallback = null;
   }
 }
