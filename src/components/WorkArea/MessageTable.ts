@@ -4,6 +4,14 @@ import { effect } from "@preact/signals-core";
 import { MessageExtended } from "../../types/tool.types";
 import { htmlTool } from "../../../tools/html-tool/client/html.client";
 
+interface FilterState {
+  search: string;
+  role: string;
+  rating: string | undefined;
+  archived: boolean;
+  tool: string;
+}
+
 export class MessageTable {
   private tbody: HTMLTableSectionElement | null = null;
   private searchInput: HTMLInputElement | null = null;
@@ -11,9 +19,13 @@ export class MessageTable {
   private ratingFilter: HTMLSelectElement | null = null;
   private toolFilter: HTMLSelectElement | null = null;
   private archivedFilter: HTMLInputElement | null = null;
-  private filterTimeout: number | null = null;
-  private initialized: boolean = false;
   private cleanupFns: Array<() => void> = [];
+  private initialized: boolean = false;
+  private currentUpdateId: Symbol | null = null;
+  private lastFilters: FilterState | null = null;
+  private lastMessages: MessageExtended[] | null = null;
+  private lastFilterResult: MessageExtended[] | null = null;
+  private debouncedUpdate: () => void;
 
   constructor(
     private onView: (id: string) => void,
@@ -21,9 +33,23 @@ export class MessageTable {
     private onDelete: (id: string) => void
   ) {
     console.log("MessageTable constructor called");
+    this.debouncedUpdate = this.debounce(() => this.updateContent(), 300);
+  }
+
+  private debounce(fn: Function, delay: number) {
+    let timeoutId: number | null = null;
+    return function (this: any, ...args: any[]) {
+      if (timeoutId) clearTimeout(timeoutId);
+      timeoutId = window.setTimeout(() => fn.apply(this, args), delay);
+    };
   }
 
   public mount(): void {
+    if (this.initialized) {
+      console.warn("MessageTable already initialized");
+      return;
+    }
+
     this.tbody = document.getElementById(
       "message-table-body"
     ) as HTMLTableSectionElement;
@@ -51,6 +77,7 @@ export class MessageTable {
     this.setupFilterListeners();
 
     const chatCleanup = converseStore.onMessagesChange(() => {
+      console.log("Messages changed, updating table");
       this.updateContent();
     });
 
@@ -63,58 +90,91 @@ export class MessageTable {
 
     this.cleanupFns.push(chatCleanup, storeCleanup);
     this.updateContent();
+    this.initialized = true;
   }
 
   private setupFilterListeners(): void {
-    this.searchInput?.addEventListener("input", () => {
-      if (this.filterTimeout) {
-        clearTimeout(this.filterTimeout);
-      }
-      this.filterTimeout = window.setTimeout(() => {
-        this.updateContent();
-      }, 300);
+    const listeners = [
+      {
+        element: this.searchInput,
+        event: "input",
+        handler: this.debouncedUpdate,
+      },
+      {
+        element: this.roleFilter,
+        event: "change",
+        handler: () => this.updateContent(),
+      },
+      {
+        element: this.ratingFilter,
+        event: "change",
+        handler: () => this.updateContent(),
+      },
+      {
+        element: this.archivedFilter,
+        event: "change",
+        handler: () => this.updateContent(),
+      },
+      {
+        element: this.toolFilter,
+        event: "change",
+        handler: () => this.updateContent(),
+      },
+    ].map(({ element, event, handler }) => {
+      element?.addEventListener(event, handler);
+      return () => element?.removeEventListener(event, handler);
     });
 
-    this.roleFilter?.addEventListener("change", () => this.updateContent());
-    this.ratingFilter?.addEventListener("change", () => this.updateContent());
-    this.archivedFilter?.addEventListener("change", () => this.updateContent());
-    this.toolFilter?.addEventListener("change", () => this.updateContent());
+    this.cleanupFns.push(...listeners);
   }
 
   private filterMessages(messages: MessageExtended[]): MessageExtended[] {
-    return messages.filter((message) => {
-      const searchTerm = this.searchInput?.value.toLowerCase() || "";
+    const filters: FilterState = {
+      search: this.searchInput?.value.toLowerCase() || "",
+      role: this.roleFilter?.value || "",
+      rating: this.ratingFilter?.value,
+      archived: this.archivedFilter?.checked || false,
+      tool: this.toolFilter?.value || "",
+    };
+
+    // Cache filter results
+    if (
+      this.lastFilters &&
+      JSON.stringify(filters) === JSON.stringify(this.lastFilters) &&
+      this.lastMessages === messages
+    ) {
+      return this.lastFilterResult || [];
+    }
+
+    this.lastFilters = filters;
+    this.lastMessages = messages;
+
+    const filteredMessages = messages.filter((message) => {
       const messageText = message.content
         ?.map((block) => block.text || "")
         .join(" ")
         .toLowerCase();
-      const matchesSearch = !searchTerm || messageText?.includes(searchTerm);
+      const matchesSearch =
+        !filters.search || messageText?.includes(filters.search);
 
-      const roleValue = this.roleFilter?.value || "";
-      const matchesRole = !roleValue || message.role === roleValue;
+      const matchesRole = !filters.role || message.role === filters.role;
 
-      const ratingValue = this.ratingFilter?.value;
       const matchesRating =
-        ratingValue === undefined ||
-        ratingValue === "" ||
-        message.metadata?.userRating === parseInt(ratingValue);
+        filters.rating === undefined ||
+        filters.rating === "" ||
+        message.metadata?.userRating === parseInt(filters.rating);
 
-      const includeArchived = this.archivedFilter?.checked || false;
-      const matchesArchived = includeArchived || !message.metadata?.isArchived;
+      const matchesArchived = filters.archived || !message.metadata?.isArchived;
 
-      const toolValue = this.toolFilter?.value || "";
       let matchesTool = true;
-
-      if (toolValue) {
+      if (filters.tool) {
         const hasToolUse = message.content?.some((block) => block.toolUse);
-        if (toolValue === "any") {
-          matchesTool = hasToolUse || false;
-        } else {
-          matchesTool =
-            message.content?.some(
-              (block) => block.toolUse?.name === toolValue
-            ) || false;
-        }
+        matchesTool =
+          filters.tool === "any"
+            ? hasToolUse || false
+            : message.content?.some(
+                (block) => block.toolUse?.name === filters.tool
+              ) || false;
       }
 
       return (
@@ -125,16 +185,34 @@ export class MessageTable {
         matchesTool
       );
     });
+
+    this.lastFilterResult = filteredMessages;
+    return filteredMessages;
   }
 
-  private updateContent(): void {
-    if (!this.tbody) return;
+  private async updateContent(): Promise<void> {
+    console.log("UpdateContent called");
+
+    if (!this.tbody) {
+      console.error("Table body not found");
+      return;
+    }
+
+    const updateId = Symbol("update");
+    this.currentUpdateId = updateId;
 
     this.tbody.innerHTML = "";
     const allMessages = converseStore.getMessages();
     const filteredMessages = this.filterMessages(allMessages);
 
+    // Check if this update is still valid
+    if (this.currentUpdateId !== updateId) {
+      console.log("Update no longer valid, skipping render");
+      return;
+    }
+
     if (filteredMessages.length === 0) {
+      console.log("No messages to display");
       this.renderEmptyState();
       return;
     }
@@ -162,67 +240,74 @@ export class MessageTable {
   }
 
   private createMessageRow(message: MessageExtended): HTMLElement {
-    const template = document.getElementById(
-      "message-row-template"
-    ) as HTMLTemplateElement;
-    if (!template) throw new Error("Message row template not found");
+    try {
+      const template = document.getElementById(
+        "message-row-template"
+      ) as HTMLTemplateElement;
+      if (!template) throw new Error("Message row template not found");
 
-    const clone = template.content.cloneNode(true) as HTMLElement;
-    const row = clone.querySelector("tr");
-    if (!row) throw new Error("Row not found in template");
-
-    if (message.metadata?.isArchived) {
-      row.classList.add("archived-message");
-      row.title = "Archived message - not included in context window";
-    }
-
-    row.dataset.messageId = message.id;
-
-    const roleBadge = row.querySelector(".role-badge");
-    if (roleBadge) {
-      const role = message.role || "unknown";
-      roleBadge.className = `role-badge role-${role}`;
-      roleBadge.textContent = role;
+      const clone = template.content.cloneNode(true) as HTMLElement;
+      const row = clone.querySelector("tr");
+      if (!row) throw new Error("Row not found in template");
 
       if (message.metadata?.isArchived) {
-        const badgeTemplate = document.getElementById(
-          "archive-badge-template"
-        ) as HTMLTemplateElement;
-        if (badgeTemplate) {
-          const badgeClone = badgeTemplate.content.cloneNode(
-            true
-          ) as HTMLElement;
-          roleBadge.parentElement?.appendChild(badgeClone);
+        row.classList.add("archived-message");
+        row.title = "Archived message - not included in context window";
+      }
+
+      row.dataset.messageId = message.id;
+
+      const roleBadge = row.querySelector(".role-badge");
+      if (roleBadge) {
+        const role = message.role || "unknown";
+        roleBadge.className = `role-badge role-${role}`;
+        roleBadge.textContent = role;
+
+        if (message.metadata?.isArchived) {
+          const badgeTemplate = document.getElementById(
+            "archive-badge-template"
+          ) as HTMLTemplateElement;
+          if (badgeTemplate) {
+            const badgeClone = badgeTemplate.content.cloneNode(
+              true
+            ) as HTMLElement;
+            roleBadge.parentElement?.appendChild(badgeClone);
+          }
         }
       }
+
+      const contentCell = row.querySelector(".message-content");
+      if (contentCell) {
+        this.fillContentCell(contentCell, message);
+      }
+
+      const ratingCell = row.querySelector(".rating-cell");
+      if (ratingCell) {
+        this.setupRating(ratingCell, message);
+      }
+
+      const timestampCell = row.querySelector(".timestamp-cell");
+      if (timestampCell) {
+        timestampCell.textContent = new Date(
+          message.metadata.createdAt
+        ).toLocaleString(undefined, {
+          year: "2-digit",
+          month: "numeric",
+          day: "numeric",
+          hour: "numeric",
+          minute: "2-digit",
+        });
+      }
+
+      this.setupActionButtons(row, message);
+
+      return row;
+    } catch (error) {
+      console.error("Error creating message row:", error);
+      const errorRow = document.createElement("tr");
+      errorRow.innerHTML = `<td colspan="4">Error displaying message: ${message.id}</td>`;
+      return errorRow;
     }
-
-    const contentCell = row.querySelector(".message-content");
-    if (contentCell) {
-      this.fillContentCell(contentCell, message);
-    }
-
-    const ratingCell = row.querySelector(".rating-cell");
-    if (ratingCell) {
-      this.setupRating(ratingCell, message);
-    }
-
-    const timestampCell = row.querySelector(".timestamp-cell");
-    if (timestampCell) {
-      timestampCell.textContent = new Date(
-        message.metadata.createdAt
-      ).toLocaleString(undefined, {
-        year: "2-digit",
-        month: "numeric",
-        day: "numeric",
-        hour: "numeric",
-        minute: "2-digit",
-      });
-    }
-
-    this.setupActionButtons(row, message);
-
-    return row;
   }
 
   private setupRating(cell: Element, message: MessageExtended): void {
@@ -231,10 +316,13 @@ export class MessageTable {
     heartIcon.innerHTML = message.metadata?.userRating ? "❤️" : "🤍";
     heartIcon.style.cursor = "pointer";
 
-    heartIcon.addEventListener("click", () => {
+    const handler = () => {
       const newRating = message.metadata?.userRating ? 0 : 1;
       converseStore.updateMessageRating(message.id, newRating);
-    });
+    };
+
+    heartIcon.addEventListener("click", handler);
+    this.cleanupFns.push(() => heartIcon.removeEventListener("click", handler));
 
     cell.appendChild(heartIcon);
   }
@@ -282,6 +370,8 @@ export class MessageTable {
     const actionButtons = row.querySelector(".action-buttons");
     if (!actionButtons) return;
 
+    const buttonCleanups: Array<() => void> = [];
+
     if (message.content?.some((block) => block.toolUse?.name === "html")) {
       const reExecuteTemplate = document.getElementById(
         "re-execute-button-template"
@@ -290,39 +380,55 @@ export class MessageTable {
         const reExecuteBtn = reExecuteTemplate.content.cloneNode(
           true
         ) as HTMLElement;
-        reExecuteBtn
-          .querySelector("button")
-          ?.addEventListener("click", async () => {
-            const htmlToolUse = message.content?.find(
-              (block) => block.toolUse?.name === "html"
-            );
-            if (htmlToolUse?.toolUse && !store.isGenerating.value) {
-              try {
-                await htmlTool.execute(htmlToolUse.toolUse.input);
-                store.setActiveTab("preview");
-              } catch (error) {
-                console.error("Failed to re-execute HTML:", error);
-                store.showToast("Failed to re-execute HTML");
-              }
+        const button = reExecuteBtn.querySelector("button");
+
+        const handler = async () => {
+          const htmlToolUse = message.content?.find(
+            (block) => block.toolUse?.name === "html"
+          );
+          if (htmlToolUse?.toolUse && !store.isGenerating.value) {
+            try {
+              await htmlTool.execute(htmlToolUse.toolUse.input);
+              store.setActiveTab("preview");
+            } catch (error) {
+              console.error("Failed to re-execute HTML:", error);
+              store.showToast("Failed to re-execute HTML");
             }
-          });
+          }
+        };
+
+        button?.addEventListener("click", handler);
+        buttonCleanups.push(() =>
+          button?.removeEventListener("click", handler)
+        );
         actionButtons.insertBefore(reExecuteBtn, actionButtons.firstChild);
       }
     }
 
-    const viewBtn = actionButtons.querySelector(".view-btn");
-    const editBtn = actionButtons.querySelector(".edit-btn");
-    const deleteBtn = actionButtons.querySelector(".delete-btn");
+    const buttons = {
+      view: {
+        element: actionButtons.querySelector(".view-btn"),
+        handler: () => this.onView(message.id),
+      },
+      edit: {
+        element: actionButtons.querySelector(".edit-btn"),
+        handler: () => this.onEdit(message.id),
+      },
+      delete: {
+        element: actionButtons.querySelector(".delete-btn"),
+        handler: () => this.onDelete(message.id),
+      },
+    };
 
-    viewBtn?.addEventListener("click", () => this.onView(message.id));
-    editBtn?.addEventListener("click", () => this.onEdit(message.id));
-    deleteBtn?.addEventListener("click", () => this.onDelete(message.id));
+    Object.values(buttons).forEach(({ element, handler }) => {
+      element?.addEventListener("click", handler);
+      buttonCleanups.push(() => element?.removeEventListener("click", handler));
+    });
+
+    this.cleanupFns.push(...buttonCleanups);
   }
 
   public destroy(): void {
-    if (this.filterTimeout) {
-      clearTimeout(this.filterTimeout);
-    }
     this.cleanupFns.forEach((cleanup) => cleanup());
     this.cleanupFns = [];
     this.tbody = null;
@@ -331,5 +437,10 @@ export class MessageTable {
     this.ratingFilter = null;
     this.toolFilter = null;
     this.archivedFilter = null;
+    this.initialized = false;
+    this.currentUpdateId = null;
+    this.lastFilters = null;
+    this.lastMessages = null;
+    this.lastFilterResult = null;
   }
 }
