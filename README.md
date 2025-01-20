@@ -80,7 +80,7 @@ npm run dev</code></pre>
 
 <h3>Key Components</h3>
 <ul>
-  <li><strong>Chat Context (chatContext)</strong>: Holds the entire conversation. Automatically handles AWS Bedrock calls whenever a new <code>user</code> message is added, and executes tools if an <code>assistant</code> message includes a <code>toolUse</code> block.</li>
+  <li><strong>Chat Context (converseStore)</strong>: Holds the entire conversation. Automatically handles AWS Bedrock calls whenever a new <code>user</code> message is added, and executes tools if an <code>assistant</code> message includes a <code>toolUse</code> block.</li>
   <li><strong>Chat Interface (Chat.ts)</strong>: Primarily a UI layer. Listens to user input, adds new messages to the context, and renders updates whenever the context changes.</li>
   <li><strong>Work Area</strong>: Provides an admin interface to view/edit messages and manage the conversation history.</li>
   <li><strong>Error Handling</strong>: A robust but still development-level approach that attempts to retry errors; not production-ready.</li>

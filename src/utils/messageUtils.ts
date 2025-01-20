@@ -1,88 +1,107 @@
 // src/utils/messageUtils.ts
 
 import { Message } from "@aws-sdk/client-bedrock-runtime";
+import { MessageExtended } from "../types/tool.types";
 
-export interface MessageExtended extends Message {
-  metadata?: {
-    isArchived?: boolean;
-    hasToolUse?: boolean;
-    hasToolResult?: boolean;
-    sequenceNumber?: number;
-    tags?: string[]; // New: Array of tags/labels
-    userRating?: number; // New: User rating (1-5)
-  };
-}
-
-// Helper function to extract tags from AI responses
 function extractTags(message: Message): string[] {
-  // Look for tags in AI responses - this is a basic implementation
-  // You might want to enhance this based on your AI's response format
   const text = message.content?.map((block) => block.text).join(" ") || "";
   const tags: string[] = [];
 
-  // Example tag extraction (you can make this more sophisticated):
-  // Look for hashtags or explicit tag markers
   const hashTags = text.match(/#\w+/g) || [];
   tags.push(...hashTags.map((tag) => tag.substring(1)));
 
-  // Look for "tags:" or "labels:" sections
   const tagSection = text.match(/(?:tags|labels):\s*\[(.*?)\]/i);
   if (tagSection) {
     const extractedTags = tagSection[1].split(",").map((t) => t.trim());
     tags.push(...extractedTags);
   }
 
-  return Array.from(new Set(tags)); // Remove duplicates
+  return Array.from(new Set(tags));
 }
 
+// This is the primary utility function used by MessageManager and ConverseStore
+export function determineActiveMessageRange(
+  messages: MessageExtended[],
+  threshold: number
+): {
+  splitIndex: number;
+  activeMessages: MessageExtended[];
+} {
+  // Find genuine user messages (excluding tool results)
+  const userMessageIndices = messages
+    .map((msg, index) => ({
+      index,
+      isUserMessage: msg.role === "user" && !msg.metadata.hasToolResult,
+    }))
+    .filter((item) => item.isUserMessage)
+    .map((item) => item.index);
+
+  // If we have no valid user messages, use standard threshold
+  if (userMessageIndices.length === 0) {
+    const splitIndex = Math.max(0, messages.length - threshold);
+    return {
+      splitIndex,
+      activeMessages: messages.slice(splitIndex),
+    };
+  }
+
+  // Find the appropriate split point based on user messages
+  const targetIndex = Math.max(0, messages.length - threshold);
+  const splitIndex = userMessageIndices.reduce((nearest, current) => {
+    return Math.abs(current - targetIndex) < Math.abs(nearest - targetIndex)
+      ? current
+      : nearest;
+  });
+
+  return {
+    splitIndex,
+    activeMessages: messages.slice(splitIndex),
+  };
+}
+
+// This function is kept for testing purposes only.
+// The actual message extension and archival logic is now handled by MessageManager
 export function extendMessages(
   messages: Message[],
   threshold = 10
 ): MessageExtended[] {
-  let activeStartIndex =
-    messages.length > threshold ? messages.length - threshold : 0;
+  const now = Date.now();
 
-  // Find nearest user message that's not a tool result
-  const userMessageIndices = messages
-    .map((msg, index) => {
-      const hasToolResult = msg.content?.some((block) => block.toolResult);
-      return msg.role === "user" && !hasToolResult ? index : -1;
-    })
-    .filter((index) => index !== -1);
-
-  // Find the nearest user message index to our activeStartIndex
-  if (userMessageIndices.length > 0) {
-    activeStartIndex = userMessageIndices.reduce((nearest, current) => {
-      return Math.abs(current - activeStartIndex) <
-        Math.abs(nearest - activeStartIndex)
-        ? current
-        : nearest;
-    });
-  }
-
-  return messages.map((message, index) => {
+  // First, extend all messages with basic metadata
+  const extendedMessages = messages.map((message) => {
     const hasToolUse = message.content?.some((block) => block.toolUse);
     const hasToolResult = message.content?.some((block) => block.toolResult);
-
-    // Extract or preserve existing metadata
     const existingMetadata = (message as MessageExtended).metadata || {};
+    const messageTime = existingMetadata.createdAt || now;
 
     return {
       ...message,
       metadata: {
-        ...existingMetadata, // Preserve existing metadata
+        ...existingMetadata,
+        createdAt: messageTime,
+        updatedAt: existingMetadata.updatedAt || messageTime,
         hasToolUse,
         hasToolResult,
-        sequenceNumber: index,
-        isArchived: index < activeStartIndex,
-        tags: existingMetadata.tags || extractTags(message), // New: Extract or preserve tags
-        userRating: existingMetadata.userRating || 0, // New: Initialize or preserve rating
+        tags: existingMetadata.tags || extractTags(message),
+        userRating: existingMetadata.userRating || 0,
       },
     };
-  });
+  }) as MessageExtended[];
+
+  const { splitIndex } = determineActiveMessageRange(
+    extendedMessages,
+    threshold
+  );
+
+  return extendedMessages.map((message, index) => ({
+    ...message,
+    metadata: {
+      ...message.metadata,
+      isArchived: index < splitIndex,
+    },
+  }));
 }
 
-// New utility functions for tags and ratings
 export function updateMessageTags(
   message: MessageExtended,
   tags: string[]
@@ -90,8 +109,9 @@ export function updateMessageTags(
   return {
     ...message,
     metadata: {
-      ...(message.metadata || {}),
-      tags: Array.from(new Set(tags)), // Ensure uniqueness
+      ...message.metadata,
+      tags: Array.from(new Set(tags)),
+      updatedAt: Date.now(),
     },
   };
 }
@@ -107,13 +127,13 @@ export function updateMessageRating(
   return {
     ...message,
     metadata: {
-      ...(message.metadata || {}),
+      ...message.metadata,
       userRating: rating,
+      updatedAt: Date.now(),
     },
   };
 }
 
-// New utility function to get message stats
 export function getMessageStats(messages: MessageExtended[]) {
   return {
     totalMessages: messages.length,

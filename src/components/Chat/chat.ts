@@ -1,15 +1,26 @@
-import { Message } from "@aws-sdk/client-bedrock-runtime";
 import { ButtonSpinner } from "../ButtonSpinner/ButtonSpinner";
 import { store } from "../../stores/AppStore";
 import { effect } from "@preact/signals-core";
 import { WorkArea } from "../WorkArea/WorkArea";
-import { chatContext } from "./chat-context";
+import { converseStore } from "../../stores/ConverseStore";
+import { MessageExtended } from "../../types/tool.types";
+import { marked } from "marked";
 
-interface ChatMessage {
-  role: "user" | "assistant";
-  message: string;
-  timestamp: Date;
+declare global {
+  interface Window {
+    hljs?: {
+      highlightElement(block: HTMLElement): void;
+    };
+  }
 }
+
+// Configure marked for safe rendering
+marked.setOptions({
+  gfm: true, // GitHub Flavored Markdown
+  breaks: true, // Convert \n to <br>
+  // smartLists: true,
+  // smartypants: true,
+});
 
 interface ChatDependencies {
   workArea: HTMLElement;
@@ -64,68 +75,174 @@ export class Chat {
     this.button = this.buttonSpinner.getElement();
   }
 
-  // In Chat.ts
   private render(): void {
     if (!this.initialized) {
-      // First time initialization should happen regardless of active tab
       this.initialized = true;
     }
 
-    // Update chat messages if they exist
     if (this.chatMessages) {
-      const messages = chatContext.getMessages();
+      const messages = converseStore.getMessages();
       this.renderMessages(messages);
     }
   }
 
-  private renderMessages(messages: Message[]): void {
+  private async renderMessages(messages: MessageExtended[]): Promise<void> {
     this.chatMessages.innerHTML = "";
 
-    let lastAssistantIdx = this.findLastAssistantIndex(messages);
+    // Sort messages by createdAt timestamp
+    const sortedMessages = [...messages].sort(
+      (a, b) => a.metadata.createdAt - b.metadata.createdAt
+    );
 
-    messages.forEach((message, index) => {
-      message.content?.forEach((block) => {
-        if (block.text) {
-          const chatMsg: ChatMessage = {
-            role: message.role || "assistant",
-            message: block.text,
-            timestamp: new Date(),
-          };
-          const isLatestAI = index === lastAssistantIdx;
-          this.appendMessageToDOM(chatMsg, isLatestAI);
-        } else if (block.toolResult) {
-          const toolResultJson = JSON.stringify(block.toolResult, null, 2);
-          const chatMsg: ChatMessage = {
-            role: message.role || "assistant",
-            message: `Tool Result:\n${toolResultJson}`,
-            timestamp: new Date(),
-          };
-          this.appendMessageToDOM(chatMsg, false);
+    console.log(
+      "Message order:",
+      sortedMessages.map((m) => ({
+        id: m.id,
+        role: m.role,
+        createdAt: m.metadata.createdAt,
+        content: m.content?.[0]?.text?.substring(0, 50),
+      }))
+    );
+
+    const lastAssistant = this.findLastAssistant(sortedMessages);
+
+    // Process all messages first
+    const processedMessages = await Promise.all(
+      sortedMessages.map(async (message) => {
+        const messageContent = message.content
+          ?.map((block) => {
+            if (block.text) {
+              return block.text;
+            } else if (block.toolResult) {
+              return `Tool Result:\n\`\`\`json\n${JSON.stringify(
+                block.toolResult,
+                null,
+                2
+              )}\n\`\`\``;
+            } else if (block.toolUse) {
+              return `Tool Use:\n\`\`\`json\n${JSON.stringify(
+                block.toolUse,
+                null,
+                2
+              )}\n\`\`\``;
+            }
+            return "";
+          })
+          .filter(Boolean)
+          .join("\n\n");
+
+        if (!messageContent) return null;
+
+        const templateId = `${message.role}-message-template`;
+        const template = document.getElementById(
+          templateId
+        ) as HTMLTemplateElement;
+        if (!template) return null;
+
+        const msgElem = template.content.cloneNode(true) as HTMLElement;
+        const contentWrapper = msgElem.querySelector(
+          ".message-content-wrapper"
+        );
+        if (!contentWrapper) return null;
+
+        contentWrapper.setAttribute("data-message-id", message.id);
+        contentWrapper.setAttribute(
+          "data-timestamp",
+          message.metadata.createdAt.toString()
+        );
+
+        if (messageContent.length > 300) {
+          const isLatestAI = message.id === lastAssistant?.id;
+          const preview = document.createElement("div");
+          preview.className = "message-preview markdown-body";
+          preview.innerHTML = await marked(
+            messageContent.slice(0, 300) + "..."
+          );
+
+          const full = document.createElement("div");
+          full.className = "message-full-content markdown-body";
+          full.innerHTML = await marked(messageContent);
+
+          const toggleBtn = document.createElement("button");
+          toggleBtn.className = "read-more-btn";
+          toggleBtn.textContent = isLatestAI ? "Show less" : "Read more";
+
+          toggleBtn.addEventListener("click", () => {
+            full.classList.toggle("hidden");
+            preview.classList.toggle("hidden");
+            toggleBtn.textContent = full.classList.contains("hidden")
+              ? "Read more"
+              : "Show less";
+          });
+
+          contentWrapper.appendChild(preview);
+          contentWrapper.appendChild(full);
+          contentWrapper.appendChild(toggleBtn);
+
+          // Set initial visibility based on whether it's the latest AI message
+          if (isLatestAI) {
+            full.classList.remove("hidden");
+            preview.classList.add("hidden");
+          } else {
+            full.classList.add("hidden");
+            preview.classList.remove("hidden");
+          }
+        } else {
+          contentWrapper.classList.add("markdown-body");
+          contentWrapper.innerHTML = await marked(messageContent);
         }
-      });
+
+        return msgElem;
+      })
+    );
+
+    // Filter out null results and add all messages to DOM at once
+    const validMessages = processedMessages.filter(
+      (msg): msg is HTMLElement => msg !== null
+    );
+    validMessages.forEach((msgElem) => {
+      this.chatMessages.appendChild(msgElem);
     });
 
-    this.scrollToBottom();
+    // Process code blocks
+    this.chatMessages.querySelectorAll("pre code").forEach((block) => {
+      if (window.hljs) {
+        window.hljs.highlightElement(block as HTMLElement);
+      }
+    });
+
+    requestAnimationFrame(() => {
+      this.scrollToBottom();
+    });
   }
 
-  private findLastAssistantIndex(messages: Message[]): number {
+  private findLastAssistant(
+    messages: MessageExtended[]
+  ): MessageExtended | undefined {
+    // Loop from end to start to find the last assistant message
     for (let i = messages.length - 1; i >= 0; i--) {
       if (messages[i].role === "assistant") {
-        return i;
+        return messages[i];
       }
     }
-    return -1;
+    return undefined;
   }
 
   private scrollToBottom(): void {
-    this.chatMessages.scrollTop = this.chatMessages.scrollHeight;
+    if (this.chatMessages) {
+      const lastMessage = this.chatMessages.lastElementChild;
+      lastMessage?.scrollIntoView({ behavior: "smooth", block: "end" });
+
+      // Fallback direct scroll
+      this.chatMessages.scrollTop = this.chatMessages.scrollHeight;
+    }
   }
 
   private setupEventListeners(): void {
     this.button.onclick = this.handleGenerate;
     this.promptInput.onkeydown = this.handleKeyDown;
 
-    const cleanup = chatContext.onMessagesChange(() => {
+    const cleanup = converseStore.onMessagesChange(() => {
       this.render();
     });
     this.cleanupFns.push(cleanup);
@@ -153,27 +270,23 @@ export class Chat {
   private async handleErrorPrompt(prompt: string) {
     this.promptInput.value = prompt;
     store.clearPendingErrorPrompt();
-    // No LLM call here — the user can just press send or we can auto-send if desired
   }
 
   private handleGenerate = (e: MouseEvent): void => {
     e.preventDefault();
-    if (store.isGenerating.value) return; // skip if currently generating
+    if (store.isGenerating.value) return;
 
-    // 1) Grab text
     const prompt = this.promptInput.value.trim();
     if (!prompt) {
       store.showToast("Please type something before sending");
       return;
     }
 
-    // 2) Add user message to chat
-    chatContext.addMessage({
+    converseStore.addMessage({
       role: "user",
       content: [{ text: prompt }],
     });
 
-    // 3) Clear input
     this.promptInput.value = "";
   };
 
@@ -184,72 +297,11 @@ export class Chat {
     }
   };
 
-  private appendMessageToDOM(message: ChatMessage, isLatestAI: boolean): void {
-    // Get appropriate template based on message type
-    const templateId = `${message.role}-message-template`;
-    const template = document.getElementById(templateId) as HTMLTemplateElement;
-    if (!template) {
-      console.error(`Template not found: ${templateId}`);
-      return;
-    }
-
-    // Clone the template
-    const msgElem = template.content.cloneNode(true) as HTMLElement;
-    const contentWrapper = msgElem.querySelector(".message-content-wrapper");
-
-    if (!contentWrapper) {
-      console.error("Required elements not found in template");
-      return;
-    }
-
-    if (message.message.length > 300) {
-      const preview = document.createElement("div");
-      preview.className = "message-preview";
-      preview.textContent = message.message.slice(0, 300) + "...";
-
-      const full = document.createElement("div");
-      full.className = "message-full-content";
-      full.textContent = message.message;
-
-      const toggleBtn = document.createElement("button");
-      toggleBtn.className = "read-more-btn";
-      toggleBtn.textContent = "Read more";
-
-      toggleBtn.addEventListener("click", () => {
-        full.classList.toggle("hidden");
-        preview.classList.toggle("hidden");
-        toggleBtn.textContent = full.classList.contains("hidden")
-          ? "Read more"
-          : "Show less";
-      });
-
-      contentWrapper.appendChild(preview);
-      contentWrapper.appendChild(full);
-      contentWrapper.appendChild(toggleBtn);
-
-      if (!isLatestAI) {
-        full.classList.add("hidden");
-        preview.classList.remove("hidden");
-      } else {
-        full.classList.remove("hidden");
-        preview.classList.add("hidden");
-        toggleBtn.textContent = "Show less";
-      }
-    } else {
-      // Short message, just show content
-      contentWrapper.textContent = message.message;
-    }
-
-    this.chatMessages.appendChild(msgElem);
-  }
-
   public destroy(): void {
     try {
-      // Cleanup effects and subscriptions
       this.cleanupFns.forEach((fn) => fn());
       this.cleanupFns = [];
 
-      // Remove event listeners
       if (this.button) {
         this.button.onclick = null;
       }
@@ -257,12 +309,10 @@ export class Chat {
         this.promptInput.onkeydown = null;
       }
 
-      // Cleanup components
       if (this.buttonSpinner) {
         this.buttonSpinner.destroy();
       }
 
-      // Reset state
       this.initialized = false;
     } catch (error) {
       console.error("Error during Chat cleanup:", error);
