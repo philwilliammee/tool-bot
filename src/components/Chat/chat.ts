@@ -4,6 +4,23 @@ import { effect } from "@preact/signals-core";
 import { WorkArea } from "../WorkArea/WorkArea";
 import { converseStore } from "../../stores/ConverseStore";
 import { MessageExtended } from "../../types/tool.types";
+import { marked } from "marked";
+
+declare global {
+  interface Window {
+    hljs?: {
+      highlightElement(block: HTMLElement): void;
+    };
+  }
+}
+
+// Configure marked for safe rendering
+marked.setOptions({
+  gfm: true, // GitHub Flavored Markdown
+  breaks: true, // Convert \n to <br>
+  // smartLists: true,
+  // smartypants: true,
+});
 
 interface ChatDependencies {
   workArea: HTMLElement;
@@ -79,11 +96,11 @@ export class Chat {
           const isLatestAI = message.id === lastAssistant?.id;
           this.appendMessageToDOM(message, block.text, isLatestAI);
         } else if (block.toolResult) {
-          const toolResultText = `Tool Result:\n${JSON.stringify(
+          const toolResultText = `Tool Result:\n\`\`\`json\n${JSON.stringify(
             block.toolResult,
             null,
             2
-          )}`;
+          )}\n\`\`\``;
           this.appendMessageToDOM(message, toolResultText, false);
         }
       });
@@ -92,11 +109,11 @@ export class Chat {
     this.scrollToBottom();
   }
 
-  private appendMessageToDOM(
+  private async appendMessageToDOM(
     message: MessageExtended,
     content: string,
     isLatestAI: boolean
-  ): void {
+  ): Promise<void> {
     const templateId = `${message.role}-message-template`;
     const template = document.getElementById(templateId) as HTMLTemplateElement;
     if (!template) {
@@ -120,12 +137,12 @@ export class Chat {
 
     if (content.length > 300) {
       const preview = document.createElement("div");
-      preview.className = "message-preview";
-      preview.textContent = content.slice(0, 300) + "...";
+      preview.className = "message-preview markdown-body";
+      preview.innerHTML = await marked(content.slice(0, 300) + "...");
 
       const full = document.createElement("div");
-      full.className = "message-full-content";
-      full.textContent = content;
+      full.className = "message-full-content markdown-body";
+      full.innerHTML = await marked(content);
 
       const toggleBtn = document.createElement("button");
       toggleBtn.className = "read-more-btn";
@@ -152,10 +169,18 @@ export class Chat {
         toggleBtn.textContent = "Show less";
       }
     } else {
-      contentWrapper.textContent = content;
+      contentWrapper.classList.add("markdown-body");
+      contentWrapper.innerHTML = await marked(content);
     }
 
     this.chatMessages.appendChild(msgElem);
+
+    // Process any code blocks for syntax highlighting if needed
+    contentWrapper.querySelectorAll("pre code").forEach((block) => {
+      if (window.hljs) {
+        window.hljs.highlightElement(block as HTMLElement);
+      }
+    });
   }
 
   private findLastAssistant(
