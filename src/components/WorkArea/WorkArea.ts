@@ -1,5 +1,5 @@
 import { effect, batch } from "@preact/signals-core";
-import { chatContext } from "../Chat/chat-context";
+import { converseStore } from "../../stores/ConverseStore";
 import { store } from "../../stores/AppStore";
 import { MessageTable } from "./MessageTable";
 import { WorkAreaModals } from "./WorkAreaModals";
@@ -13,7 +13,7 @@ export class WorkArea {
 
   constructor(private element: HTMLElement) {
     console.log("WorkArea component initialized");
-    this.modals = new WorkAreaModals(); // Make sure this is defined as a class property
+    this.modals = new WorkAreaModals();
     this.messageTable = new MessageTable(
       this.handleViewMessage.bind(this),
       this.handleEditMessage.bind(this),
@@ -24,13 +24,9 @@ export class WorkArea {
   }
 
   private initialize(): void {
-    // Initialize message table
     this.messageTable.mount();
-
-    // Setup event listeners
     this.setupEventListeners();
 
-    // Setup reactive effects
     this.cleanupFns.push(
       effect(() => {
         const isActive = store.activeTab.value === "work-area";
@@ -48,8 +44,7 @@ export class WorkArea {
       })
     );
 
-    // Update counts when messages change
-    chatContext.onMessagesChange(() => {
+    converseStore.onMessagesChange(() => {
       this.updateDynamicContent();
     });
 
@@ -66,7 +61,9 @@ export class WorkArea {
   private updateMessageCount(): void {
     const countElement = this.element.querySelector(".message-count");
     if (countElement) {
-      countElement.textContent = `${chatContext.getMessages().length} messages`;
+      countElement.textContent = `${
+        converseStore.getMessages().length
+      } messages`;
     }
   }
 
@@ -79,7 +76,7 @@ export class WorkArea {
     ) as HTMLButtonElement;
 
     if (deleteAllBtn && newMessageBtn) {
-      const hasMessages = chatContext.getMessages().length > 0;
+      const hasMessages = converseStore.getMessages().length > 0;
       const isGenerating = store.isGenerating.value;
 
       deleteAllBtn.disabled = !hasMessages || isGenerating;
@@ -103,12 +100,14 @@ export class WorkArea {
       ?.addEventListener("click", () => {
         this.handleMessageOperation(() => {
           this.modals.showNewMessageModal((role, content, tags, rating) => {
-            chatContext.addMessage({
+            converseStore.addMessage({
               role,
               content: [{ text: content }],
               metadata: {
                 tags,
                 userRating: rating,
+                createdAt: Date.now(),
+                updatedAt: Date.now(),
               },
             } as MessageExtended);
           });
@@ -148,44 +147,40 @@ export class WorkArea {
       )
     ) {
       this.handleMessageOperation(() => {
-        chatContext.deleteAllMessages();
+        converseStore.deleteAllMessages();
       }, "All messages deleted");
     }
   }
 
-  private handleViewMessage(index: number): void {
-    const message = chatContext.getMessages()[index];
+  private handleViewMessage(id: string): void {
+    const message = converseStore.getMessage(id);
     if (!message || store.isGenerating.value) return;
     this.modals.showViewModal(message);
   }
 
-  private handleEditMessage(index: number): void {
-    const message = chatContext.getMessages()[index] as MessageExtended;
+  private handleEditMessage(id: string): void {
+    const message = converseStore.getMessage(id);
     if (!message || store.isGenerating.value) return;
 
     this.modals.showEditModal(message, () => {
       this.handleMessageOperation(() => {
-        // The actual update is now handled within the WorkAreaModals class
-        // We just need to provide the success callback
+        // Update is handled in the modal
       }, "Message updated successfully");
     });
   }
 
-  private handleDeleteMessage(index: number): void {
+  private handleDeleteMessage(id: string): void {
     if (store.isGenerating.value) return;
 
     if (confirm("Are you sure you want to delete this message?")) {
       this.handleMessageOperation(() => {
-        chatContext.deleteMessage(index);
+        converseStore.deleteMessage(id);
       }, "Message deleted");
     }
   }
 
   public destroy(): void {
-    // Cleanup all effects
     this.cleanupFns.forEach((cleanup) => cleanup());
-
-    // Cleanup components
     this.modals.destroy();
     this.messageTable.destroy();
   }

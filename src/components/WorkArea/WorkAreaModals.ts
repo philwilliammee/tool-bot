@@ -1,6 +1,6 @@
 import { Message } from "@aws-sdk/client-bedrock-runtime";
 import { MessageExtended } from "../../types/tool.types";
-import { chatContext } from "../Chat/chat-context";
+import { converseStore } from "../../stores/ConverseStore";
 
 export class WorkAreaModals {
   private initialized: boolean = false;
@@ -8,7 +8,7 @@ export class WorkAreaModals {
   private editDialog!: HTMLDialogElement;
   private newDialog!: HTMLDialogElement;
   private modals: HTMLDialogElement[] = [];
-  private currentEditIndex: number = -1;
+  private currentEditId: string | null = null;
 
   constructor() {
     this.initialize();
@@ -44,11 +44,10 @@ export class WorkAreaModals {
       dialog.addEventListener("close", () => {
         const form = dialog.querySelector("form");
         if (form) form.reset();
-        this.currentEditIndex = -1;
+        this.currentEditId = null;
       });
     });
 
-    // Setup cancel/close buttons
     this.modals.forEach((modal) => {
       modal
         .querySelector(".cancel-btn")
@@ -63,7 +62,6 @@ export class WorkAreaModals {
     const editForm = this.editDialog.querySelector(".edit-form");
     if (!editForm) return;
 
-    // Setup heart toggle
     const heartToggle = editForm.querySelector(".heart-toggle") as HTMLElement;
     const ratingInput = editForm.querySelector(
       "#messageRating"
@@ -77,10 +75,9 @@ export class WorkAreaModals {
       });
     }
 
-    // Setup form submit
     editForm.addEventListener("submit", (e) => {
       e.preventDefault();
-      if (this.currentEditIndex === -1) return;
+      if (!this.currentEditId) return;
 
       const content = (
         editForm.querySelector("#messageContent") as HTMLTextAreaElement
@@ -97,9 +94,7 @@ export class WorkAreaModals {
         .map((tag) => tag.trim())
         .filter((tag) => tag.length > 0);
 
-      const message = chatContext.getMessages()[
-        this.currentEditIndex
-      ] as MessageExtended;
+      const message = converseStore.getMessage(this.currentEditId);
       if (message) {
         const updatedMessage: MessageExtended = {
           ...message,
@@ -108,10 +103,11 @@ export class WorkAreaModals {
             ...message.metadata,
             tags,
             userRating: rating,
+            updatedAt: Date.now(),
           },
         };
 
-        chatContext.updateMessage(this.currentEditIndex, updatedMessage);
+        converseStore.updateMessage(this.currentEditId, updatedMessage);
       }
 
       this.editDialog.close();
@@ -148,13 +144,13 @@ export class WorkAreaModals {
     }
 
     if (timestampElement) {
-      timestampElement.textContent = new Date().toLocaleString();
+      timestampElement.textContent = new Date(
+        message.metadata.createdAt
+      ).toLocaleString();
     }
 
     this.viewDialog.showModal();
   }
-
-  // In WorkAreaModals.ts
 
   public showEditModal(message: MessageExtended, onSave: () => void): void {
     const textarea = this.editDialog.querySelector(
@@ -184,15 +180,13 @@ export class WorkAreaModals {
       heartToggle.textContent = rating ? "❤️" : "🤍";
     }
 
-    this.currentEditIndex = message.metadata?.sequenceNumber || -1;
+    this.currentEditId = message.id;
 
     const editForm = this.editDialog.querySelector(".edit-form");
     if (editForm) {
-      // Remove any existing submit handler
       const newForm = editForm.cloneNode(true) as HTMLFormElement;
       editForm.parentNode?.replaceChild(newForm, editForm);
 
-      // Add new submit handler
       newForm.addEventListener("submit", (e) => {
         e.preventDefault();
 
@@ -218,11 +212,12 @@ export class WorkAreaModals {
             ...message.metadata,
             tags,
             userRating: rating,
+            updatedAt: Date.now(),
           },
         };
 
-        chatContext.updateMessage(this.currentEditIndex, updatedMessage);
-        onSave(); // Call the success callback
+        converseStore.updateMessage(message.id, updatedMessage);
+        onSave();
         this.editDialog.close();
       });
     }
@@ -241,7 +236,6 @@ export class WorkAreaModals {
     const form = this.newDialog.querySelector(".new-message-form");
     if (!form) return;
 
-    // Reset form and set up submit handler
     form.addEventListener("submit", (e) => {
       e.preventDefault();
 

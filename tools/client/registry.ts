@@ -1,3 +1,4 @@
+import { fileWriterTool } from "./../file-writer/client/file-writer.client";
 import { ClientTool, ClientToolRegistry } from "./tool.interface";
 import { htmlTool } from "../html-tool/client/html.client";
 import { mathTool } from "../math-tool/client/math.client";
@@ -16,6 +17,7 @@ class ToolRegistry {
     this.registerTool(ldapTool);
     this.registerTool(fileTreeTool);
     this.registerTool(projectReaderTool);
+    this.registerTool(fileWriterTool);
   }
 
   private registerTool(tool: ClientTool): void {

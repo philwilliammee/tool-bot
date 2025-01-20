@@ -16,13 +16,18 @@ export interface ToolResponse {
   contentType?: string;
 }
 
+export interface MessageMetadata {
+  createdAt: number; // Required
+  updatedAt: number; // Required
+  isArchived?: boolean;
+  hasToolUse?: boolean;
+  hasToolResult?: boolean;
+  sequenceNumber?: number;
+  tags?: string[];
+  userRating?: number;
+}
+
 export interface MessageExtended extends Message {
-  metadata?: {
-    isArchived?: boolean;
-    hasToolUse?: boolean;
-    hasToolResult?: boolean;
-    sequenceNumber?: number;
-    tags?: string[]; // For storing AI-generated labels/tags
-    userRating?: number; // For storing user likes/ratings (e.g., 1 to 5)
-  };
+  id: string;
+  metadata: MessageMetadata; // Note: not optional
 }

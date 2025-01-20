@@ -1,15 +1,9 @@
-import { Message } from "@aws-sdk/client-bedrock-runtime";
 import { ButtonSpinner } from "../ButtonSpinner/ButtonSpinner";
 import { store } from "../../stores/AppStore";
 import { effect } from "@preact/signals-core";
 import { WorkArea } from "../WorkArea/WorkArea";
-import { chatContext } from "./chat-context";
-
-interface ChatMessage {
-  role: "user" | "assistant";
-  message: string;
-  timestamp: Date;
-}
+import { converseStore } from "../../stores/ConverseStore";
+import { MessageExtended } from "../../types/tool.types";
 
 interface ChatDependencies {
   workArea: HTMLElement;
@@ -64,43 +58,33 @@ export class Chat {
     this.button = this.buttonSpinner.getElement();
   }
 
-  // In Chat.ts
   private render(): void {
     if (!this.initialized) {
-      // First time initialization should happen regardless of active tab
       this.initialized = true;
     }
 
-    // Update chat messages if they exist
     if (this.chatMessages) {
-      const messages = chatContext.getMessages();
+      const messages = converseStore.getMessages();
       this.renderMessages(messages);
     }
   }
 
-  private renderMessages(messages: Message[]): void {
+  private renderMessages(messages: MessageExtended[]): void {
     this.chatMessages.innerHTML = "";
+    const lastAssistant = this.findLastAssistant(messages);
 
-    let lastAssistantIdx = this.findLastAssistantIndex(messages);
-
-    messages.forEach((message, index) => {
+    messages.forEach((message) => {
       message.content?.forEach((block) => {
         if (block.text) {
-          const chatMsg: ChatMessage = {
-            role: message.role || "assistant",
-            message: block.text,
-            timestamp: new Date(),
-          };
-          const isLatestAI = index === lastAssistantIdx;
-          this.appendMessageToDOM(chatMsg, isLatestAI);
+          const isLatestAI = message.id === lastAssistant?.id;
+          this.appendMessageToDOM(message, block.text, isLatestAI);
         } else if (block.toolResult) {
-          const toolResultJson = JSON.stringify(block.toolResult, null, 2);
-          const chatMsg: ChatMessage = {
-            role: message.role || "assistant",
-            message: `Tool Result:\n${toolResultJson}`,
-            timestamp: new Date(),
-          };
-          this.appendMessageToDOM(chatMsg, false);
+          const toolResultText = `Tool Result:\n${JSON.stringify(
+            block.toolResult,
+            null,
+            2
+          )}`;
+          this.appendMessageToDOM(message, toolResultText, false);
         }
       });
     });
@@ -108,13 +92,79 @@ export class Chat {
     this.scrollToBottom();
   }
 
-  private findLastAssistantIndex(messages: Message[]): number {
-    for (let i = messages.length - 1; i >= 0; i--) {
-      if (messages[i].role === "assistant") {
-        return i;
-      }
+  private appendMessageToDOM(
+    message: MessageExtended,
+    content: string,
+    isLatestAI: boolean
+  ): void {
+    const templateId = `${message.role}-message-template`;
+    const template = document.getElementById(templateId) as HTMLTemplateElement;
+    if (!template) {
+      console.error(`Template not found: ${templateId}`);
+      return;
     }
-    return -1;
+
+    const msgElem = template.content.cloneNode(true) as HTMLElement;
+    const contentWrapper = msgElem.querySelector(".message-content-wrapper");
+
+    if (!contentWrapper) {
+      console.error("Required elements not found in template");
+      return;
+    }
+
+    contentWrapper.setAttribute("data-message-id", message.id);
+    contentWrapper.setAttribute(
+      "data-timestamp",
+      new Date(message.metadata.createdAt).toLocaleString()
+    );
+
+    if (content.length > 300) {
+      const preview = document.createElement("div");
+      preview.className = "message-preview";
+      preview.textContent = content.slice(0, 300) + "...";
+
+      const full = document.createElement("div");
+      full.className = "message-full-content";
+      full.textContent = content;
+
+      const toggleBtn = document.createElement("button");
+      toggleBtn.className = "read-more-btn";
+      toggleBtn.textContent = "Read more";
+
+      toggleBtn.addEventListener("click", () => {
+        full.classList.toggle("hidden");
+        preview.classList.toggle("hidden");
+        toggleBtn.textContent = full.classList.contains("hidden")
+          ? "Read more"
+          : "Show less";
+      });
+
+      contentWrapper.appendChild(preview);
+      contentWrapper.appendChild(full);
+      contentWrapper.appendChild(toggleBtn);
+
+      if (!isLatestAI) {
+        full.classList.add("hidden");
+        preview.classList.remove("hidden");
+      } else {
+        full.classList.remove("hidden");
+        preview.classList.add("hidden");
+        toggleBtn.textContent = "Show less";
+      }
+    } else {
+      contentWrapper.textContent = content;
+    }
+
+    this.chatMessages.appendChild(msgElem);
+  }
+
+  private findLastAssistant(
+    messages: MessageExtended[]
+  ): MessageExtended | undefined {
+    return messages
+      .slice()
+      .reverse()
+      .find((msg) => msg.role === "assistant");
   }
 
   private scrollToBottom(): void {
@@ -125,7 +175,7 @@ export class Chat {
     this.button.onclick = this.handleGenerate;
     this.promptInput.onkeydown = this.handleKeyDown;
 
-    const cleanup = chatContext.onMessagesChange(() => {
+    const cleanup = converseStore.onMessagesChange(() => {
       this.render();
     });
     this.cleanupFns.push(cleanup);
@@ -153,27 +203,23 @@ export class Chat {
   private async handleErrorPrompt(prompt: string) {
     this.promptInput.value = prompt;
     store.clearPendingErrorPrompt();
-    // No LLM call here — the user can just press send or we can auto-send if desired
   }
 
   private handleGenerate = (e: MouseEvent): void => {
     e.preventDefault();
-    if (store.isGenerating.value) return; // skip if currently generating
+    if (store.isGenerating.value) return;
 
-    // 1) Grab text
     const prompt = this.promptInput.value.trim();
     if (!prompt) {
       store.showToast("Please type something before sending");
       return;
     }
 
-    // 2) Add user message to chat
-    chatContext.addMessage({
+    converseStore.addMessage({
       role: "user",
       content: [{ text: prompt }],
     });
 
-    // 3) Clear input
     this.promptInput.value = "";
   };
 
@@ -184,72 +230,11 @@ export class Chat {
     }
   };
 
-  private appendMessageToDOM(message: ChatMessage, isLatestAI: boolean): void {
-    // Get appropriate template based on message type
-    const templateId = `${message.role}-message-template`;
-    const template = document.getElementById(templateId) as HTMLTemplateElement;
-    if (!template) {
-      console.error(`Template not found: ${templateId}`);
-      return;
-    }
-
-    // Clone the template
-    const msgElem = template.content.cloneNode(true) as HTMLElement;
-    const contentWrapper = msgElem.querySelector(".message-content-wrapper");
-
-    if (!contentWrapper) {
-      console.error("Required elements not found in template");
-      return;
-    }
-
-    if (message.message.length > 300) {
-      const preview = document.createElement("div");
-      preview.className = "message-preview";
-      preview.textContent = message.message.slice(0, 300) + "...";
-
-      const full = document.createElement("div");
-      full.className = "message-full-content";
-      full.textContent = message.message;
-
-      const toggleBtn = document.createElement("button");
-      toggleBtn.className = "read-more-btn";
-      toggleBtn.textContent = "Read more";
-
-      toggleBtn.addEventListener("click", () => {
-        full.classList.toggle("hidden");
-        preview.classList.toggle("hidden");
-        toggleBtn.textContent = full.classList.contains("hidden")
-          ? "Read more"
-          : "Show less";
-      });
-
-      contentWrapper.appendChild(preview);
-      contentWrapper.appendChild(full);
-      contentWrapper.appendChild(toggleBtn);
-
-      if (!isLatestAI) {
-        full.classList.add("hidden");
-        preview.classList.remove("hidden");
-      } else {
-        full.classList.remove("hidden");
-        preview.classList.add("hidden");
-        toggleBtn.textContent = "Show less";
-      }
-    } else {
-      // Short message, just show content
-      contentWrapper.textContent = message.message;
-    }
-
-    this.chatMessages.appendChild(msgElem);
-  }
-
   public destroy(): void {
     try {
-      // Cleanup effects and subscriptions
       this.cleanupFns.forEach((fn) => fn());
       this.cleanupFns = [];
 
-      // Remove event listeners
       if (this.button) {
         this.button.onclick = null;
       }
@@ -257,12 +242,10 @@ export class Chat {
         this.promptInput.onkeydown = null;
       }
 
-      // Cleanup components
       if (this.buttonSpinner) {
         this.buttonSpinner.destroy();
       }
 
-      // Reset state
       this.initialized = false;
     } catch (error) {
       console.error("Error during Chat cleanup:", error);

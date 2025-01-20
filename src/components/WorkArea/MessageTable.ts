@@ -1,8 +1,7 @@
-import { chatContext } from "../Chat/chat-context";
+import { converseStore } from "../../stores/ConverseStore";
 import { store } from "../../stores/AppStore";
 import { effect } from "@preact/signals-core";
 import { MessageExtended } from "../../types/tool.types";
-import { updateMessageRating } from "../../utils/messageUtils";
 import { htmlTool } from "../../../tools/html-tool/client/html.client";
 
 export class MessageTable {
@@ -10,16 +9,16 @@ export class MessageTable {
   private searchInput: HTMLInputElement | null = null;
   private roleFilter: HTMLSelectElement | null = null;
   private ratingFilter: HTMLSelectElement | null = null;
-  private toolFilter: HTMLSelectElement | null = null; // Add this
+  private toolFilter: HTMLSelectElement | null = null;
   private archivedFilter: HTMLInputElement | null = null;
   private filterTimeout: number | null = null;
   private initialized: boolean = false;
   private cleanupFns: Array<() => void> = [];
 
   constructor(
-    private onView: (index: number) => void,
-    private onEdit: (index: number) => void,
-    private onDelete: (index: number) => void
+    private onView: (id: string) => void,
+    private onEdit: (id: string) => void,
+    private onDelete: (id: string) => void
   ) {
     console.log("MessageTable constructor called");
   }
@@ -39,7 +38,7 @@ export class MessageTable {
     ) as HTMLSelectElement;
     this.toolFilter = document.getElementById(
       "tool-filter"
-    ) as HTMLSelectElement; // Add this
+    ) as HTMLSelectElement;
     this.archivedFilter = document.getElementById(
       "archived-filter"
     ) as HTMLInputElement;
@@ -51,7 +50,7 @@ export class MessageTable {
 
     this.setupFilterListeners();
 
-    const chatCleanup = chatContext.onMessagesChange(() => {
+    const chatCleanup = converseStore.onMessagesChange(() => {
       this.updateContent();
     });
 
@@ -67,7 +66,6 @@ export class MessageTable {
   }
 
   private setupFilterListeners(): void {
-    // Debounced search
     this.searchInput?.addEventListener("input", () => {
       if (this.filterTimeout) {
         clearTimeout(this.filterTimeout);
@@ -77,7 +75,6 @@ export class MessageTable {
       }, 300);
     });
 
-    // Immediate filter updates
     this.roleFilter?.addEventListener("change", () => this.updateContent());
     this.ratingFilter?.addEventListener("change", () => this.updateContent());
     this.archivedFilter?.addEventListener("change", () => this.updateContent());
@@ -86,7 +83,6 @@ export class MessageTable {
 
   private filterMessages(messages: MessageExtended[]): MessageExtended[] {
     return messages.filter((message) => {
-      // Existing filters
       const searchTerm = this.searchInput?.value.toLowerCase() || "";
       const messageText = message.content
         ?.map((block) => block.text || "")
@@ -106,7 +102,6 @@ export class MessageTable {
       const includeArchived = this.archivedFilter?.checked || false;
       const matchesArchived = includeArchived || !message.metadata?.isArchived;
 
-      // New tool filter
       const toolValue = this.toolFilter?.value || "";
       let matchesTool = true;
 
@@ -136,7 +131,7 @@ export class MessageTable {
     if (!this.tbody) return;
 
     this.tbody.innerHTML = "";
-    const allMessages = chatContext.getMessages();
+    const allMessages = converseStore.getMessages();
     const filteredMessages = this.filterMessages(allMessages);
 
     if (filteredMessages.length === 0) {
@@ -144,14 +139,12 @@ export class MessageTable {
       return;
     }
 
-    // Reverse the loop to insert newest messages at the top
     for (let i = filteredMessages.length - 1; i >= 0; i--) {
       const message = filteredMessages[i];
-      const row = this.createMessageRow(message, i);
+      const row = this.createMessageRow(message);
       this.tbody?.appendChild(row);
     }
 
-    // Update message count with filter info
     const countElement = document.querySelector(".message-count");
     if (countElement) {
       countElement.textContent = `${filteredMessages.length} of ${allMessages.length} messages`;
@@ -168,10 +161,7 @@ export class MessageTable {
     this.tbody.appendChild(clone);
   }
 
-  private createMessageRow(
-    message: MessageExtended,
-    index: number
-  ): HTMLElement {
+  private createMessageRow(message: MessageExtended): HTMLElement {
     const template = document.getElementById(
       "message-row-template"
     ) as HTMLTemplateElement;
@@ -181,23 +171,19 @@ export class MessageTable {
     const row = clone.querySelector("tr");
     if (!row) throw new Error("Row not found in template");
 
-    // Add archived class if message is archived
     if (message.metadata?.isArchived) {
       row.classList.add("archived-message");
       row.title = "Archived message - not included in context window";
     }
 
-    // Set row metadata
-    row.dataset.index = index.toString();
+    row.dataset.messageId = message.id;
 
-    // Update role badge
     const roleBadge = row.querySelector(".role-badge");
     if (roleBadge) {
       const role = message.role || "unknown";
       roleBadge.className = `role-badge role-${role}`;
       roleBadge.textContent = role;
 
-      // Add archive badge if message is archived
       if (message.metadata?.isArchived) {
         const badgeTemplate = document.getElementById(
           "archive-badge-template"
@@ -211,22 +197,21 @@ export class MessageTable {
       }
     }
 
-    // Update content
     const contentCell = row.querySelector(".message-content");
     if (contentCell) {
       this.fillContentCell(contentCell, message);
     }
 
-    // Update rating
     const ratingCell = row.querySelector(".rating-cell");
     if (ratingCell) {
-      this.setupRating(ratingCell, message, index);
+      this.setupRating(ratingCell, message);
     }
 
-    // Update timestamp
     const timestampCell = row.querySelector(".timestamp-cell");
     if (timestampCell) {
-      timestampCell.textContent = new Date().toLocaleString(undefined, {
+      timestampCell.textContent = new Date(
+        message.metadata.createdAt
+      ).toLocaleString(undefined, {
         year: "2-digit",
         month: "numeric",
         day: "numeric",
@@ -235,17 +220,12 @@ export class MessageTable {
       });
     }
 
-    // Setup action buttons
-    this.setupActionButtons(row, message, index);
+    this.setupActionButtons(row, message);
 
     return row;
   }
 
-  private setupRating(
-    cell: Element,
-    message: MessageExtended,
-    index: number
-  ): void {
+  private setupRating(cell: Element, message: MessageExtended): void {
     const heartIcon = document.createElement("span");
     heartIcon.className = "heart-icon";
     heartIcon.innerHTML = message.metadata?.userRating ? "❤️" : "🤍";
@@ -253,29 +233,18 @@ export class MessageTable {
 
     heartIcon.addEventListener("click", () => {
       const newRating = message.metadata?.userRating ? 0 : 1;
-      chatContext.updateMessageRating(index, newRating);
+      converseStore.updateMessageRating(message.id, newRating);
     });
 
     cell.appendChild(heartIcon);
   }
 
-  private updateMessageRating(index: number, rating: number): void {
-    const message = chatContext.getMessages()[index] as MessageExtended;
-    if (message) {
-      const updatedMessage = updateMessageRating(message, rating);
-      chatContext.updateMessage(index, JSON.stringify(updatedMessage));
-    }
-  }
-
   private fillContentCell(cell: Element, message: MessageExtended): void {
-    // Clear existing content
     cell.innerHTML = "";
 
-    // Create a container for the message content
     const contentContainer = document.createElement("div");
     contentContainer.className = "message-content-container";
 
-    // Add message blocks
     (message.content || []).forEach((block) => {
       if (block.text) {
         const textDiv = document.createElement("div");
@@ -292,12 +261,10 @@ export class MessageTable {
       }
     });
 
-    // Add tags if they exist
     if (message.metadata?.tags?.length) {
       const tagsContainer = document.createElement("div");
       tagsContainer.className = "message-tags";
 
-      // Create individual tag elements
       message.metadata.tags.forEach((tag) => {
         const tagSpan = document.createElement("span");
         tagSpan.className = "message-tag";
@@ -310,15 +277,11 @@ export class MessageTable {
 
     cell.appendChild(contentContainer);
   }
-  private setupActionButtons(
-    row: Element,
-    message: MessageExtended,
-    index: number
-  ): void {
+
+  private setupActionButtons(row: Element, message: MessageExtended): void {
     const actionButtons = row.querySelector(".action-buttons");
     if (!actionButtons) return;
 
-    // Add re-execute button if needed
     if (message.content?.some((block) => block.toolUse?.name === "html")) {
       const reExecuteTemplate = document.getElementById(
         "re-execute-button-template"
@@ -347,14 +310,13 @@ export class MessageTable {
       }
     }
 
-    // Setup standard action buttons
     const viewBtn = actionButtons.querySelector(".view-btn");
     const editBtn = actionButtons.querySelector(".edit-btn");
     const deleteBtn = actionButtons.querySelector(".delete-btn");
 
-    viewBtn?.addEventListener("click", () => this.onView(index));
-    editBtn?.addEventListener("click", () => this.onEdit(index));
-    deleteBtn?.addEventListener("click", () => this.onDelete(index));
+    viewBtn?.addEventListener("click", () => this.onView(message.id));
+    editBtn?.addEventListener("click", () => this.onEdit(message.id));
+    deleteBtn?.addEventListener("click", () => this.onDelete(message.id));
   }
 
   public destroy(): void {
@@ -367,7 +329,7 @@ export class MessageTable {
     this.searchInput = null;
     this.roleFilter = null;
     this.ratingFilter = null;
-    this.toolFilter = null; // Add this
+    this.toolFilter = null;
     this.archivedFilter = null;
   }
 }
