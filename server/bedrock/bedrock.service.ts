@@ -1,6 +1,7 @@
 import {
   BedrockRuntimeClient,
   ConverseCommand,
+  ConverseCommandInput,
   ConverseResponse,
   Message,
   SystemContentBlock,
@@ -50,7 +51,7 @@ export class BedrockService {
         throw new Error("First message must be from user");
       }
 
-      const input = {
+      const input: ConverseCommandInput = {
         modelId,
         system,
         messages,
