@@ -654,10 +654,10 @@ code {
   border-bottom-color: #3b82f6;
 }
 
+/* Update the tab content styles */
 .tab-content {
   position: absolute;
   width: 100%;
-  /* height: calc(100% - 45px); */
   height: 100%;
   opacity: 0;
   visibility: hidden;
@@ -665,9 +665,20 @@ code {
   background: white;
 }
 
+/* Specific work area tab styling */
+#work-area-tab {
+  overflow-y: auto; /* Enable scrolling for work area */
+  scroll-behavior: smooth; /* Optional: adds smooth scrolling */
+}
+
 .tab-content.active {
   opacity: 1;
   visibility: visible;
+}
+
+/* Prevent scroll position reset */
+.tab-content:not(.active) {
+  display: none;
 }
 
 .iframe-container {

@@ -10,6 +10,7 @@ export class MainApplication {
   private tabButtons!: NodeListOf<HTMLButtonElement>;
   private tabContents!: NodeListOf<HTMLElement>;
   private cleanupFns: Array<() => void> = [];
+  private workAreaScrollPosition: number = 0;
 
   constructor() {
     console.log("Initializing MainApplication");
@@ -36,6 +37,21 @@ export class MainApplication {
   }
 
   private initializeTabs(): void {
+    const workAreaTab = document.getElementById("work-area-tab");
+
+    // Restore saved scroll position on load
+    const savedScrollPosition = localStorage.getItem("workAreaScroll");
+    if (savedScrollPosition && workAreaTab) {
+      workAreaTab.scrollTop = parseInt(savedScrollPosition, 10);
+      this.workAreaScrollPosition = parseInt(savedScrollPosition, 10);
+    }
+
+    // Store work area scroll position
+    workAreaTab?.addEventListener("scroll", () => {
+      this.workAreaScrollPosition = workAreaTab.scrollTop;
+      localStorage.setItem("workAreaScroll", workAreaTab.scrollTop.toString());
+    });
+
     // Add click handlers to update store
     this.tabButtons.forEach((button) => {
       button.addEventListener("click", () => {
@@ -54,12 +70,17 @@ export class MainApplication {
           btn.classList.toggle("active", btn.dataset.tab === activeTabId);
         });
 
-        // Update content visibility
+        // Update content visibility and restore scroll position
         this.tabContents.forEach((content) => {
-          content.classList.toggle(
-            "active",
-            content.id === `${activeTabId}-tab`
-          );
+          const isActive = content.id === `${activeTabId}-tab`;
+          content.classList.toggle("active", isActive);
+
+          // Restore work area scroll position when switching back
+          if (isActive && content.id === "work-area-tab") {
+            requestAnimationFrame(() => {
+              content.scrollTop = this.workAreaScrollPosition;
+            });
+          }
         });
       })
     );
@@ -88,5 +109,9 @@ export class MainApplication {
     this.tabButtons.forEach((button) => {
       button.replaceWith(button.cloneNode(true));
     });
+
+    // Reset scroll position
+    this.workAreaScrollPosition = 0;
+    localStorage.removeItem("workAreaScroll");
   }
 }
