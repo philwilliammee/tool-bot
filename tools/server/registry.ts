@@ -17,6 +17,7 @@ import { mathToolConfig } from "../math-tool/config";
 import { fileTreeConfig } from "../file-tree-tool/config";
 import { fileWriterConfig } from "./../file-writer/config";
 import { projectReaderConfig } from "../project-reader-tool/config";
+import { codeExecutorConfig } from "./../code-executor/config";
 
 class ToolRegistry {
   private tools: ServerToolRegistry = {};
@@ -65,6 +66,7 @@ class ToolRegistry {
         ...(fileTreeConfig.tools || []),
         ...(projectReaderConfig.tools || []),
         ...(fileWriterConfig.tools || []),
+        ...(codeExecutorConfig.tools || []),
       ],
     };
   }

@@ -9,43 +9,32 @@ tools/
 ├── client/              # Client-side registry and interfaces
 ├── server/             # Server-side registry and interfaces
 └── [tool-name]/        # Individual tool folders
-    ├── client/         # Client implementation
+    ├── client/         # Client implementation (required)
     │   └── [tool].client.ts
-    ├── server/         # Server implementation (if needed)
+    ├── server/         # Server implementation (optional)
     │   ├── [tool].service.ts
     │   └── [tool].types.ts
     ├── config.ts       # Bedrock tool configuration
-    └── types.ts        # Shared types
+    └── types.ts        # Shared types (if needed)
 ```
 
-## Creating a New Tool
+## Tool Categories
 
-### 1. Create the tool directory structure:
+### Client-Only Tools
+- HTML Tool: Renders HTML content directly in browser
+- Math Tool: Performs calculations using mathjs library
+- Code Executor: Executes JavaScript in sandboxed environment
 
-```bash
-mkdir -p tools/[tool-name]/{client,server}
-touch tools/[tool-name]/config.ts
-touch tools/[tool-name]/types.ts
-touch tools/[tool-name]/client/[tool].client.ts
-touch tools/[tool-name]/server/[tool].service.ts
-touch tools/[tool-name]/server/[tool].types.ts
-```
+### Server-Required Tools
+- LDAP Tool: Directory searches requiring server access
+- File Writer: File system operations
+- Project Reader: File content access
+- File Tree: Directory structure generation
+- Fetch Tool: Proxied HTTP requests
 
-### 2. Define shared types (types.ts):
+## Tool Configuration Examples
 
-```typescript
-export interface ToolInput {
-    // Define input parameters
-}
-
-export interface ToolResponse {
-    // Define response structure
-    error?: boolean;
-    message?: string;
-}
-```
-
-### 3. Create Bedrock configuration (config.ts):
+### Basic Tool Configuration Template
 
 ```typescript
 import { ToolConfiguration } from "@aws-sdk/client-bedrock-runtime";
@@ -53,13 +42,13 @@ import { ToolConfiguration } from "@aws-sdk/client-bedrock-runtime";
 export const toolConfig: ToolConfiguration = {
     tools: [{
         toolSpec: {
-            name: "your_tool_name",
+            name: "tool_name",
             description: "Tool description for AI",
             inputSchema: {
                 json: {
                     type: "object",
                     properties: {
-                        // Define input schema
+                        // Tool-specific properties
                     },
                     required: ["required_fields"]
                 }
@@ -69,51 +58,132 @@ export const toolConfig: ToolConfiguration = {
 };
 ```
 
-### 4. Implement client (client/[tool].client.ts):
+### Actual Implementation Examples
 
+#### Code Executor Configuration
+```typescript
+export const codeExecutorConfig: ToolConfiguration = {
+    tools: [{
+        toolSpec: {
+            name: "code_executor",
+            description: "Execute JavaScript code in a sandboxed environment with access to common libraries.",
+            inputSchema: {
+                json: {
+                    type: "object",
+                    properties: {
+                        code: {
+                            type: "string",
+                            description: "JavaScript code to execute. Can use console.log for output."
+                        },
+                        timeout: {
+                            type: "number",
+                            description: "Maximum execution time in milliseconds",
+                            default: 5000,
+                            maximum: 10000
+                        },
+                        libraries: {
+                            type: "array",
+                            description: "List of CDN libraries to include",
+                            items: {
+                                type: "string",
+                                enum: [
+                                    "https://cdn.jsdelivr.net/npm/lodash@4.17.21/lodash.min.js",
+                                    "https://cdn.jsdelivr.net/npm/moment@2.29.4/moment.min.js",
+                                    "https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js",
+                                    "https://cdn.jsdelivr.net/npm/mathjs@12.2.1/lib/browser/math.min.js"
+                                ]
+                            },
+                            default: []
+                        }
+                    },
+                    required: ["code"]
+                }
+            }
+        }
+    }]
+};
+```
+
+#### Math Tool Configuration
+```typescript
+export const mathToolConfig: ToolConfiguration = {
+    tools: [{
+        toolSpec: {
+            name: "math",
+            description: "A mathematical evaluation tool using mathjs library. Always use direct mathematical expressions, not natural language.",
+            inputSchema: {
+                json: {
+                    type: "object",
+                    properties: {
+                        expression: {
+                            type: "string",
+                            description: "Mathematical expression to evaluate",
+                            examples: [
+                                "2 + 3 * 4",
+                                "sqrt(16)",
+                                "(15/100) * 80",
+                                "mean([1,2,3,4])",
+                                "std([2,4,6])",
+                                "sin(45 * pi / 180)",
+                                "cos(60 * pi / 180)",
+                                "12.7 * 2.54",
+                                "100 / 1.60934",
+                                "[1,2,3] * 2",
+                                "det([-1, 2; 3, 1])"
+                            ]
+                        }
+                    },
+                    required: ["expression"]
+                }
+            }
+        }
+    }]
+};
+```
+
+## Implementation Guidelines
+
+### Client Tool Implementation
 ```typescript
 import { ClientTool } from '../../client/tool.interface';
-import { ToolInput, ToolResponse } from '../types';
 
 export const yourTool: ClientTool = {
-    name: "your_tool_name",
-    execute: async (input: ToolInput): Promise<ToolResponse> => {
+    name: "tool_name",
+    execute: async (input: any): Promise<any> => {
         try {
-            const response = await fetch("/api/tools/your-tool-endpoint", {
+            // For server-required tools:
+            const response = await fetch("/api/tools/endpoint", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(input),
+                body: JSON.stringify(input)
             });
-
-            if (!response.ok) {
-                throw new Error(`Tool failed: ${await response.text()}`);
-            }
-
-            return await response.json();
+            
+            // For client-only tools:
+            // Implement direct browser-side logic
+            
+            return result;
         } catch (error: any) {
             return {
                 error: true,
                 message: error.message
             };
         }
-    },
+    }
 };
 ```
 
-### 5. Implement server (server/[tool].service.ts):
-
+### Server Tool Implementation (if needed)
 ```typescript
 import { ServerTool } from '../../server/tool.interface';
 import { Request, Response } from 'express';
-import { ToolInput, ToolResponse } from '../types';
 
 export const yourTool: ServerTool = {
-    name: "your_tool_name",
-    route: "/your-tool-endpoint",
+    name: "tool_name",
+    route: "/endpoint",
     handler: async (req: Request, res: Response): Promise<void> => {
         try {
-            const input: ToolInput = req.body;
-            // Implement tool logic
+            const input = req.body;
+            // Implement server-side logic
             res.json(result);
         } catch (error: any) {
             res.status(500).json({
@@ -125,49 +195,30 @@ export const yourTool: ServerTool = {
 };
 ```
 
-## Standard Interfaces
-
-### ClientTool Interface
-
-```typescript
-interface ClientTool {
-    name: string;
-    execute: (input: any) => Promise<any>;
-}
-```
-
-### ServerTool Interface
-
-```typescript
-interface ServerTool {
-    name: string;
-    route: string;
-    handler: (req: Request, res: Response) => Promise<void>;
-}
-```
-
-## Tool Types
-
-- Client-Only Tools: Tools that run entirely in the browser (e.g., HTML rendering)
-- Server Tools: Tools that require server-side processing (e.g., file system operations)
-- Hybrid Tools: Tools that need both client and server components
-
-## Example Tools
-
-- File Tree Tool: Generate directory structure
-- Project Reader: Read file contents
-- HTML Tool: Render HTML content
-- Math Tool: Perform calculations
-- LDAP Tool: Directory searches
-- Fetch Tool: Make HTTP requests
-- File Writer Tool: Write content to files
-
 ## Best Practices
 
-- Always implement error handling in both client and server
-- Use TypeScript interfaces for type safety
-- Keep tool configurations in separate files
-- Implement proper input validation
-- Follow security best practices
-- Document tool capabilities and limitations
-- Use consistent naming conventions
+1. Configuration Requirements
+   - Always follow the exact Bedrock ToolConfiguration format
+   - Include comprehensive description and examples
+   - Properly specify required fields
+   - Use appropriate JSON Schema types and validation
+
+2. Implementation Guidelines
+   - Implement proper error handling in both client and server components
+   - Use TypeScript interfaces for type safety
+   - Keep configurations in separate files
+   - Follow security best practices, especially for server-side tools
+   - Document tool capabilities and limitations
+
+3. Security Considerations
+   - Sandbox any code execution (like in code-executor)
+   - Validate all inputs server-side
+   - Implement proper timeout mechanisms
+   - Use appropriate access controls for server endpoints
+   - Sanitize all outputs before returning to client
+
+4. Testing Requirements
+   - Verify tool configuration against Bedrock runtime requirements
+   - Test both success and error scenarios
+   - Validate input/output formats
+   - Check timeout and resource limit handling

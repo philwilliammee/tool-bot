@@ -1,3 +1,4 @@
+import { codeExecutorTool } from "./../code-executor/client/code-executor.client";
 import { fileWriterTool } from "./../file-writer/client/file-writer.client";
 import { ClientTool, ClientToolRegistry } from "./tool.interface";
 import { htmlTool } from "../html-tool/client/html.client";
@@ -18,6 +19,7 @@ class ToolRegistry {
     this.registerTool(fileTreeTool);
     this.registerTool(projectReaderTool);
     this.registerTool(fileWriterTool);
+    this.registerTool(codeExecutorTool);
   }
 
   private registerTool(tool: ClientTool): void {
