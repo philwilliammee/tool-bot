@@ -1124,3 +1124,74 @@ code {
   background-color: #d0d7de;
   border: 0;
 }
+
+/* Add to styles.css */
+.main-content {
+  display: flex;
+  height: calc(100vh - var(--header-height));
+  overflow: hidden;
+  flex: 1;
+  transition: all 0.3s ease; /* Smooth transition for all changes */
+}
+
+.left-column {
+  width: 30%;
+  min-width: 500px;
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid #e5e7eb;
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.left-column.expanded {
+  width: 100%;
+  max-width: 1200px; /* or whatever maximum width you prefer */
+  margin: 0 auto;
+  border-right: none; /* optionally remove the border when expanded */
+}
+
+/* You might want to adjust the header within expanded state too */
+.left-column.expanded header {
+  max-width: 1200px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.right-column {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: white;
+  padding: 1rem;
+  transition: width 0.3s ease, opacity 0.3s ease;
+}
+
+.right-column.collapsed {
+  width: 0;
+  padding: 0;
+  opacity: 0;
+  flex: 0;
+}
+
+/* Style for the toggle button */
+.toggle-panel-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0.5rem;
+  color: #6b7280;
+  transition: color 0.2s ease;
+}
+
+.toggle-panel-btn:hover {
+  color: #3b82f6;
+}
+
+header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 1.5rem;
+}

@@ -21,6 +21,8 @@ function createAppStore() {
   const hasPendingError = computed(() => pendingErrorPrompt.value !== null);
   const isPreviewTab = computed(() => activeTab.value === "preview");
 
+  const isPanelExpanded = signal<boolean>(false);
+
   // UI State combinations
   const isLoading = computed(
     () => isGenerating.value || pendingErrorPrompt.value !== null
@@ -44,6 +46,7 @@ function createAppStore() {
     toastMessage,
     pendingErrorPrompt,
     activeTab,
+    isPanelExpanded,
 
     // Expose computed values
     isError,
@@ -96,6 +99,10 @@ function createAppStore() {
         error.value = null;
         pendingErrorPrompt.value = null;
       });
+    },
+
+    setPanelExpanded: (expanded: boolean) => {
+      isPanelExpanded.value = expanded;
     },
   };
 }

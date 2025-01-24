@@ -9,7 +9,7 @@ import { StorageHandler } from "./handlers/StorageHandler";
 import { determineActiveMessageRange } from "../utils/messageUtils";
 
 const STORAGE_KEY = "chat-messages";
-const DEFAULT_THRESHOLD = 15; // @todo make this sliding scaled based on token length.
+const DEFAULT_THRESHOLD = 8; // @todo make this sliding scaled based on token length.
 
 export class ConverseStore {
   private messageManager: MessageManager;

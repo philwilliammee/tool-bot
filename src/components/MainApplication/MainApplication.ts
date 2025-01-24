@@ -11,12 +11,16 @@ export class MainApplication {
   private tabContents!: NodeListOf<HTMLElement>;
   private cleanupFns: Array<() => void> = [];
   private workAreaScrollPosition: number = 0;
+  private mainContent!: HTMLElement;
+  private leftColumn!: HTMLElement;
+  private toggleButton!: HTMLButtonElement;
 
   constructor() {
     console.log("Initializing MainApplication");
     this.initializeDOMElements();
     this.initializeComponents();
     this.initializeTabs();
+    this.initializePanelToggle();
     new Toast();
   }
 
@@ -24,8 +28,20 @@ export class MainApplication {
     this.workArea = document.querySelector("#work_area") as HTMLElement;
     this.tabButtons = document.querySelectorAll(".tab-button");
     this.tabContents = document.querySelectorAll(".tab-content");
+    this.mainContent = document.querySelector(".main-content") as HTMLElement;
+    this.leftColumn = document.querySelector(".left-column") as HTMLElement;
+    this.toggleButton = document.querySelector(
+      ".toggle-panel-btn"
+    ) as HTMLButtonElement;
 
-    if (!this.workArea || !this.tabButtons.length || !this.tabContents.length) {
+    if (
+      !this.workArea ||
+      !this.tabButtons.length ||
+      !this.tabContents.length ||
+      !this.mainContent ||
+      !this.leftColumn ||
+      !this.toggleButton
+    ) {
       throw new Error("Required DOM elements not found");
     }
   }
@@ -33,6 +49,45 @@ export class MainApplication {
   private initializeComponents(): void {
     this.chat = new Chat({
       workArea: this.workArea,
+    });
+  }
+
+  private initializePanelToggle(): void {
+    // Restore panel state from localStorage
+    const isPanelExpanded =
+      localStorage.getItem("chatPanelExpanded") === "true";
+    if (isPanelExpanded) {
+      this.leftColumn.classList.add("expanded");
+      this.mainContent
+        .querySelector(".right-column")
+        ?.classList.add("collapsed");
+      store.setPanelExpanded(true);
+    }
+    // Handle toggle button clicks
+    const handleToggle = () => {
+      this.leftColumn.classList.toggle("expanded");
+      this.mainContent
+        .querySelector(".right-column")
+        ?.classList.toggle("collapsed");
+      const isExpanded = this.leftColumn.classList.contains("expanded");
+
+      // Store state
+      localStorage.setItem("chatPanelExpanded", isExpanded.toString());
+      store.setPanelExpanded(isExpanded);
+    };
+
+    this.toggleButton.addEventListener("click", handleToggle);
+
+    // Add to cleanup
+    this.cleanupFns.push(() => {
+      this.toggleButton.removeEventListener("click", handleToggle);
+    });
+
+    this.toggleButton.addEventListener("click", handleToggle);
+
+    // Add to cleanup
+    this.cleanupFns.push(() => {
+      this.toggleButton.removeEventListener("click", handleToggle);
     });
   }
 
@@ -113,5 +168,8 @@ export class MainApplication {
     // Reset scroll position
     this.workAreaScrollPosition = 0;
     localStorage.removeItem("workAreaScroll");
+
+    // Clean up panel state
+    localStorage.removeItem("chatPanelCollapsed");
   }
 }
