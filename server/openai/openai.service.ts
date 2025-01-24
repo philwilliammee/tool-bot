@@ -34,18 +34,18 @@ export class OpenAIService {
       const startTime = Date.now();
 
       // Transform messages to OpenAI format
-      const openAIMessages = messages.map((msg) => ({
+      const openAIMessages: any = messages.map((msg) => ({
         role: msg.role,
         content: msg.content?.[0]?.text || "",
       }));
 
       // Add system message if provided
-      // if (systemPrompt) {
-      //   openAIMessages.unshift({
-      //     role: "system",
-      //     content: systemPrompt
-      //   });
-      // }
+      if (systemPrompt) {
+        openAIMessages.unshift({
+          role: "system",
+          content: systemPrompt,
+        });
+      }
       console.log(
         "Transformed messages:",
         openAIMessages,
