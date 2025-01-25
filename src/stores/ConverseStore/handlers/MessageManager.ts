@@ -1,6 +1,6 @@
 // src/stores/handlers/MessageManager.ts
 import { Message } from "@aws-sdk/client-bedrock-runtime";
-import { MessageExtended } from "../../../types/tool.types";
+import { MessageExtended } from "../../../app.types";
 
 export class MessageManager {
   private messages: Map<string, MessageExtended> = new Map();

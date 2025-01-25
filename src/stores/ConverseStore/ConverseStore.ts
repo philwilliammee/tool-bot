@@ -1,6 +1,6 @@
 // src/stores/ConverseStore.ts
 import { Message } from "@aws-sdk/client-bedrock-runtime";
-import { MessageExtended, ToolUse } from "../../types/tool.types";
+import { MessageExtended, ToolUse } from "../../app.types";
 import { store } from "../AppStore";
 // Maybe the handlers should be in utils?
 import { LLMHandler } from "./handlers/LLMHandler";

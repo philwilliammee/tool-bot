@@ -3,7 +3,7 @@ import { converseStore } from "../../stores/ConverseStore/ConverseStore";
 import { store } from "../../stores/AppStore";
 import { MessageTable } from "./MessageTable";
 import { WorkAreaModals } from "./WorkAreaModals";
-import { MessageExtended } from "../../types/tool.types";
+import { MessageExtended } from "../../app.types";
 
 export class WorkArea {
   private modals: WorkAreaModals;

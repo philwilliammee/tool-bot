@@ -3,7 +3,7 @@ import { store } from "../../stores/AppStore";
 import { effect } from "@preact/signals-core";
 import { WorkArea } from "../WorkArea/WorkArea";
 import { converseStore } from "../../stores/ConverseStore/ConverseStore";
-import { MessageExtended } from "../../types/tool.types";
+import { MessageExtended } from "../../app.types";
 import { marked } from "marked";
 
 declare global {

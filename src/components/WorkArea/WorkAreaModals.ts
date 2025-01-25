@@ -1,5 +1,5 @@
 import { Message } from "@aws-sdk/client-bedrock-runtime";
-import { MessageExtended } from "../../types/tool.types";
+import { MessageExtended } from "../../app.types";
 import { converseStore } from "../../stores/ConverseStore/ConverseStore";
 
 export class WorkAreaModals {
