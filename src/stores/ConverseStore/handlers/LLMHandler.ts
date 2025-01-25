@@ -1,14 +1,14 @@
 // src/stores/handlers/LLMHandler.ts
 import { Message } from "@aws-sdk/client-bedrock-runtime";
-import { postBedrock } from "../../apiClient";
-import { MessageExtended } from "../../types/tool.types";
+import { MessageExtended } from "../../../types/tool.types";
+import { postMessage } from "../../../apiClient";
 
 export class LLMHandler {
   constructor(private modelId: string, private systemPrompt: string) {}
 
   async callLLM(messages: MessageExtended[]): Promise<Message> {
     try {
-      const response = await postBedrock(
+      const response = await postMessage(
         this.modelId,
         messages,
         this.systemPrompt

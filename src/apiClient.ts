@@ -1,6 +1,6 @@
 import { Message, ConverseResponse } from "@aws-sdk/client-bedrock-runtime";
 
-export async function postBedrock(
+export async function postMessage(
   modelId: string,
   messages: Message[],
   systemPrompt: string

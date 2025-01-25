@@ -1,6 +1,6 @@
 import { Message } from "@aws-sdk/client-bedrock-runtime";
 import { MessageExtended } from "../../types/tool.types";
-import { converseStore } from "../../stores/ConverseStore";
+import { converseStore } from "../../stores/ConverseStore/ConverseStore";
 
 export class WorkAreaModals {
   private initialized: boolean = false;

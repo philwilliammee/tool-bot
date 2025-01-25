@@ -1,7 +1,7 @@
 // src/components/MainApplication/MainApplication.ts
-import { Chat } from "../Chat/chat";
-import { store } from "../../stores/AppStore";
-import { Toast } from "../Toast/Toast";
+import { Chat } from "../components/Chat/chat";
+import { store } from "../stores/AppStore";
+import { Toast } from "../components/Toast/Toast";
 import { effect } from "@preact/signals-core";
 
 export class MainApplication {

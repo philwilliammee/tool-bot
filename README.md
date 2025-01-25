@@ -301,3 +301,10 @@ Make me an amazing chart! I will show it to my fiends, and display your skills a
 Wait what happened, earlier you were making amazing charts. I told them how great they are. You can do better that that, really try to impress them.
 
 This is stunning but I know you can do more. Elevate it and take it to the next level.
+
+(@todo)
+- auto token generation
+- csv upload
+- refactor converse utils
+- add local database
+- add save project

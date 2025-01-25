@@ -20,7 +20,7 @@ export class OpenAIService {
   constructor(config: OpenAIServiceConfig) {
     this.client = new OpenAI({
       apiKey: config.apiKey,
-      baseURL: config.baseUrl || "https://api.ai.it.cornell.edu",
+      baseURL: config.baseUrl,
     });
   }
 

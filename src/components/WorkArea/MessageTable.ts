@@ -1,4 +1,4 @@
-import { converseStore } from "../../stores/ConverseStore";
+import { converseStore } from "../../stores/ConverseStore/ConverseStore";
 import { store } from "../../stores/AppStore";
 import { effect } from "@preact/signals-core";
 import { MessageExtended } from "../../types/tool.types";

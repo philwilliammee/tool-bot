@@ -1,5 +1,5 @@
 import { effect, batch } from "@preact/signals-core";
-import { converseStore } from "../../stores/ConverseStore";
+import { converseStore } from "../../stores/ConverseStore/ConverseStore";
 import { store } from "../../stores/AppStore";
 import { MessageTable } from "./MessageTable";
 import { WorkAreaModals } from "./WorkAreaModals";

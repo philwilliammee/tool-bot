@@ -1,6 +1,6 @@
+import { clientRegistry } from "./../../../../tools/client/registry";
 import { Message } from "@aws-sdk/client-bedrock-runtime";
-import { clientRegistry } from "../../../tools/client/registry";
-import { ToolUse } from "../../types/tool.types";
+import { ToolUse } from "../../../types/tool.types";
 
 // src/stores/handlers/ToolHandler.ts
 export class ToolHandler {

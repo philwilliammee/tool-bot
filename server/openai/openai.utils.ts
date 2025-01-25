@@ -1,7 +1,6 @@
 // src/utils/openai.utils.ts
 import type {
   ChatCompletionMessageParam,
-  ChatCompletionSystemMessageParam,
   ChatCompletionUserMessageParam,
   ChatCompletionAssistantMessageParam,
   ChatCompletionToolMessageParam,

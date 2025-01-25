@@ -2,7 +2,7 @@ import { ButtonSpinner } from "../ButtonSpinner/ButtonSpinner";
 import { store } from "../../stores/AppStore";
 import { effect } from "@preact/signals-core";
 import { WorkArea } from "../WorkArea/WorkArea";
-import { converseStore } from "../../stores/ConverseStore";
+import { converseStore } from "../../stores/ConverseStore/ConverseStore";
 import { MessageExtended } from "../../types/tool.types";
 import { marked } from "marked";
 
