@@ -2,69 +2,77 @@
 import { Message } from "@aws-sdk/client-bedrock-runtime";
 import { MessageExtended, ToolUse } from "../../app.types";
 import { store } from "../AppStore";
-// Maybe the handlers should be in utils?
 import { LLMHandler } from "./handlers/LLMHandler";
 import { MessageManager } from "./handlers/MessageManager";
-import { StorageHandler } from "./handlers/StorageHandler";
 import { ToolHandler } from "./handlers/ToolHandler";
 import { determineActiveMessageRange } from "./utils/messageUtils";
 import { projectStore } from "../ProjectStore/ProjectStore";
 
-const STORAGE_KEY = "chat-messages";
 const DEFAULT_THRESHOLD = 8; // @todo make this sliding scaled based on token length.
 
 export class ConverseStore {
   private messageManager: MessageManager;
   private llmHandler: LLMHandler;
   private toolHandler: ToolHandler;
-  private storageHandler: StorageHandler<{
-    sequence: number;
-    messages: MessageExtended[];
-  }>;
   private messageChangeCallbacks: Array<(msgs: MessageExtended[]) => void> = [];
   private projectId: string | null = null;
 
   constructor(threshold: number = DEFAULT_THRESHOLD) {
+    console.log("Initializing ConverseStore with threshold:", threshold);
     this.messageManager = new MessageManager(threshold);
-    // The modelIDcurrently isn't implemented properly. I'm not sure if this should be here or just the backend.
     this.llmHandler = new LLMHandler(
       import.meta.env.VITE_BEDROCK_MODEL_ID || "my-model-id",
       "You are a helpful assistant with tools."
     );
     this.toolHandler = new ToolHandler();
-    this.storageHandler = new StorageHandler(STORAGE_KEY);
-    this.loadFromStorage();
+
+    // Initialize with active project if exists
+    const activeProjectId = projectStore.getActiveProject();
+    if (activeProjectId) {
+      this.setProject(activeProjectId);
+    }
   }
 
   public setProject(id: string | null): void {
+    console.log("Setting project:", id);
     this.projectId = id;
+
     if (id) {
       const project = projectStore.getProject(id);
-      if (project) {
-        this.messageManager.setState({
-          messages: project.messages || [], // Add null check here
-          sequence: project.messages
+      console.log("Loaded project data:", project);
+
+      if (project?.messages) {
+        const maxSequence =
+          project.messages.length > 0
             ? Math.max(
                 ...project.messages.map((m) =>
                   parseInt(m.id.split("_")[1] || "0")
                 ),
                 0
               )
-            : 0, // Add fallback to 0
+            : 0;
+
+        console.log("Initializing message manager with sequence:", maxSequence);
+
+        this.messageManager.setState({
+          messages: project.messages,
+          sequence: maxSequence,
         });
       } else {
-        // Initialize empty state for new project
+        console.log("Initializing empty project state");
         this.messageManager.setState({
           messages: [],
           sequence: 0,
         });
       }
     } else {
-      // Handle case when no project is selected
+      console.log("Clearing message manager - no project selected");
       this.messageManager.clear();
     }
+
     this.notifyMessageChange();
   }
+
   public get hasMessages(): boolean {
     return this.messageManager.getMessages().length > 0;
   }
@@ -79,6 +87,12 @@ export class ConverseStore {
   }
 
   public addMessage(message: Message): void {
+    if (!this.projectId) {
+      console.warn("Attempted to add message with no active project");
+      return;
+    }
+
+    console.log("Adding message:", message);
     const newMessage = this.messageManager.addMessage(message);
 
     // Handle tool use
@@ -130,11 +144,21 @@ export class ConverseStore {
   }
 
   public updateMessage(id: string, update: Partial<MessageExtended>): void {
+    if (!this.projectId) {
+      console.warn("Attempted to update message with no active project");
+      return;
+    }
+
     this.messageManager.updateMessage(id, update);
     this.notifyMessageChange();
   }
 
   public upsertMessage(idOrMessage: string | Partial<MessageExtended>): void {
+    if (!this.projectId) {
+      console.warn("Attempted to upsert message with no active project");
+      return;
+    }
+
     const message = this.messageManager.upsertMessage(idOrMessage);
 
     // Handle tool use and LLM calls for new messages
@@ -154,6 +178,11 @@ export class ConverseStore {
   }
 
   public updateMessageRating(id: string, rating: number): void {
+    if (!this.projectId) {
+      console.warn("Attempted to update message rating with no active project");
+      return;
+    }
+
     this.upsertMessage({
       id,
       metadata: {
@@ -165,13 +194,22 @@ export class ConverseStore {
   }
 
   public deleteMessage(id: string): void {
+    if (!this.projectId) {
+      console.warn("Attempted to delete message with no active project");
+      return;
+    }
+
     this.messageManager.deleteMessage(id);
     this.notifyMessageChange();
   }
 
   public deleteAllMessages(): void {
+    if (!this.projectId) {
+      console.warn("Attempted to delete all messages with no active project");
+      return;
+    }
+
     this.messageManager.clear();
-    this.storageHandler.clear();
     this.notifyMessageChange();
   }
 
@@ -196,32 +234,38 @@ export class ConverseStore {
 
   private notifyMessageChange(): void {
     const messages = this.getMessages();
+    console.log(
+      `Notifying ${this.messageChangeCallbacks.length} listeners of message change. Messages:`,
+      messages.length
+    );
     this.messageChangeCallbacks.forEach((cb) => cb(messages));
     this.saveToStorage();
   }
 
-  private loadFromStorage(): void {
-    const data = this.storageHandler.load();
-    if (data) {
-      this.messageManager.setState(data);
-      this.notifyMessageChange();
+  private saveToStorage(): void {
+    if (this.projectId) {
+      const messages = this.messageManager.getMessages();
+      console.log(
+        `Saving ${messages.length} messages to project:`,
+        this.projectId
+      );
+      projectStore.saveProjectMessages(this.projectId, messages);
+    } else {
+      console.warn("Attempted to save messages with no active project");
     }
   }
 
-  // private saveToStorage(): void {
-  //   this.storageHandler.save(this.messageManager.getState());
-  // }
-
-  private saveToStorage(): void {
-    if (this.projectId) {
-      projectStore.saveProjectMessages(
-        this.projectId,
-        this.messageManager.getMessages()
-      );
-    }
+  // Debug method
+  public debug(): void {
+    console.group("ConverseStore Debug");
+    console.log("Active Project:", this.projectId);
+    console.log("Messages:", this.messageManager.getMessages());
+    console.log("Message Manager State:", this.messageManager.getState());
+    console.groupEnd();
   }
 
   public destroy(): void {
+    console.log("Destroying ConverseStore");
     this.saveToStorage();
     this.messageChangeCallbacks = [];
     this.messageManager.clear();

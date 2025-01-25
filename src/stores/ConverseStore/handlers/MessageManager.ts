@@ -7,7 +7,9 @@ export class MessageManager {
   private messageOrder: string[] = [];
   private sequence: number = 0;
 
-  constructor(public threshold: number) {}
+  constructor(public threshold: number) {
+    console.log("Initializing MessageManager with threshold:", threshold);
+  }
 
   public getNextId(): string {
     this.sequence += 1;
@@ -16,6 +18,12 @@ export class MessageManager {
 
   private createMessage(message: Partial<Message>): MessageExtended {
     const id = this.getNextId();
+    console.log("Creating new message with ID:", id);
+
+    const hasToolUse = message.content?.some((block) => block.toolUse) || false;
+    const hasToolResult =
+      message.content?.some((block) => block.toolResult) || false;
+
     return {
       id,
       role: message.role || "user",
@@ -24,16 +32,17 @@ export class MessageManager {
         createdAt: Date.now(),
         updatedAt: Date.now(),
         isArchived: false,
-        hasToolUse: message.content?.some((block) => block.toolUse) || false,
-        hasToolResult:
-          message.content?.some((block) => block.toolResult) || false,
+        hasToolUse,
+        hasToolResult,
         tags: [],
         userRating: 0,
+        sequenceNumber: this.sequence,
       },
     } as MessageExtended;
   }
 
   public addMessage(message: Partial<Message>): MessageExtended {
+    console.log("Adding message:", message);
     const newMessage = this.createMessage(message);
     this.messages.set(newMessage.id, newMessage);
     this.messageOrder.push(newMessage.id);
@@ -42,7 +51,11 @@ export class MessageManager {
   }
 
   public getMessage(id: string): MessageExtended | undefined {
-    return this.messages.get(id);
+    const message = this.messages.get(id);
+    if (!message) {
+      console.warn(`Message with id ${id} not found`);
+    }
+    return message;
   }
 
   public getMessages(): MessageExtended[] {
@@ -55,6 +68,7 @@ export class MessageManager {
     id: string,
     update: Partial<MessageExtended>
   ): MessageExtended {
+    console.log(`Updating message ${id}:`, update);
     const message = this.messages.get(id);
     if (!message) {
       throw new Error(`Message with id ${id} not found`);
@@ -77,24 +91,25 @@ export class MessageManager {
   public upsertMessage(
     idOrMessage: string | Partial<MessageExtended>
   ): MessageExtended {
+    console.log("Upserting message:", idOrMessage);
+
     if (typeof idOrMessage === "string") {
-      // If ID provided, return existing or create new
       const existingMessage = this.messages.get(idOrMessage);
       if (existingMessage) {
+        console.log("Found existing message:", existingMessage);
         return existingMessage;
       }
-      // Create new with generated ID - ignore the provided ID
+      console.log("Creating new message for ID:", idOrMessage);
       return this.addMessage({ role: "user", content: [] });
     }
 
-    // Handle partial message
     const messageToUpsert = idOrMessage as Partial<MessageExtended>;
     const existingMessage = messageToUpsert.id
       ? this.messages.get(messageToUpsert.id)
       : null;
 
     if (existingMessage) {
-      // Update existing
+      console.log("Updating existing message:", existingMessage.id);
       const updatedMessage: MessageExtended = {
         ...existingMessage,
         ...messageToUpsert,
@@ -107,53 +122,74 @@ export class MessageManager {
       this.messages.set(existingMessage.id, updatedMessage);
       return updatedMessage;
     } else {
-      // Create new
+      console.log("Creating new message from upsert data");
       return this.addMessage(messageToUpsert);
     }
   }
 
   public deleteMessage(id: string): void {
+    console.log("Deleting message:", id);
     this.messages.delete(id);
     this.messageOrder = this.messageOrder.filter((msgId) => msgId !== id);
     this.updateArchiveStatus();
   }
 
   public clear(): void {
+    console.log("Clearing all messages");
     this.messages.clear();
     this.messageOrder = [];
     this.sequence = 0;
   }
 
   public setThreshold(threshold: number): void {
+    console.log("Setting new threshold:", threshold);
     this.threshold = threshold;
     this.updateArchiveStatus();
   }
 
   private updateArchiveStatus(): void {
     const activeIds = this.messageOrder.slice(-this.threshold);
+    console.log(
+      `Updating archive status. Active messages: ${activeIds.length}`
+    );
 
     this.messages.forEach((message, id) => {
-      if (message.metadata) {
-        message.metadata.isArchived = !activeIds.includes(id);
+      const wasArchived = message.metadata.isArchived;
+      const isNowArchived = !activeIds.includes(id);
+
+      if (wasArchived !== isNowArchived) {
+        console.log(
+          `Message ${id} archived status changed: ${wasArchived} -> ${isNowArchived}`
+        );
+        message.metadata.isArchived = isNowArchived;
       }
     });
   }
 
   public getState() {
-    return {
+    const state = {
       sequence: this.sequence,
       messages: this.getMessages(),
     };
+    console.log("Getting state:", state);
+    return state;
   }
 
   public setState(state: { sequence: number; messages: MessageExtended[] }) {
-    this.sequence = state.sequence;
+    console.log("Setting state:", state);
+
+    if (!state || !Array.isArray(state.messages)) {
+      console.error("Invalid state provided:", state);
+      return;
+    }
+
+    this.sequence = state.sequence || 0;
     this.messages.clear();
     this.messageOrder = [];
 
-    state?.messages?.forEach((msg) => {
-      if (msg.id) {
-        this.messages.set(msg.id, {
+    state.messages.forEach((msg) => {
+      if (msg?.id) {
+        const message: MessageExtended = {
           ...msg,
           metadata: {
             isArchived: false,
@@ -161,13 +197,27 @@ export class MessageManager {
             hasToolResult: false,
             tags: [],
             userRating: 0,
+            sequenceNumber: parseInt(msg.id.split("_")[1] || "0"),
             ...msg.metadata,
           },
-        });
+        };
+        this.messages.set(msg.id, message);
         this.messageOrder.push(msg.id);
       }
     });
 
+    console.log(`Restored ${this.messageOrder.length} messages`);
     this.updateArchiveStatus();
+  }
+
+  // Debug method
+  public debug(): void {
+    console.group("MessageManager Debug");
+    console.log("Sequence:", this.sequence);
+    console.log("Message Count:", this.messages.size);
+    console.log("Message Order:", this.messageOrder);
+    console.log("Messages:", Object.fromEntries(this.messages));
+    console.log("Threshold:", this.threshold);
+    console.groupEnd();
   }
 }
