@@ -29,7 +29,7 @@ export class OpenAIService {
     messages: Message[],
     systemPrompt: string
   ): Promise<ConverseResponse> {
-    modelId = "openai.gpt-4o.2024-08-06"; // override model ID @todo do this in client.
+    modelId = process.env.OPENAI_API_MODEL || ""; // override model ID @todo do this in client.
     return this.executeWithRetry(modelId, messages, systemPrompt);
   }
 
@@ -127,6 +127,9 @@ export class OpenAIService {
       });
 
       if (retryCount > 0) {
+        console.warn(
+          `Retry attempt ${OpenAIService.MAX_RETRIES - retryCount + 1}`
+        );
         return this.executeWithRetry(
           modelId,
           messages,

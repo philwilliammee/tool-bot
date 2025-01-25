@@ -27,7 +27,7 @@ export class OpenAIService {
     messages: Message[],
     systemPrompt: string
   ): Promise<ConverseResponse> {
-    modelId = "openai.gpt-4o.2024-08-06"; // override model ID @todo do this in client.
+    modelId = process.env.OPENAI_API_MODEL || "anthropic.claude-3.5-sonnet.v2"; // override model ID @todo do this in client.
     return this.executeWithRetry(modelId, messages, systemPrompt);
   }
 
