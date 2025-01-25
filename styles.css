@@ -285,10 +285,15 @@ h1 {
   background-color: var(--success-color);
 }
 
+
 .btn-blue {
   background-color: var(--primary-color);
 }
 
+.btn-secondary {
+  background-color: #6b7280;
+}
+.close-btn,
 .cancel-btn {
   color: #374151;
 }

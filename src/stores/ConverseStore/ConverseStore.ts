@@ -42,18 +42,29 @@ export class ConverseStore {
       const project = projectStore.getProject(id);
       if (project) {
         this.messageManager.setState({
-          messages: project.messages,
-          sequence: Math.max(
-            ...project.messages.map((m) => parseInt(m.id.split("_")[1] || "0"))
-          ),
+          messages: project.messages || [], // Add null check here
+          sequence: project.messages
+            ? Math.max(
+                ...project.messages.map((m) =>
+                  parseInt(m.id.split("_")[1] || "0")
+                ),
+                0
+              )
+            : 0, // Add fallback to 0
         });
       } else {
-        this.messageManager.clear();
+        // Initialize empty state for new project
+        this.messageManager.setState({
+          messages: [],
+          sequence: 0,
+        });
       }
+    } else {
+      // Handle case when no project is selected
+      this.messageManager.clear();
     }
     this.notifyMessageChange();
   }
-
   public get hasMessages(): boolean {
     return this.messageManager.getMessages().length > 0;
   }

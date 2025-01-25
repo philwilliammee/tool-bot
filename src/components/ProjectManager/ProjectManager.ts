@@ -1,11 +1,13 @@
+// src/components/ProjectManager/ProjectManager.ts
 import { converseStore } from "../../stores/ConverseStore/ConverseStore";
 import { projectStore } from "../../stores/ProjectStore/ProjectStore";
 
-// src/components/ProjectManager/ProjectManager.ts
 export class ProjectManager {
   private dropdown!: HTMLSelectElement;
   private modal!: HTMLDialogElement;
+  private formModal!: HTMLDialogElement;
   private projectList!: HTMLElement;
+  private itemTemplate!: HTMLTemplateElement;
   private cleanupFns: Array<() => void> = [];
 
   constructor() {
@@ -15,68 +17,27 @@ export class ProjectManager {
   }
 
   private initializeElements(): void {
-    // Add this HTML to index.html
-    const template = `
-      <div class="project-controls">
-        <select id="project-selector" class="project-selector">
-          <option value="">Select Project</option>
-        </select>
-        <button class="btn btn-blue new-project-btn">
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24">
-            <path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2"/>
-          </svg>
-        </button>
-        <button class="btn btn-blue manage-projects-btn">
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24">
-            <path d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" stroke="currentColor" stroke-width="2"/>
-          </svg>
-        </button>
-      </div>
-
-      <dialog id="project-modal" class="modal">
-        <div class="modal-content">
-          <h2>Manage Projects</h2>
-          <div class="project-list"></div>
-          <div class="modal-actions">
-            <button class="btn btn-blue new-project-btn">New Project</button>
-            <button class="btn btn-secondary close-btn">Close</button>
-          </div>
-        </div>
-      </dialog>
-
-      <dialog id="project-form-modal" class="modal">
-        <div class="modal-content">
-          <h2 class="modal-title">New Project</h2>
-          <form id="project-form">
-            <div class="form-group">
-              <label for="project-name">Project Name</label>
-              <input type="text" id="project-name" required>
-            </div>
-            <div class="form-group">
-              <label for="project-description">Description</label>
-              <textarea id="project-description"></textarea>
-            </div>
-            <div class="modal-actions">
-              <button type="button" class="btn btn-secondary cancel-btn">Cancel</button>
-              <button type="submit" class="btn btn-blue">Save Project</button>
-            </div>
-          </form>
-        </div>
-      </dialog>
-    `;
-
-    // Insert template into DOM
-    const header = document.querySelector("header");
-    const controls = document.createElement("div");
-    controls.innerHTML = template;
-    header?.appendChild(controls);
-
-    // Get references
     this.dropdown = document.getElementById(
       "project-selector"
     ) as HTMLSelectElement;
     this.modal = document.getElementById("project-modal") as HTMLDialogElement;
+    this.formModal = document.getElementById(
+      "project-form-modal"
+    ) as HTMLDialogElement;
     this.projectList = this.modal.querySelector(".project-list") as HTMLElement;
+    this.itemTemplate = document.getElementById(
+      "project-item-template"
+    ) as HTMLTemplateElement;
+
+    if (
+      !this.dropdown ||
+      !this.modal ||
+      !this.formModal ||
+      !this.projectList ||
+      !this.itemTemplate
+    ) {
+      throw new Error("Required project management elements not found");
+    }
   }
 
   private setupEventListeners(): void {
@@ -111,23 +72,36 @@ export class ProjectManager {
     document.getElementById("project-form")?.addEventListener("submit", (e) => {
       e.preventDefault();
       const form = e.target as HTMLFormElement;
+      const submitter = e.submitter as HTMLButtonElement;
+
+      // Check if this was a cancel action
+      if (submitter.value === "Novalidate close") {
+        this.formModal.close();
+        form.reset();
+        return;
+      }
+
+      // Handle project creation
       const nameInput = form.querySelector("#project-name") as HTMLInputElement;
       const descInput = form.querySelector(
         "#project-description"
       ) as HTMLTextAreaElement;
 
+      // Validate project name
+      if (!nameInput.value.trim()) {
+        return; // Don't create project if name is empty
+      }
+
       const projectId = projectStore.createProject(
-        nameInput.value,
-        descInput.value
+        nameInput.value.trim(),
+        descInput.value.trim()
       );
 
       projectStore.setActiveProject(projectId);
       converseStore.setProject(projectId);
 
       form.reset();
-      (
-        document.getElementById("project-form-modal") as HTMLDialogElement
-      ).close();
+      this.formModal.close();
       this.render();
     });
   }

@@ -1,33 +1,44 @@
 import { MessageExtended } from "../../app.types";
+import { ProjectMetadata, ProjectMessages } from "./ProjectStore.types";
 
 // src/stores/ProjectStore/ProjectStore.ts
 export class ProjectStore {
   private static METADATA_KEY = "project_metadata";
+  private static DEFAULT_PROJECT_KEY = "default_project_id";
   private metadata: Record<string, ProjectMetadata> = {};
   private activeProjectId: string | null = null;
 
   constructor() {
     this.loadMetadata();
+    this.initializeDefaultProject();
   }
 
-  private loadMetadata(): void {
-    const stored = localStorage.getItem(ProjectStore.METADATA_KEY);
-    if (stored) {
-      this.metadata = JSON.parse(stored);
+  private initializeDefaultProject(): void {
+    // Check if we have any projects
+    if (Object.keys(this.metadata).length === 0) {
+      // Create default project
+      const defaultId = this.createProject(
+        "Default Project",
+        "Auto-generated default project"
+      );
+      this.setActiveProject(defaultId);
+    }
+
+    // If no active project, set to last used or first available
+    if (!this.activeProjectId) {
+      const lastUsedId = localStorage.getItem(ProjectStore.DEFAULT_PROJECT_KEY);
+      if (lastUsedId && this.metadata[lastUsedId]) {
+        this.setActiveProject(lastUsedId);
+      } else {
+        const firstProject = Object.keys(this.metadata)[0];
+        if (firstProject) {
+          this.setActiveProject(firstProject);
+        }
+      }
     }
   }
 
-  private saveMetadata(): void {
-    localStorage.setItem(
-      ProjectStore.METADATA_KEY,
-      JSON.stringify(this.metadata)
-    );
-  }
-
-  private getProjectKey(id: string): string {
-    return `project_${id}_messages`;
-  }
-
+  // CRUD Operations
   public createProject(name: string, description?: string): string {
     const id = crypto.randomUUID();
     const now = Date.now();
@@ -65,18 +76,30 @@ export class ProjectStore {
   }
 
   public deleteProject(id: string): void {
+    // Don't allow deletion of last project
+    if (Object.keys(this.metadata).length <= 1) {
+      throw new Error("Cannot delete the last project");
+    }
+
     delete this.metadata[id];
     localStorage.removeItem(this.getProjectKey(id));
     this.saveMetadata();
 
+    // If active project was deleted, switch to another project
     if (this.activeProjectId === id) {
-      this.activeProjectId = null;
+      const firstAvailable = Object.keys(this.metadata)[0];
+      this.setActiveProject(firstAvailable);
     }
   }
 
   public setActiveProject(id: string | null): void {
+    if (id && !this.metadata[id]) return;
+
     this.activeProjectId = id;
-    localStorage.setItem("active_project", id || "");
+    localStorage.setItem(ProjectStore.DEFAULT_PROJECT_KEY, id || "");
+
+    // Notify subscribers if we implement any
+    this.notifyProjectChange();
   }
 
   public getActiveProject(): string | null {
@@ -86,6 +109,25 @@ export class ProjectStore {
   public getAllProjects(): ProjectMetadata[] {
     return Object.values(this.metadata).sort(
       (a, b) => b.updatedAt - a.updatedAt
+    );
+  }
+
+  // Storage Operations
+  private getProjectKey(id: string): string {
+    return `project_${id}_messages`;
+  }
+
+  private loadMetadata(): void {
+    const stored = localStorage.getItem(ProjectStore.METADATA_KEY);
+    if (stored) {
+      this.metadata = JSON.parse(stored);
+    }
+  }
+
+  private saveMetadata(): void {
+    localStorage.setItem(
+      ProjectStore.METADATA_KEY,
+      JSON.stringify(this.metadata)
     );
   }
 
@@ -103,22 +145,18 @@ export class ProjectStore {
 
     this.saveMetadata();
   }
+
+  // Optional: Add event handling for project changes
+  private changeListeners: Set<() => void> = new Set();
+
+  public onProjectChange(listener: () => void): () => void {
+    this.changeListeners.add(listener);
+    return () => this.changeListeners.delete(listener);
+  }
+
+  private notifyProjectChange(): void {
+    this.changeListeners.forEach((listener) => listener());
+  }
 }
 
 export const projectStore = new ProjectStore();
-
-interface ProjectMetadata {
-  id: string;
-  name: string;
-  description?: string;
-  createdAt: number;
-  updatedAt: number;
-  messageCount: number;
-  lastMessageDate: number;
-}
-
-// Stored separately in localStorage with key: `project_${id}_messages`
-interface ProjectMessages {
-  projectId: string;
-  messages: MessageExtended[];
-}
