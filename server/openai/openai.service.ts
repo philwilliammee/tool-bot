@@ -1,21 +1,12 @@
 // server/openai/openai.service.ts
 import OpenAI from "openai";
-import {
-  ConverseResponse,
-  Message,
-  ToolConfiguration,
-  ToolResultBlock,
-} from "@aws-sdk/client-bedrock-runtime";
+import { ConverseResponse, Message } from "@aws-sdk/client-bedrock-runtime";
 import { serverRegistry } from "../../tools/server/registry";
-import type {
-  ChatCompletionMessageParam,
-  ChatCompletionSystemMessageParam,
-  ChatCompletionUserMessageParam,
-  ChatCompletionAssistantMessageParam,
-  ChatCompletionToolMessageParam,
-  ChatCompletionTool,
-} from "openai/resources/chat/completions";
-import { FunctionParameters } from "openai/resources/shared.mjs";
+import type { ChatCompletionMessageParam } from "openai/resources/chat/completions";
+import {
+  transformToolsToOpenAIFormat,
+  transformToOpenAIMessage,
+} from "./openai.utils";
 
 export interface OpenAIServiceConfig {
   apiKey: string;
@@ -42,83 +33,6 @@ export class OpenAIService {
     return this.executeWithRetry(modelId, messages, systemPrompt);
   }
 
-  private transformToOpenAIMessage(msg: Message): ChatCompletionMessageParam {
-    console.log("Transforming message:", JSON.stringify(msg, null, 2));
-
-    // Handle tool results
-    if (msg.content?.[0]?.toolResult) {
-      const toolResult = msg.content[0].toolResult as any; // @todo properly type this
-      console.log("Found tool result:", JSON.stringify(toolResult, null, 2));
-      return {
-        role: "tool",
-        content: toolResult.content[0].text,
-        tool_call_id: toolResult.toolUseId,
-      } as ChatCompletionToolMessageParam;
-    }
-
-    // Handle regular messages
-    const content = msg.content?.[0]?.text || "";
-
-    switch (msg.role) {
-      case "user":
-        return {
-          role: "user",
-          content,
-        } as ChatCompletionUserMessageParam;
-      case "assistant":
-        // Check if the message contains a tool use
-        if (msg.content?.[0]?.toolUse) {
-          const toolUse = msg.content[0].toolUse;
-          console.log(
-            "Found tool use in assistant message:",
-            JSON.stringify(toolUse, null, 2)
-          );
-          return {
-            role: "assistant",
-            content: null,
-            tool_calls: [
-              {
-                id: toolUse.toolUseId,
-                type: "function",
-                function: {
-                  name: toolUse.name,
-                  arguments: JSON.stringify(toolUse.input),
-                },
-              },
-            ],
-          } as ChatCompletionAssistantMessageParam;
-        }
-        return {
-          role: "assistant",
-          content,
-        } as ChatCompletionAssistantMessageParam;
-      default:
-        console.warn(`Unknown role "${msg.role}", defaulting to user`);
-        return {
-          role: "user",
-          content,
-        } as ChatCompletionUserMessageParam;
-    }
-  }
-
-  private transformToolsToOpenAIFormat(
-    toolConfig: ToolConfiguration
-  ): ChatCompletionTool[] {
-    if (!toolConfig.tools) return [];
-
-    const tools: ChatCompletionTool[] = toolConfig.tools.map((tool) => ({
-      type: "function" as const,
-      function: {
-        name: tool!.toolSpec!.name || "",
-        description: tool!.toolSpec!.description || "",
-        parameters: tool!.toolSpec!.inputSchema!.json as FunctionParameters,
-      },
-    }));
-
-    console.log("Transformed tools:", JSON.stringify(tools, null, 2));
-    return tools;
-  }
-
   private async executeWithRetry(
     modelId: string,
     messages: Message[],
@@ -128,60 +42,37 @@ export class OpenAIService {
     try {
       const startTime = Date.now();
 
-      console.log("Incoming messages:", JSON.stringify(messages, null, 2));
-
       // Get tools from registry and transform them
       const toolConfig = serverRegistry.getToolConfig();
-      const tools = this.transformToolsToOpenAIFormat(toolConfig);
+      const tools = transformToolsToOpenAIFormat(toolConfig);
 
       // Transform messages to OpenAI format
-      const openAIMessages: ChatCompletionMessageParam[] = messages.map((msg) =>
-        this.transformToOpenAIMessage(msg)
+      const openAIMessages: ChatCompletionMessageParam[] = messages.map(
+        transformToOpenAIMessage
       );
 
-      // Add system message if provided
+      // Add system message to the beginning
       if (systemPrompt) {
         openAIMessages.unshift({
           role: "system",
           content: systemPrompt,
-        } as ChatCompletionSystemMessageParam);
+        });
       }
 
-      console.log(
-        "Transformed OpenAI messages:",
-        JSON.stringify(openAIMessages, null, 2)
-      );
-
-      const body: OpenAI.Chat.Completions.ChatCompletionCreateParamsNonStreaming =
-        {
-          messages: openAIMessages,
-          model: modelId,
-          temperature: 0.7,
-          max_tokens: 8000,
-          tools: tools,
-          tool_choice: "auto",
-        };
-
-      const completion = await this.client.chat.completions.create(body);
-
-      console.log(
-        "OpenAI response:",
-        JSON.stringify(completion.choices[0].message, null, 2)
-      );
+      const completion = await this.client.chat.completions.create({
+        messages: openAIMessages,
+        model: modelId,
+        temperature: 0.7,
+        max_tokens: 8000,
+        tools: tools,
+        tool_choice: "auto",
+      });
 
       const assistantMessage = completion.choices[0].message;
 
       // If the assistant wants to use a tool
-      if (
-        assistantMessage.tool_calls &&
-        assistantMessage.tool_calls.length > 0
-      ) {
-        console.log(
-          "Tool call detected:",
-          JSON.stringify(assistantMessage.tool_calls, null, 2)
-        );
-
-        const toolCall = assistantMessage.tool_calls[0]; // Take first tool call
+      if (assistantMessage.tool_calls?.length) {
+        const toolCall = assistantMessage.tool_calls[0];
         return {
           output: {
             message: {
@@ -236,9 +127,6 @@ export class OpenAIService {
       });
 
       if (retryCount > 0) {
-        console.warn(
-          `Retry attempt ${OpenAIService.MAX_RETRIES - retryCount + 1}`
-        );
         return this.executeWithRetry(
           modelId,
           messages,
