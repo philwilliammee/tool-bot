@@ -1,7 +1,7 @@
-import { converseStore } from "../../stores/ConverseStore";
+import { converseStore } from "../../stores/ConverseStore/ConverseStore";
 import { store } from "../../stores/AppStore";
 import { effect } from "@preact/signals-core";
-import { MessageExtended } from "../../types/tool.types";
+import { MessageExtended } from "../../app.types";
 import { htmlTool } from "../../../tools/html-tool/client/html.client";
 
 interface FilterState {

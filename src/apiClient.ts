@@ -1,6 +1,6 @@
 import { Message, ConverseResponse } from "@aws-sdk/client-bedrock-runtime";
 
-export async function postBedrock(
+export async function postMessage(
   modelId: string,
   messages: Message[],
   systemPrompt: string
@@ -8,7 +8,7 @@ export async function postBedrock(
   console.log(
     `[API CLIENT] POST request with modelId: ${modelId} and messages count: ${messages.length}`
   );
-  const response = await fetch("/api/bedrock", {
+  const response = await fetch("/api/ai", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ modelId, messages, systemPrompt }),

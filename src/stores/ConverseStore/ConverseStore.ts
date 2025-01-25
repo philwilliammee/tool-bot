@@ -1,12 +1,13 @@
 // src/stores/ConverseStore.ts
 import { Message } from "@aws-sdk/client-bedrock-runtime";
-import { MessageExtended, ToolUse } from "../types/tool.types";
-import { store } from "./AppStore";
+import { MessageExtended, ToolUse } from "../../app.types";
+import { store } from "../AppStore";
+// Maybe the handlers should be in utils?
 import { LLMHandler } from "./handlers/LLMHandler";
 import { MessageManager } from "./handlers/MessageManager";
-import { ToolHandler } from "./handlers/ToolHandler";
 import { StorageHandler } from "./handlers/StorageHandler";
-import { determineActiveMessageRange } from "../utils/messageUtils";
+import { ToolHandler } from "./handlers/ToolHandler";
+import { determineActiveMessageRange } from "./utils/messageUtils";
 
 const STORAGE_KEY = "chat-messages";
 const DEFAULT_THRESHOLD = 8; // @todo make this sliding scaled based on token length.
@@ -23,6 +24,7 @@ export class ConverseStore {
 
   constructor(threshold: number = DEFAULT_THRESHOLD) {
     this.messageManager = new MessageManager(threshold);
+    // The modelIDcurrently isn't implemented properly. I'm not sure if this should be here or just the backend.
     this.llmHandler = new LLMHandler(
       import.meta.env.VITE_BEDROCK_MODEL_ID || "my-model-id",
       "You are a helpful assistant with tools."
@@ -50,7 +52,7 @@ export class ConverseStore {
 
     // Handle tool use
     if (newMessage.role === "assistant") {
-      const toolUseBlock = newMessage.content?.find((b) => b.toolUse)
+      const toolUseBlock = newMessage.content?.find((b: any) => b.toolUse)
         ?.toolUse as ToolUse;
       if (toolUseBlock) {
         this.handleToolUse(toolUseBlock);
@@ -106,7 +108,7 @@ export class ConverseStore {
 
     // Handle tool use and LLM calls for new messages
     if (message.role === "assistant") {
-      const toolUseBlock = message.content?.find((b) => b.toolUse)
+      const toolUseBlock = message.content?.find((b: any) => b.toolUse)
         ?.toolUse as ToolUse;
       if (toolUseBlock) {
         this.handleToolUse(toolUseBlock);

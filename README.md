@@ -29,13 +29,19 @@ cd ai-chat-assistant
 cp example.env .env
 ```
 
-2. Configure AWS credentials in `.env`:
+2. Configure your credentials in `.env`:
 
 ```bash
+# For AWS Bedrock
 AWS_REGION=your-aws-region
 VITE_BEDROCK_MODEL_ID=your-model-id
 AWS_ACCESS_KEY=your-aws-access-key
 AWS_SECRET_KEY=your-aws-secret-key
+
+# For OpenAI
+AI_CLIENT=openai
+OPENAI_API_SESSION_KEY=your-openai-api-key
+OPENAI_API_BASE=https://api.openai.com
 ```
 
 3. Install and run:
@@ -49,15 +55,15 @@ npm run dev
 
 ## API Integration
 
-Currently, this project uses AWS Bedrock as its AI provider, specifically designed to work with Amazon's Large Language Models through the Bedrock API. However, the project is structured to potentially support other AI providers.
+This project supports multiple AI providers, including AWS Bedrock and OpenAI.
 
 ### Supported
 
 - AWS Bedrock API
+- OpenAI API
 
 ### Potential Future Integrations
 
-- OpenAI API
 - Ollama (local inference)
 - Google Vertex AI
 - Anthropic Claude API
@@ -67,17 +73,17 @@ Currently, this project uses AWS Bedrock as its AI provider, specifically design
 
 #### To add a new integration
 
-1. Implement the core API service interface
-2. Add appropriate environment configuration
-3. Provide documentation for API setup
-4. Include example prompts optimized for the new model
+1. Implement the core API service interface.
+2. Add appropriate environment configuration.
+3. Provide documentation for API setup.
+4. Include example prompts optimized for the new model.
 
-Check the `src/bedrock/bedrock.service.ts` file for an example of how API integration is currently implemented.
+Check the `server/bedrock/bedrock.service.ts` and `server/openai/openai.service.ts` files for examples of how API integration is currently implemented.
 
 ## Technical Architecture
 
 - Built with TypeScript and Vite
-- AWS Bedrock integration for AI capabilities
+- AWS Bedrock and OpenAI integration for AI capabilities
 - Component-based architecture
 - Signal-based state management
 - Clean and responsive UI
@@ -85,11 +91,11 @@ Check the `src/bedrock/bedrock.service.ts` file for an example of how API integr
 
 ### Key Components
 
-- **Chat Context (converseStore)**: Holds the entire conversation. Automatically handles AWS Bedrock calls whenever a new `user` message is added, and executes tools if an `assistant` message includes a `toolUse` block.
+- **Chat Context (converseStore)**: Holds the entire conversation. Automatically handles AI service calls whenever a new `user` message is added, and executes tools if an `assistant` message includes a `toolUse` block.
 - **Chat Interface (Chat.ts)**: Primarily a UI layer. Listens to user input, adds new messages to the context, and renders updates whenever the context changes.
 - **Work Area**: Provides an admin interface to view/edit messages and manage the conversation history.
 - **Tool System**: Comprehensive tool integration with support for various operations including file system access, mathematical computations, and web services.
-- **Error Handling**: A robust but still development-level approach that attempts to retry errors; not production-ready.
+- **Error Handling**: A robust approach that attempts to retry errors; not production-ready.
 
 ## Current Capabilities
 
@@ -140,7 +146,7 @@ Check the `src/bedrock/bedrock.service.ts` file for an example of how API integr
 - Comprehensive tool support
 - HTML Tool Development
   - Advanced HTML rendering in iframe
-  - Tool integration with Bedrock
+  - Tool integration with Bedrock and OpenAI
   - Visualization templates
   - Support for common chart types
   - Interactive component library
@@ -168,7 +174,7 @@ Check the `src/bedrock/bedrock.service.ts` file for an example of how API integr
 ## Limitations
 
 - Development tool only, not production-ready
-- Requires AWS Bedrock access
+- Requires access to supported AI services
 - Maximum token limitations apply
 - Limited to text-based interactions
 - Tool-specific constraints apply
@@ -183,7 +189,95 @@ Check the `src/bedrock/bedrock.service.ts` file for an example of how API integr
 
 ## Tool Usage Examples
 
-[Previous tool usage examples remain the same...]
+### HTTP Fetch Example
+Fetch weather data for a specific location:
+```javascript
+fetch_url({
+  url: 'https://api.open-meteo.com/v1/forecast?latitude=42.3601&longitude=-71.0589',
+});
+```
+
+### Directory Services Example
+Search for a user in the LDAP directory:
+```javascript
+ldap_search({
+  searchTerm: 'John Doe',
+});
+```
+
+### HTML Generation Example
+Generate a simple bar chart:
+```javascript
+html({
+  html: `
+    <canvas id="myChart" width="400" height="400"></canvas>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+      var ctx = document.getElementById('myChart').getContext('2d');
+      var myChart = new Chart(ctx, {
+          type: 'bar',
+          data: {
+              labels: ['Red', 'Blue', 'Yellow', 'Green', 'Purple', 'Orange'],
+              datasets: [{
+                  label: '# of Votes',
+                  data: [12, 19, 3, 5, 2, 3],
+                  backgroundColor: [
+                      'rgba(255, 99, 132, 0.2)',
+                      'rgba(54, 162, 235, 0.2)',
+                      'rgba(255, 206, 86, 0.2)',
+                      'rgba(75, 192, 192, 0.2)',
+                      'rgba(153, 102, 255, 0.2)',
+                      'rgba(255, 159, 64, 0.2)'
+                  ],
+                  borderColor: [
+                      'rgba(255, 99, 132, 1)',
+                      'rgba(54, 162, 235, 1)',
+                      'rgba(255, 206, 86, 1)',
+                      'rgba(75, 192, 192, 1)',
+                      'rgba(153, 102, 255, 1)',
+                      'rgba(255, 159, 64, 1)'
+                  ],
+                  borderWidth: 1
+              }]
+          },
+          options: {
+              scales: {
+                  y: {
+                      beginAtZero: true
+                  }
+              }
+          }
+      });
+    </script>
+  `,
+  context: 'Creating a bar chart using Chart.js',
+});
+```
+
+### Mathematical Processing Example
+Calculate the mean of a list of numbers:
+```javascript
+math({
+  expression: 'mean([1, 2, 3, 4, 5])',
+});
+```
+
+### File System Operations Example
+Read the contents of a directory:
+```javascript
+file_tree({
+  path: 'src',
+  maxDepth: 2,
+});
+```
+
+### Code Execution Example
+Execute JavaScript code:
+```javascript
+code_executor({
+  code: 'console.log("Hello, World!");',
+});
+```
 
 ## Interface Features
 
@@ -207,3 +301,10 @@ Make me an amazing chart! I will show it to my fiends, and display your skills a
 Wait what happened, earlier you were making amazing charts. I told them how great they are. You can do better that that, really try to impress them.
 
 This is stunning but I know you can do more. Elevate it and take it to the next level.
+
+(@todo)
+- auto token generation
+- csv upload
+- refactor converse utils
+- add local database
+- add save project

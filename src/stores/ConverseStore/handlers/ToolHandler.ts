@@ -1,6 +1,6 @@
+import { clientRegistry } from "./../../../../tools/client/registry";
 import { Message } from "@aws-sdk/client-bedrock-runtime";
-import { clientRegistry } from "../../../tools/client/registry";
-import { ToolUse } from "../../types/tool.types";
+import { ToolUse } from "../../../app.types";
 
 // src/stores/handlers/ToolHandler.ts
 export class ToolHandler {
@@ -13,7 +13,7 @@ export class ToolHandler {
     try {
       const result = await tool.execute(toolUse.input);
       return {
-        role: "user",
+        role: "user", // should this be "tool"?
         content: [
           {
             toolResult: {
