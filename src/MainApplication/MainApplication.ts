@@ -3,6 +3,7 @@ import { Chat } from "../components/Chat/chat";
 import { store } from "../stores/AppStore";
 import { Toast } from "../components/Toast/Toast";
 import { effect } from "@preact/signals-core";
+import { ProjectManager } from "../components/ProjectManager/ProjectManager";
 
 export class MainApplication {
   private chat!: Chat;
@@ -14,6 +15,7 @@ export class MainApplication {
   private mainContent!: HTMLElement;
   private leftColumn!: HTMLElement;
   private toggleButton!: HTMLButtonElement;
+  private projectManager: ProjectManager;
 
   constructor() {
     console.log("Initializing MainApplication");
@@ -22,6 +24,7 @@ export class MainApplication {
     this.initializeTabs();
     this.initializePanelToggle();
     new Toast();
+    this.projectManager = new ProjectManager();
   }
 
   private initializeDOMElements(): void {
@@ -171,5 +174,6 @@ export class MainApplication {
 
     // Clean up panel state
     localStorage.removeItem("chatPanelCollapsed");
+    this.projectManager.destroy();
   }
 }

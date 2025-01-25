@@ -94,15 +94,7 @@ export class Chat {
       (a, b) => a.metadata.createdAt - b.metadata.createdAt
     );
 
-    console.log(
-      "Message order:",
-      sortedMessages.map((m) => ({
-        id: m.id,
-        role: m.role,
-        createdAt: m.metadata.createdAt,
-        content: m.content?.[0]?.text?.substring(0, 50),
-      }))
-    );
+    // console.log(sortedMessages);
 
     const lastAssistant = this.findLastAssistant(sortedMessages);
 

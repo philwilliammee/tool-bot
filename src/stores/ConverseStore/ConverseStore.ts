@@ -8,6 +8,7 @@ import { MessageManager } from "./handlers/MessageManager";
 import { StorageHandler } from "./handlers/StorageHandler";
 import { ToolHandler } from "./handlers/ToolHandler";
 import { determineActiveMessageRange } from "./utils/messageUtils";
+import { projectStore } from "../ProjectStore/ProjectStore";
 
 const STORAGE_KEY = "chat-messages";
 const DEFAULT_THRESHOLD = 8; // @todo make this sliding scaled based on token length.
@@ -21,6 +22,7 @@ export class ConverseStore {
     messages: MessageExtended[];
   }>;
   private messageChangeCallbacks: Array<(msgs: MessageExtended[]) => void> = [];
+  private projectId: string | null = null;
 
   constructor(threshold: number = DEFAULT_THRESHOLD) {
     this.messageManager = new MessageManager(threshold);
@@ -32,6 +34,24 @@ export class ConverseStore {
     this.toolHandler = new ToolHandler();
     this.storageHandler = new StorageHandler(STORAGE_KEY);
     this.loadFromStorage();
+  }
+
+  public setProject(id: string | null): void {
+    this.projectId = id;
+    if (id) {
+      const project = projectStore.getProject(id);
+      if (project) {
+        this.messageManager.setState({
+          messages: project.messages,
+          sequence: Math.max(
+            ...project.messages.map((m) => parseInt(m.id.split("_")[1] || "0"))
+          ),
+        });
+      } else {
+        this.messageManager.clear();
+      }
+    }
+    this.notifyMessageChange();
   }
 
   public get hasMessages(): boolean {
@@ -177,8 +197,17 @@ export class ConverseStore {
     }
   }
 
+  // private saveToStorage(): void {
+  //   this.storageHandler.save(this.messageManager.getState());
+  // }
+
   private saveToStorage(): void {
-    this.storageHandler.save(this.messageManager.getState());
+    if (this.projectId) {
+      projectStore.saveProjectMessages(
+        this.projectId,
+        this.messageManager.getMessages()
+      );
+    }
   }
 
   public destroy(): void {
