@@ -20,10 +20,7 @@ export class ConverseStore {
   constructor(threshold: number = DEFAULT_THRESHOLD) {
     console.log("Initializing ConverseStore with threshold:", threshold);
     this.messageManager = new MessageManager(threshold);
-    this.llmHandler = new LLMHandler(
-      import.meta.env.VITE_BEDROCK_MODEL_ID || "my-model-id",
-      "You are a helpful assistant with tools."
-    );
+    this.llmHandler = new LLMHandler();
     this.toolHandler = new ToolHandler();
 
     // Initialize with active project if exists
@@ -253,15 +250,6 @@ export class ConverseStore {
     } else {
       console.warn("Attempted to save messages with no active project");
     }
-  }
-
-  // Debug method
-  public debug(): void {
-    console.group("ConverseStore Debug");
-    console.log("Active Project:", this.projectId);
-    console.log("Messages:", this.messageManager.getMessages());
-    console.log("Message Manager State:", this.messageManager.getState());
-    console.groupEnd();
   }
 
   public destroy(): void {

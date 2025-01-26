@@ -7,8 +7,33 @@ export const htmlToolConfig: ToolConfiguration = {
       toolSpec: {
         name: "html",
         description: `
-Generate and render HTML content. Use for visualizations, layouts, and web development assistance.
-Use basic CDN imports like <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+Renders HTML content with data visualization capabilities.
+
+Available data can be accessed via window.availableData.
+
+When creating visualizations:
+1. Parse CSV string values to appropriate types
+2. Include error handling
+3. Use Chart.js or D3.js for visualizations
+4. Add proper labels and titles
+5. Consider data types when processing values
+
+Example:
+const data = window.availableData;
+const processedData = data.map(item => ({
+  ...item,
+  value: parseFloat(item.value) || 0
+}));
+
+new Chart(ctx, {
+  type: 'bar',
+  data: {
+    labels: processedData.map(d => d.label),
+    datasets: [{
+      data: processedData.map(d => d.value)
+    }]
+  }
+});
 `,
         inputSchema: {
           json: {

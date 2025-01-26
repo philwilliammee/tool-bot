@@ -13,59 +13,65 @@ export const codeExecutorTool: ClientTool = {
         throw new Error("Execution iframe not found");
       }
 
+      // Get data from dataStore
+      const data = window.availableData;
+
       // Create execution environment
       const executionWrapper = `
-                <!DOCTYPE html>
-                <html>
-                <head>
-                    <meta charset="UTF-8">
-                    ${
-                      input.libraries
-                        ?.map((lib) => `<script src="${lib}"></script>`)
-                        .join("\n") || ""
-                    }
-                </head>
-                <body>
-                    <div id="output"></div>
-                    <script>
-                        // Capture console.log output
-                        const logs = [];
-                        const originalConsole = console.log;
-                        console.log = (...args) => {
-                            logs.push(args.map(arg =>
-                                typeof arg === 'object' ? JSON.stringify(arg) : String(arg)
-                            ).join(' '));
-                            originalConsole.apply(console, args);
-                        };
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="UTF-8">
+            ${
+              input.libraries
+                ?.map((lib) => `<script src="${lib}"></script>`)
+                .join("\n") || ""
+            }
+        </head>
+        <body>
+            <div id="output"></div>
+            <script>
+                // Make data available globally
+                window.availableData = ${JSON.stringify(data)};
 
-                        // Execute the code with timeout
-                        try {
-                            const startTime = performance.now();
-                            const result = (function() {
-                                ${input.code}
-                            })();
-                            const executionTime = performance.now() - startTime;
+                // Capture console.log output
+                const logs = [];
+                const originalConsole = console.log;
+                console.log = (...args) => {
+                    logs.push(args.map(arg =>
+                        typeof arg === 'object' ? JSON.stringify(arg) : String(arg)
+                    ).join(' '));
+                    originalConsole.apply(console, args);
+                };
 
-                            // Send results back to parent
-                            window.parent.postMessage({
-                                type: 'code-execution-result',
-                                result,
-                                logs,
-                                executionTime
-                            }, '*');
-                        } catch (error) {
-                            window.parent.postMessage({
-                                type: 'code-execution-error',
-                                error: error.message,
-                                logs
-                            }, '*');
-                        }
-                    </script>
-                </body>
-                </html>
-            `;
+                // Execute the code with timeout
+                try {
+                    const startTime = performance.now();
+                    const result = (function() {
+                        ${input.code}
+                    })();
+                    const executionTime = performance.now() - startTime;
 
-      // Create promise to handle response
+                    // Send results back to parent
+                    window.parent.postMessage({
+                        type: 'code-execution-result',
+                        result,
+                        logs,
+                        executionTime
+                    }, '*');
+                } catch (error) {
+                    window.parent.postMessage({
+                        type: 'code-execution-error',
+                        error: error.message,
+                        logs
+                    }, '*');
+                }
+            </script>
+        </body>
+        </html>
+      `;
+
+      // Rest of the implementation remains the same...
       const executePromise = new Promise<CodeExecutorOutput>(
         (resolve, reject) => {
           const timeout = setTimeout(() => {

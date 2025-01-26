@@ -5,6 +5,7 @@ import { WorkArea } from "../WorkArea/WorkArea";
 import { converseStore } from "../../stores/ConverseStore/ConverseStore";
 import { MessageExtended } from "../../app.types";
 import { marked } from "marked";
+import { dataStore } from "../../stores/DataStore/DataStore";
 
 declare global {
   interface Window {
@@ -49,6 +50,7 @@ export class Chat {
       // Get DOM elements
       this.initializeDOMElements();
       this.initializeButtonSpinner();
+      this.setupPromptActions();
 
       this.render();
       this.setupEventListeners();
@@ -67,6 +69,34 @@ export class Chat {
 
     if (!this.promptInput || !this.chatMessages) {
       throw new Error("Required DOM elements not found");
+    }
+  }
+
+  private setupPromptActions(): void {
+    const uploadBtn = this.promptInput.parentElement?.querySelector(
+      ".data-upload-btn"
+    ) as HTMLButtonElement;
+    const fileInput = this.promptInput.parentElement?.querySelector(
+      ".file-input"
+    ) as HTMLInputElement;
+
+    if (uploadBtn && fileInput) {
+      uploadBtn.onclick = () => fileInput.click();
+
+      fileInput.onchange = async () => {
+        const file = fileInput.files?.[0];
+        if (!file) return;
+
+        try {
+          const id = await dataStore.addFromFile(file);
+          store.showToast(`Data uploaded: ${file.name}`);
+          console.log("Data available with ID:", id);
+          fileInput.value = ""; // Reset input
+        } catch (error: any) {
+          store.showToast(`Upload failed: ${error.message}`);
+          console.error("Upload failed:", error);
+        }
+      };
     }
   }
 

@@ -18,14 +18,15 @@ An AI-powered chat bot that can help with various tasks through natural language
 - Advanced visualization capabilities
 - File system operations
 - Mathematical computations
+- Data visualization with CSV support
 
 ## Quick Start
 
 1. Clone and setup environment:
 
 ```bash
-git clone https://github.com/[your-username]/ai-chat-assistant
-cd ai-chat-assistant
+git clone https://github.com/philwilliammee/tool-bot
+cd tool-bot
 cp example.env .env
 ```
 
@@ -69,115 +70,126 @@ This project supports multiple AI providers, including AWS Bedrock and OpenAI.
 - Anthropic Claude API
 - Other Open Source Models
 
-**Contributing Integrations:** Pull requests for additional AI provider integrations are welcome! The project's architecture is designed to be extensible. Ollama integration would be particularly valuable as it would allow users to run models locally without cloud API costs.
-
-#### To add a new integration
-
-1. Implement the core API service interface.
-2. Add appropriate environment configuration.
-3. Provide documentation for API setup.
-4. Include example prompts optimized for the new model.
-
-Check the `server/bedrock/bedrock.service.ts` and `server/openai/openai.service.ts` files for examples of how API integration is currently implemented.
-
 ## Technical Architecture
 
 - Built with TypeScript and Vite
-- AWS Bedrock and OpenAI integration for AI capabilities
+- AWS Bedrock and OpenAI integration
 - Component-based architecture
 - Signal-based state management
 - Clean and responsive UI
 - Integrated tool system with type safety
+- Enhanced data visualization capabilities
 
 ### Key Components
 
-- **Chat Context (converseStore)**: Holds the entire conversation. Automatically handles AI service calls whenever a new `user` message is added, and executes tools if an `assistant` message includes a `toolUse` block.
-- **Chat Interface (Chat.ts)**: Primarily a UI layer. Listens to user input, adds new messages to the context, and renders updates whenever the context changes.
-- **Work Area**: Provides an admin interface to view/edit messages and manage the conversation history.
-- **Tool System**: Comprehensive tool integration with support for various operations including file system access, mathematical computations, and web services.
-- **Error Handling**: A robust approach that attempts to retry errors; not production-ready.
+- **Chat Context (converseStore)**: Manages conversation state and tool execution
+- **Chat Interface**: User interaction and message rendering
+- **Work Area**: Admin interface for message management
+- **Tool System**: Comprehensive tool integration framework
+- **Data Store**: Manages uploaded CSV/JSON data for visualizations
+- **Project Store**: Handles project configuration and state
+- **Error Handling**: Robust error recovery system
 
-## Current Capabilities
+## Current Tools Implementation
 
-### Implemented Tools
+### 1. Code Executor
+- Sandboxed JavaScript execution
+- Support for popular libraries (Lodash, Moment, Chart.js, Math.js, D3.js)
+- Timeout management
+- Access to uploaded data via window.availableData
 
-1. **HTTP Fetch (fetch_url)**
-   - HTTPS URL content retrieval
-   - Support for multiple content types
-   - Integration with Cornell services
-   - Weather data access
+### 2. HTML Tool
+- Advanced visualization rendering
+- Chart.js and D3.js integration
+- Data-aware rendering with CSV/JSON support
+- Interactive component support
+- Error handling for data processing
 
-2. **Directory Services (ldap_search)**
-   - Cornell LDAP directory integration
-   - User information lookup
-   - Comprehensive profile data access
+### 3. File System Tools
+- **File Tree**: Directory structure visualization
+- **Project Reader**: File content access with pattern matching
+- **File Writer**: Content writing with validation
 
-3. **HTML Generation (html)**
-   - Advanced visualization rendering
-   - Interactive web components
-   - Chart and graph generation
-   - Responsive layouts
+### 4. Data Processing
+- CSV/JSON data upload support
+- Data visualization capabilities
+- Mathematical computations
+- Statistical analysis
 
-4. **Mathematical Processing (math)**
-   - Complex calculations
-   - Statistical analysis
-   - Unit conversions
-   - Matrix operations
+### 5. Integration Tools
+- **LDAP Tool**: Cornell directory integration
+- **Fetch Tool**: Proxied HTTP requests with domain validation
+- Weather data access
+- Cornell services integration
 
-5. **File System Operations**
-   - File tree visualization (file_tree)
-   - Content reading (project_reader)
-   - File writing (file_writer)
-   - Project structure analysis
-
-6. **Code Execution (code_executor)**
-   - JavaScript sandbox environment
-   - Popular library integration
-   - Dynamic content generation
-   - Timeout management
+### 6. Math Tool
+- Complex calculations
+- Statistical functions
+- Matrix operations
+- Unit conversions
 
 ## Development Status
 
-### Completed Features ✅
-- Chat admin editor interface
-- Improved error handling and validation
-- Message persistence
-- Enhanced conversation context management
-- Comprehensive tool support
-- HTML Tool Development
-  - Advanced HTML rendering in iframe
-  - Tool integration with Bedrock and OpenAI
-  - Visualization templates
-  - Support for common chart types
-  - Interactive component library
-- UI Improvements
-  - Tab-based interface
-  - Signal-based state management
-  - Improved tool output formatting
-- Centralized tool registry system
-  - Type-safe tool configurations
-  - Streamlined registration process
-  - Comprehensive tool documentation
+### Recent Updates ✅
+- Enhanced data visualization system
+- CSV/JSON data upload support
+- Improved tool configuration system
+- Advanced HTML rendering capabilities
+- Comprehensive tool documentation
+- Type-safe tool implementations
+- Project structure reorganization
+- Error handling improvements
 
 ### Current Focus 🚧
-- Enhanced visualization capabilities
-- Additional tool integrations
-- Performance optimizations
-- Documentation improvements
+- Data store implementation for visualization
+- Tool integration refinements
+- Performance optimization
+- Documentation updates
+- Testing coverage
 
-### Future Development Plans 🔮
+### Planned Features 🔮
 - Additional AI model integrations
 - Enhanced security features
-- Advanced error recovery mechanisms
+- Advanced error recovery
 - Extended tool capabilities
+- Local model support (Ollama)
+- Database integration
 
-## Limitations
+## Tool System Architecture
 
-- Development tool only, not production-ready
-- Requires access to supported AI services
-- Maximum token limitations apply
-- Limited to text-based interactions
-- Tool-specific constraints apply
+The tool system follows a modular architecture:
+
+```
+tools/
+├── client/              # Client-side registry and interfaces
+├── server/             # Server-side registry and interfaces
+└── [tool-name]/        # Individual tool folders
+    ├── client/         # Client implementation
+    ├── server/         # Server implementation (if needed)
+    ├── config.ts       # Tool configuration
+    └── types.ts        # Type definitions
+```
+
+## Best Practices
+
+1. Tool Development
+   - Follow standard configuration format
+   - Implement proper error handling
+   - Use TypeScript for type safety
+   - Document capabilities and limitations
+
+2. Security
+   - Sandbox code execution
+   - Validate all inputs
+   - Implement timeouts
+   - Control server access
+   - Sanitize outputs
+
+3. Data Handling
+   - Validate data types
+   - Handle missing values
+   - Process CSV strings appropriately
+   - Implement error checking
 
 ## Contributing
 
@@ -187,124 +199,51 @@ Check the `server/bedrock/bedrock.service.ts` and `server/openai/openai.service.
 4. Push to the branch
 5. Create a Pull Request
 
-## Tool Usage Examples
+## Current Tasks
 
-### HTTP Fetch Example
-Fetch weather data for a specific location:
+- [ ] Auto token generation
+- [ ] CSV upload refinements
+- [ ] Converse utils refactoring
+- [ ] Local database implementation
+- [ ] Data object store completion
+- [ ] Tool use preparation for CSV upload
+
+## Example Usage
+
+### Data Visualization
+```javascript
+const data = window.availableData;
+const processedData = data.map(item => ({
+  ...item,
+  value: parseFloat(item.value) || 0
+}));
+
+new Chart(ctx, {
+  type: 'bar',
+  data: {
+    labels: processedData.map(d => d.label),
+    datasets: [{
+      data: processedData.map(d => d.value)
+    }]
+  }
+});
+```
+
+### Tool Integration
 ```javascript
 fetch_url({
-  url: 'https://api.open-meteo.com/v1/forecast?latitude=42.3601&longitude=-71.0589',
+  url: 'https://api.open-meteo.com/v1/forecast?latitude=42.3601&longitude=-71.0589'
 });
-```
 
-### Directory Services Example
-Search for a user in the LDAP directory:
-```javascript
 ldap_search({
-  searchTerm: 'John Doe',
+  searchTerm: 'John Doe'
 });
-```
 
-### HTML Generation Example
-Generate a simple bar chart:
-```javascript
-html({
-  html: `
-    <canvas id="myChart" width="400" height="400"></canvas>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script>
-      var ctx = document.getElementById('myChart').getContext('2d');
-      var myChart = new Chart(ctx, {
-          type: 'bar',
-          data: {
-              labels: ['Red', 'Blue', 'Yellow', 'Green', 'Purple', 'Orange'],
-              datasets: [{
-                  label: '# of Votes',
-                  data: [12, 19, 3, 5, 2, 3],
-                  backgroundColor: [
-                      'rgba(255, 99, 132, 0.2)',
-                      'rgba(54, 162, 235, 0.2)',
-                      'rgba(255, 206, 86, 0.2)',
-                      'rgba(75, 192, 192, 0.2)',
-                      'rgba(153, 102, 255, 0.2)',
-                      'rgba(255, 159, 64, 0.2)'
-                  ],
-                  borderColor: [
-                      'rgba(255, 99, 132, 1)',
-                      'rgba(54, 162, 235, 1)',
-                      'rgba(255, 206, 86, 1)',
-                      'rgba(75, 192, 192, 1)',
-                      'rgba(153, 102, 255, 1)',
-                      'rgba(255, 159, 64, 1)'
-                  ],
-                  borderWidth: 1
-              }]
-          },
-          options: {
-              scales: {
-                  y: {
-                      beginAtZero: true
-                  }
-              }
-          }
-      });
-    </script>
-  `,
-  context: 'Creating a bar chart using Chart.js',
-});
-```
-
-### Mathematical Processing Example
-Calculate the mean of a list of numbers:
-```javascript
 math({
-  expression: 'mean([1, 2, 3, 4, 5])',
+  expression: 'mean([1,2,3,4,5])'
 });
 ```
-
-### File System Operations Example
-Read the contents of a directory:
-```javascript
-file_tree({
-  path: 'src',
-  maxDepth: 2,
-});
-```
-
-### Code Execution Example
-Execute JavaScript code:
-```javascript
-code_executor({
-  code: 'console.log("Hello, World!");',
-});
-```
-
-## Interface Features
-
-- **Preview/Work Area Tabs:** Toggle between HTML preview and chat administration
-- **Improved Message Display:** Better formatting for tool usage and results
-- **State Management:** Centralized signal-based state handling
-- **Responsive Layout:** Adapts to different screen sizes
-- **Tool Integration:** Seamless tool execution and result display
-- **Directory Services:** Integrated user lookup and profile management
-- **Visualization System:** Advanced chart and graph generation
-- **File Operations:** Comprehensive file system interaction
 
 ---
 
-## Example Prompts
-
-search for something and display something interesting about it in html.
-
-Make me an amazing chart! I will show it to my fiends, and display your skills and craftsmanship at fine web design.
-
-Wait what happened, earlier you were making amazing charts. I told them how great they are. You can do better that that, really try to impress them.
-
-This is stunning but I know you can do more. Elevate it and take it to the next level.
-
-(@todo)
-- auto token generation
-- csv upload
-- refactor converse utils
-- add local database
-- add save project
+For more information about specific tools and their capabilities, refer to the `tools/README.md` file.

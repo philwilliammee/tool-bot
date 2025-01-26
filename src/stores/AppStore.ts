@@ -1,7 +1,7 @@
 // src/stores/AppStore.ts
 import { signal, computed, batch } from "@preact/signals-core";
 
-type TabId = "preview" | "work-area";
+type TabId = "preview" | "work-area" | "data";
 
 function createAppStore() {
   // Get initial tab state from localStorage or default to "preview"

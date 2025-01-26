@@ -4,6 +4,7 @@ import { store } from "../stores/AppStore";
 import { Toast } from "../components/Toast/Toast";
 import { effect } from "@preact/signals-core";
 import { ProjectManager } from "../components/ProjectManager/ProjectManager";
+import { DataArea } from "../components/DataArea/DataArea";
 
 export class MainApplication {
   private chat!: Chat;
@@ -16,6 +17,7 @@ export class MainApplication {
   private leftColumn!: HTMLElement;
   private toggleButton!: HTMLButtonElement;
   private projectManager: ProjectManager;
+  private dataArea: DataArea | null = null;
 
   constructor() {
     console.log("Initializing MainApplication");
@@ -155,6 +157,18 @@ export class MainApplication {
         localStorage.setItem("activeTab", store.activeTab.value);
       })
     );
+
+    effect(() => {
+      const activeTabId = store.activeTab.value;
+      if (activeTabId === "data") {
+        if (!this.dataArea) {
+          this.dataArea = new DataArea();
+        }
+      } else {
+        this.dataArea?.destroy();
+        this.dataArea = null;
+      }
+    });
   }
 
   public destroy(): void {
@@ -175,5 +189,7 @@ export class MainApplication {
     // Clean up panel state
     localStorage.removeItem("chatPanelCollapsed");
     this.projectManager.destroy();
+
+    this.dataArea?.destroy();
   }
 }
