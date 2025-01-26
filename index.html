@@ -345,21 +345,17 @@
             </div>
         </dialog>
 
-        <!-- Edit Modal: Update to include tags and rating -->
+        <!-- Edit Modal -->
         <dialog
             id="edit-modal"
             class="modal"
         >
             <div class="modal-content">
-                <h3>Edit Message</h3>
+                <h2 class="modal-title">Edit Message</h2>
                 <form class="edit-form">
                     <div class="form-group">
-                        <label for="messageContent">Message Content</label>
-                        <textarea
-                            id="messageContent"
-                            rows="4"
-                            required
-                        ></textarea>
+                        <label>Content Blocks</label>
+                        <div class="content-blocks-container"></div>
                     </div>
                     <div class="form-group">
                         <label for="messageTags">Tags (comma-separated)</label>
@@ -674,6 +670,62 @@
                     ×
                 </button>
             </span>
+        </template>
+
+        <!-- Content Block Editor Templates -->
+        <template id="content-block-editor-template">
+            <div class="content-blocks-list"></div>
+            <div class="block-actions">
+                <button
+                    type="button"
+                    class="btn btn-small btn-blue add-text-block"
+                >
+                    <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="16"
+                        height="16"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                    >
+                        <path d="M12 5v14M5 12h14"></path>
+                    </svg>
+                    Add Text Block
+                </button>
+            </div>
+        </template>
+
+        <template id="text-block-template">
+            <div class="content-block">
+                <div class="block-header">
+                    <span class="block-type">Text Block</span>
+                    <div class="block-actions">
+                        <button
+                            type="button"
+                            class="btn btn-small move-up"
+                        >
+                            ↑
+                        </button>
+                        <button
+                            type="button"
+                            class="btn btn-small move-down"
+                        >
+                            ↓
+                        </button>
+                        <button
+                            type="button"
+                            class="btn btn-small btn-danger delete-block"
+                        >
+                            ×
+                        </button>
+                    </div>
+                </div>
+                <textarea
+                    class="block-content"
+                    rows="4"
+                ></textarea>
+            </div>
         </template>
 
         <!-- Re-execute button template -->

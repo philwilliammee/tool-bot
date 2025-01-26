@@ -1288,3 +1288,69 @@ header {
   height: 100px;
   resize: vertical;
 }
+
+/* Content Block Editor Styles */
+.content-blocks-container {
+  border: 1px solid #e5e7eb;
+  border-radius: 0.375rem;
+  padding: 1rem;
+  margin-bottom: 1rem;
+}
+
+.content-blocks-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.content-block {
+  border: 1px solid #e5e7eb;
+  border-radius: 0.375rem;
+  padding: 1rem;
+  background: #f9fafb;
+}
+
+.block-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.block-type {
+  font-size: 0.875rem;
+  color: #6b7280;
+  font-weight: 500;
+}
+
+.block-actions {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.block-content {
+  width: 100%;
+  padding: 0.5rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.25rem;
+  resize: vertical;
+  font-family: inherit;
+  font-size: inherit;
+}
+
+.btn-small {
+  padding: 0.25rem 0.5rem;
+  font-size: 0.75rem;
+}
+
+.add-text-block {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.add-text-block svg {
+  width: 14px;
+  height: 14px;
+}

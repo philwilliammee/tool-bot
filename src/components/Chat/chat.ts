@@ -240,6 +240,24 @@ export class Chat {
     this.cleanupFns.push(cleanup);
   }
 
+  private handleGenerate = (e: MouseEvent): void => {
+    e.preventDefault();
+    if (store.isGenerating.value) return;
+
+    const prompt = this.promptInput.value.trim();
+    if (!prompt) {
+      store.showToast("Please type something before sending");
+      return;
+    }
+
+    converseStore.addMessage({
+      role: "user",
+      content: [{ text: prompt }],
+    });
+
+    this.promptInput.value = "";
+  };
+
   private setupEffects(): void {
     this.cleanupFns.push(
       effect(() => {
@@ -263,24 +281,6 @@ export class Chat {
     this.promptInput.value = prompt;
     store.clearPendingErrorPrompt();
   }
-
-  private handleGenerate = (e: MouseEvent): void => {
-    e.preventDefault();
-    if (store.isGenerating.value) return;
-
-    const prompt = this.promptInput.value.trim();
-    if (!prompt) {
-      store.showToast("Please type something before sending");
-      return;
-    }
-
-    converseStore.addMessage({
-      role: "user",
-      content: [{ text: prompt }],
-    });
-
-    this.promptInput.value = "";
-  };
 
   private handleKeyDown = (e: KeyboardEvent): void => {
     if (e.key === "Enter" && !e.shiftKey) {
