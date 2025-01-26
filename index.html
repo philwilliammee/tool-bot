@@ -38,11 +38,64 @@
                             >
                                 <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"></path>
                             </svg>
-                            <h1>AI Chat Assistant</h1>
+
+                            <div class="project-controls">
+                                <select
+                                    id="project-selector"
+                                    class="project-selector"
+                                >
+                                    <option value>Select Project</option>
+                                </select>
+                                <button
+                                    class="btn btn-blue new-project-btn"
+                                    title="New Project"
+                                >
+                                    <svg
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        width="16"
+                                        height="16"
+                                        viewBox="0 0 24 24"
+                                    >
+                                        <path
+                                            d="M12 5v14M5 12h14"
+                                            stroke="currentColor"
+                                            stroke-width="2"
+                                        ></path>
+                                    </svg>
+                                </button>
+                                <button
+                                    class="btn btn-blue manage-projects-btn"
+                                    title="Manage Projects"
+                                >
+                                    <svg
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        width="16"
+                                        height="16"
+                                        viewBox="0 0 24 24"
+                                    >
+                                        <path
+                                            d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"
+                                            stroke="currentColor"
+                                            stroke-width="2"
+                                        ></path>
+                                    </svg>
+                                </button>
+                            </div>
                         </div>
-                        <button class="toggle-panel-btn" title="Toggle Chat Panel">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M3 12h18M3 6h18M3 18h18"/>
+                        <button
+                            class="toggle-panel-btn"
+                            title="Toggle Chat Panel"
+                        >
+                            <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                width="24"
+                                height="24"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="2"
+                            >
+                                <path d="M3 12h18M3 6h18M3 18h18"></path>
                             </svg>
                         </button>
                     </header>
@@ -140,18 +193,27 @@
                                             >
                                         </div>
                                         <div class="filter-container">
-                                            <select id="role-filter" class="filter-select">
-                                                <option value="">All Roles</option>
+                                            <select
+                                                id="role-filter"
+                                                class="filter-select"
+                                            >
+                                                <option value>All Roles</option>
                                                 <option value="user">User</option>
                                                 <option value="assistant">Assistant</option>
                                             </select>
-                                            <select id="rating-filter" class="filter-select">
-                                                <option value="">All Ratings</option>
+                                            <select
+                                                id="rating-filter"
+                                                class="filter-select"
+                                            >
+                                                <option value>All Ratings</option>
                                                 <option value="1">Liked</option>
                                                 <option value="0">Not Liked</option>
                                             </select>
-                                            <select id="tool-filter" class="filter-select">
-                                                <option value="">All Messages</option>
+                                            <select
+                                                id="tool-filter"
+                                                class="filter-select"
+                                            >
+                                                <option value>All Messages</option>
                                                 <option value="any">Any Tool Use</option>
                                                 <option value="html">HTML Tool</option>
                                                 <option value="fetch_url">Fetch Tool</option>
@@ -159,7 +221,10 @@
                                                 <option value="ldap_search">LDAP Tool</option>
                                             </select>
                                             <label class="filter-checkbox-label">
-                                                <input type="checkbox" id="archived-filter">
+                                                <input
+                                                    type="checkbox"
+                                                    id="archived-filter"
+                                                >
                                                 Include Archived
                                             </label>
                                         </div>
@@ -269,8 +334,10 @@
                 </div>
                 <div class="modal-actions">
                     <button
-                        type="button"
+                        type="submit"
                         class="btn btn-blue close-btn"
+                        value="Novalidate close"
+                        formnovalidate
                     >
                         Close
                     </button>
@@ -316,8 +383,10 @@
                     </div>
                     <div class="modal-actions">
                         <button
-                            type="button"
+                            type="submit"
                             class="btn btn-danger cancel-btn"
+                            value="Novalidate close"
+                            formnovalidate
                         >
                             Cancel
                         </button>
@@ -380,8 +449,10 @@
                     </div>
                     <div class="modal-actions">
                         <button
-                            type="button"
+                            type="submit"
                             class="btn btn-danger cancel-btn"
+                            value="Novalidate close"
+                            formnovalidate
                         >
                             Cancel
                         </button>
@@ -395,6 +466,79 @@
                 </form>
             </div>
         </dialog>
+
+        <!-- Project Management Modal -->
+        <dialog
+            id="project-modal"
+            class="modal"
+        >
+            <div class="modal-content">
+                <h2>Manage Projects</h2>
+                <div class="project-list"></div>
+                <div class="modal-actions">
+                    <button class="btn btn-danger close-btn">Close</button>
+                </div>
+            </div>
+        </dialog>
+
+        <!-- New Project Form Modal -->
+        <dialog
+            id="project-form-modal"
+            class="modal"
+        >
+            <div class="modal-content">
+                <h2 class="modal-title">New Project</h2>
+                <form
+                    id="project-form"
+                    class="project-form"
+                    method="dialog"
+                >
+                    <div class="form-group">
+                        <label for="project-name">Project Name</label>
+                        <input
+                            type="text"
+                            id="project-name"
+                            required
+                        >
+                    </div>
+                    <div class="form-group">
+                        <label for="project-description">Description</label>
+                        <textarea id="project-description"></textarea>
+                    </div>
+                    <div class="modal-actions">
+                        <button
+                            type="submit"
+                            class="btn btn-danger cancel-btn"
+                            value="Novalidate close"
+                            formnovalidate
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            type="submit"
+                            class="btn btn-blue"
+                        >
+                            Save Project
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </dialog>
+
+        <!-- Project Item Template -->
+        <template id="project-item-template">
+            <div class="project-item">
+                <div class="project-info">
+                    <h3 class="project-name"></h3>
+                    <p class="project-meta"></p>
+                    <p class="project-description"></p>
+                </div>
+                <div class="project-actions">
+                    <button class="btn btn-small btn-blue select-btn">Select</button>
+                    <button class="btn btn-small btn-danger delete-btn">Delete</button>
+                </div>
+            </div>
+        </template>
 
         <!-- Basic message template -->
         <template id="chat-message-template">
