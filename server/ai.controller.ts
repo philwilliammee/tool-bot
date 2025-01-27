@@ -3,6 +3,8 @@ import express from "express";
 import { BedrockService } from "./bedrock/bedrock.service";
 import { OpenAIService } from "./openai/openai.service";
 
+// @todo type check process.env or find some other mechanism passed from the client for env variables.
+
 const router = express.Router();
 
 // Initialize the appropriate service based on environment variable
@@ -22,7 +24,7 @@ if (AI_CLIENT === "bedrock") {
 } else if (AI_CLIENT === "openai") {
   aiService = new OpenAIService({
     apiKey: process.env.OPENAI_API_SESSION_KEY || "",
-    baseUrl: process.env.OPENAI_API_BASE || "https://api.ai.it.cornell.edu",
+    baseUrl: process.env.OPENAI_API_BASE,
   });
 } else {
   throw new Error(`Unsupported AI client: ${AI_CLIENT}`);
