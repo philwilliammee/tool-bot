@@ -1,7 +1,7 @@
 {
   "name": "tool-bot",
   "private": true,
-  "version": "0.0.0",
+  "version": "0.0.1",
   "type": "module",
   "scripts": {
     "test": "vitest run",
@@ -29,6 +29,10 @@
     "ldapts": "^7.3.1",
     "marked": "^15.0.6",
     "mathjs": "^14.0.1",
+    "octokit": "^4.1.0",
     "openai": "^4.80.1"
+  },
+  "engines": {
+    "node": ">=20.6.0"
   }
 }
