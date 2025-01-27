@@ -117,10 +117,10 @@ This project supports multiple AI providers, including AWS Bedrock and OpenAI.
 - Statistical analysis
 
 ### 5. Integration Tools
-- **LDAP Tool**: Cornell directory integration
+- **LDAP Tool**: LDAP directory integration
 - **Fetch Tool**: Proxied HTTP requests with domain validation
 - Weather data access
-- Cornell services integration
+- LDAP services integration
 
 ### 6. Math Tool
 - Complex calculations

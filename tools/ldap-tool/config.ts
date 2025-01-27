@@ -5,7 +5,7 @@ export const ldapToolConfig: ToolConfiguration = {
     {
       toolSpec: {
         name: "ldap_search",
-        description: "Search for users in the Cornell LDAP directory",
+        description: "Search for users in the LDAP directory",
         inputSchema: {
           json: {
             type: "object",

@@ -4,12 +4,13 @@ import { Client, SearchOptions } from "ldapts";
 import { ldapConfig, LdapData, LdapSearchInput } from "./ldap.types";
 
 class LdapService {
-  private base = "ou=People,o=Cornell University,c=US";
+  private base: string;
   private cache: Map<string, LdapData[]> = new Map();
   private dn: string;
 
   constructor() {
-    this.dn = `uid=${ldapConfig.user},ou=Directory Administrators,o=Cornell University,c=US`;
+    this.dn = process.env.LDAP_DN || "";
+    this.base = process.env.LDAP_BASE || "";
   }
 
   public async searchUser(searchTerm: string): Promise<LdapData[]> {

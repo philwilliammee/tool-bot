@@ -11,7 +11,7 @@ export const testData = [
     role: "assistant",
     content: [
       {
-        text: "Hello! I'm here to help you. I have access to several tools that can help with:\n\n1. Fetching information from specific websites (especially Cornell-related content)\n2. Mathematical calculations\n3. Generating HTML visualizations\n4. Searching the Cornell directory for users\n\nWhat would you like assistance with?",
+        text: "Hello! I'm here to help you. I have access to several tools that can help with:\n\n1. Fetching information from specific websites\n2. Mathematical calculations\n3. Generating HTML visualizations\n4. Searching the LDAP directory for users\n\nWhat would you like assistance with?",
       },
     ],
   },
