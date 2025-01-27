@@ -12,7 +12,7 @@ export const ldapToolConfig: ToolConfiguration = {
             properties: {
               searchTerm: {
                 type: "string",
-                description: "Search term (name, username, or email)",
+                description: "Search term (uid, username, or email)",
                 minLength: 2,
               },
             },
