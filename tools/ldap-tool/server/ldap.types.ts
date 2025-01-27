@@ -18,7 +18,13 @@ export interface LdapSearchResponse {
 }
 
 // Load and validate environment variables
-const requiredEnvVars = ["LDAP_URL", "LDAP_USER", "LDAP_PASSWORD"] as const;
+const requiredEnvVars = [
+  "LDAP_URL",
+  "LDAP_USER",
+  "LDAP_PASSWORD",
+  "LDAP_BASE",
+  "LDAP_DN",
+] as const;
 
 requiredEnvVars.forEach((key) => {
   if (!process.env[key]) {
