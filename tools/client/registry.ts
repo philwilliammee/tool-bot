@@ -7,6 +7,7 @@ import { fetchTool } from "../fetch-tool/client/fetch.client";
 import { ldapTool } from "../ldap-tool/client/ldap.client";
 import { fileTreeTool } from "../file-tree-tool/client/file-tree.client";
 import { projectReaderTool } from "../project-reader-tool/client/project-reader.client";
+import { octokitTool } from "../octokit-tool/client/octokit.client";
 
 class ToolRegistry {
   private tools: ClientToolRegistry = {};
@@ -20,6 +21,7 @@ class ToolRegistry {
     this.registerTool(projectReaderTool);
     this.registerTool(fileWriterTool);
     this.registerTool(codeExecutorTool);
+    this.registerTool(octokitTool);
   }
 
   private registerTool(tool: ClientTool): void {
