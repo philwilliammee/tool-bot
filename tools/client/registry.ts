@@ -1,3 +1,4 @@
+import { dataStoreTool } from "./../data-store-tool/client/data-store.client";
 import { codeExecutorTool } from "./../code-executor/client/code-executor.client";
 import { fileWriterTool } from "./../file-writer/client/file-writer.client";
 import { ClientTool, ClientToolRegistry } from "./tool.interface";
@@ -8,7 +9,6 @@ import { ldapTool } from "../ldap-tool/client/ldap.client";
 import { fileTreeTool } from "../file-tree-tool/client/file-tree.client";
 import { projectReaderTool } from "../project-reader-tool/client/project-reader.client";
 import { octokitTool } from "../octokit-tool/client/octokit.client";
-
 // Make dataStore available globally for tools
 declare global {
   interface Window {
@@ -28,6 +28,7 @@ class ToolRegistry {
     this.registerTool(fileWriterTool);
     this.registerTool(codeExecutorTool);
     this.registerTool(octokitTool);
+    this.registerTool(dataStoreTool);
   }
 
   private registerTool(tool: ClientTool): void {

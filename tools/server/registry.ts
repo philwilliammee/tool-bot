@@ -1,3 +1,4 @@
+import { dataStoreConfig } from "./../data-store-tool/config";
 import { octokitConfig } from "./../octokit-tool/config.js";
 import { ToolConfiguration } from "@aws-sdk/client-bedrock-runtime";
 import { Router } from "express";
@@ -71,6 +72,7 @@ class ToolRegistry {
         ...(fileWriterConfig.tools || []),
         ...(codeExecutorConfig.tools || []),
         ...(octokitConfig.tools || []),
+        ...(dataStoreConfig.tools || []),
       ],
     };
   }

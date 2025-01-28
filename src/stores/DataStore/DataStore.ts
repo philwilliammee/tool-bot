@@ -1,18 +1,10 @@
 // src/stores/DataStore/DataStore.ts
 import { signal } from "@preact/signals-core";
-
-export interface DataObject {
-  name: string;
-  type: "csv" | "json";
-  data: any;
-  metadata: {
-    createdAt: number;
-    columns?: string[];
-    rowCount?: number;
-  };
-}
+import { DataObject } from "./DataStore.types";
 
 export function createDataStore() {
+  // Store both current view data and managed data objects
+  const dataMap = signal<Map<string, DataObject>>(new Map());
   const currentData = signal<DataObject | null>(null);
 
   const parseCSV = (content: string): { headers: string[]; data: any[] } => {
@@ -29,13 +21,14 @@ export function createDataStore() {
   };
 
   return {
-    async addFromFile(file: File): Promise<void> {
+    async addFromFile(file: File): Promise<string> {
       const content = await file.text();
       const isCSV = file.name.toLowerCase().endsWith(".csv");
 
       let data;
       let metadata: DataObject["metadata"] = {
         createdAt: Date.now(),
+        updatedAt: Date.now(),
       };
 
       if (isCSV) {
@@ -47,12 +40,23 @@ export function createDataStore() {
         data = JSON.parse(content);
       }
 
-      currentData.value = {
+      const id = crypto.randomUUID();
+      const dataObject: DataObject = {
+        id,
         name: file.name,
         type: isCSV ? "csv" : "json",
         data,
         metadata,
       };
+
+      // Store in both maps
+      dataMap.value.set(id, dataObject);
+      currentData.value = dataObject;
+
+      // Make data available for iframe/tools
+      window.availableData = dataObject.data;
+
+      return id;
     },
 
     getData(): DataObject | null {
@@ -63,8 +67,90 @@ export function createDataStore() {
       return currentData.value?.data || null;
     },
 
+    // Tool integration methods
+    storeData(key: string, data: any, metadata?: any): string {
+      const id = key || crypto.randomUUID();
+      const now = Date.now();
+
+      const dataObject: DataObject = {
+        id,
+        name: metadata?.name || `data_${id}`,
+        type: "json",
+        data,
+        metadata: {
+          createdAt: now,
+          updatedAt: now,
+          description: metadata?.description,
+          ...metadata,
+        },
+      };
+
+      dataMap.value.set(id, dataObject);
+      return id;
+    },
+
+    retrieveData(key: string): DataObject | null {
+      return dataMap.value.get(key) || null;
+    },
+
+    updateData(key: string, data: any, metadata?: any): boolean {
+      const existing = dataMap.value.get(key);
+      if (!existing) return false;
+
+      const updated: DataObject = {
+        ...existing,
+        data,
+        metadata: {
+          ...existing.metadata,
+          ...metadata,
+          updatedAt: Date.now(),
+        },
+      };
+
+      dataMap.value.set(key, updated);
+
+      // Update current data if this was the active dataset
+      if (currentData.value?.id === key) {
+        currentData.value = updated;
+        window.availableData = updated.data;
+      }
+
+      return true;
+    },
+
+    deleteData(key: string): boolean {
+      const wasDeleted = dataMap.value.delete(key);
+
+      // Clear current data if this was the active dataset
+      if (currentData.value?.id === key) {
+        currentData.value = null;
+        window.availableData = undefined;
+      }
+
+      return wasDeleted;
+    },
+
+    listData(): { id: string; name: string; type: string }[] {
+      return Array.from(dataMap.value.values()).map(({ id, name, type }) => ({
+        id,
+        name,
+        type,
+      }));
+    },
+
+    setActiveData(id: string): boolean {
+      const dataObject = dataMap.value.get(id);
+      if (!dataObject) return false;
+
+      currentData.value = dataObject;
+      window.availableData = dataObject.data;
+      return true;
+    },
+
     clear(): void {
+      dataMap.value.clear();
       currentData.value = null;
+      window.availableData = undefined;
     },
   };
 }
