@@ -135,23 +135,21 @@ export class Chat {
           ?.map((block) => {
             if (block.text) {
               return block.text;
-            } else if (block.toolResult) {
-              return `Tool Result:\n\`\`\`json\n${JSON.stringify(
-                block.toolResult,
-                null,
-                2
-              )}\n\`\`\``;
-            } else if (block.toolUse) {
-              return `Tool Use:\n\`\`\`json\n${JSON.stringify(
-                block.toolUse,
-                null,
-                2
-              )}\n\`\`\``;
+            } else if (block.toolResult || block.toolUse) {
+              const type = block.toolResult ? "Tool Result" : "Tool Use";
+              const content = block.toolResult || block.toolUse;
+              return {
+                type: type,
+                content: `\`\`\`json\n${JSON.stringify(
+                  content,
+                  null,
+                  2
+                )}\n\`\`\``,
+              };
             }
             return "";
           })
-          .filter(Boolean)
-          .join("\n\n");
+          .filter(Boolean);
 
         if (!messageContent) return null;
 
@@ -173,46 +171,69 @@ export class Chat {
           message.metadata.createdAt.toString()
         );
 
-        if (messageContent.length > 300) {
-          const isLatestAI = message.id === lastAssistant?.id;
-          const preview = document.createElement("div");
-          preview.className = "message-preview markdown-body";
-          preview.innerHTML = await marked(
-            messageContent.slice(0, 300) + "..."
-          );
+        // Check if this is the last assistant message
+        const isLatestAI = message.id === lastAssistant?.id;
 
-          const full = document.createElement("div");
-          full.className = "message-full-content markdown-body";
-          full.innerHTML = await marked(messageContent);
+        messageContent.forEach(async (content) => {
+          if (typeof content === "string") {
+            if (content.length > 300) {
+              const preview = document.createElement("div");
+              preview.className = "message-preview markdown-body";
+              preview.innerHTML = await marked(content.slice(0, 300) + "...");
 
-          const toggleBtn = document.createElement("button");
-          toggleBtn.className = "read-more-btn";
-          toggleBtn.textContent = isLatestAI ? "Show less" : "Read more";
+              const full = document.createElement("div");
+              full.className = "message-full-content markdown-body";
+              full.innerHTML = await marked(content);
 
-          toggleBtn.addEventListener("click", () => {
-            full.classList.toggle("hidden");
-            preview.classList.toggle("hidden");
-            toggleBtn.textContent = full.classList.contains("hidden")
-              ? "Read more"
-              : "Show less";
-          });
+              const toggleBtn = document.createElement("button");
+              toggleBtn.className = "read-more-btn";
+              toggleBtn.textContent = isLatestAI ? "Show less" : "Read more";
 
-          contentWrapper.appendChild(preview);
-          contentWrapper.appendChild(full);
-          contentWrapper.appendChild(toggleBtn);
+              toggleBtn.addEventListener("click", () => {
+                full.classList.toggle("hidden");
+                preview.classList.toggle("hidden");
+                toggleBtn.textContent = full.classList.contains("hidden")
+                  ? "Read more"
+                  : "Show less";
+              });
 
-          // Set initial visibility based on whether it's the latest AI message
-          if (isLatestAI) {
-            full.classList.remove("hidden");
-            preview.classList.add("hidden");
+              contentWrapper.appendChild(preview);
+              contentWrapper.appendChild(full);
+              contentWrapper.appendChild(toggleBtn);
+
+              // Set initial visibility based on whether it's the latest AI message
+              if (isLatestAI) {
+                full.classList.remove("hidden");
+                preview.classList.add("hidden");
+              } else {
+                full.classList.add("hidden");
+                preview.classList.remove("hidden");
+              }
+            } else {
+              contentWrapper.classList.add("markdown-body");
+              contentWrapper.innerHTML = await marked(content);
+            }
           } else {
-            full.classList.add("hidden");
-            preview.classList.remove("hidden");
+            // Tool content
+            const details = document.createElement("details");
+            details.className = "tool-disclosure";
+            // Open by default only if it's the latest AI message
+            details.open = isLatestAI;
+
+            const summary = document.createElement("summary");
+            summary.className = "tool-header";
+            // @todo add tool name
+            summary.textContent = content.type;
+
+            const contentDiv = document.createElement("div");
+            contentDiv.className = "tool-content markdown-body";
+            contentDiv.innerHTML = await marked(content.content);
+            contentWrapper.classList.add("markdown-body");
+            details.appendChild(summary);
+            details.appendChild(contentDiv);
+            contentWrapper.appendChild(details);
           }
-        } else {
-          contentWrapper.classList.add("markdown-body");
-          contentWrapper.innerHTML = await marked(messageContent);
-        }
+        });
 
         return msgElem;
       })
