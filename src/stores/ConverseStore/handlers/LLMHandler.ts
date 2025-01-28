@@ -34,7 +34,7 @@ export class LLMHandler {
     const sampleRecords = Array.isArray(data.data)
       ? data.data.slice(0, 5)
       : [data.data];
-
+    // @todo don't add this as a system prompt add it as a user prompt
     return `\nAvailable Data Structure:
 Parse as float: ${fields.float.join(", ")}
 Parse as integer: ${fields.integer.join(", ")}
