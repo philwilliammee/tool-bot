@@ -1,4 +1,4 @@
-import { dataStoreConfig } from "./../data-store-tool/config";
+import { dataStoreConfig } from "./../data-store-tool/config.js";
 import { octokitConfig } from "./../octokit-tool/config.js";
 import { ToolConfiguration } from "@aws-sdk/client-bedrock-runtime";
 import { Router } from "express";

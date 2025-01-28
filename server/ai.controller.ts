@@ -22,10 +22,7 @@ if (AI_CLIENT === "bedrock") {
     },
   });
 } else if (AI_CLIENT === "openai") {
-  aiService = new OpenAIService({
-    apiKey: process.env.OPENAI_API_SESSION_KEY || "",
-    baseUrl: process.env.OPENAI_API_BASE,
-  });
+  aiService = new OpenAIService();
 } else {
   throw new Error(`Unsupported AI client: ${AI_CLIENT}`);
 }
