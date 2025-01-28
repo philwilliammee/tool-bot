@@ -1,7 +1,7 @@
-import { ServerTool } from "../../server/tool.interface";
+import { ServerTool } from "../../server/tool.interface.js";
 import { Request, Response } from "express";
 import { Octokit } from "octokit";
-import { OctokitInput, OctokitResponse } from "../types";
+import { OctokitInput, OctokitResponse } from "../types.js";
 
 class OctokitService {
   private octokit: Octokit;
@@ -45,7 +45,7 @@ export const octokitTool: ServerTool = {
     try {
       const input: OctokitInput = req.body;
       const result = await octokitService.executeOperation(input);
-      
+
       if (result.error) {
         res.status(result.status || 500).json(result);
       } else {

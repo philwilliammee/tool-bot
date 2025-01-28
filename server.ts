@@ -1,17 +1,28 @@
 import express from "express";
-import { serverRegistry } from "./tools/server/registry";
-import aiRouter from "./server/ai.controller";
+import { serverRegistry } from "./tools/server/registry.js"; // Add .js extension
+import aiRouter from "./server/ai.controller.js"; // Add .js extension
+import path from 'path';
+import { fileURLToPath } from 'url';
 
-// DEVELOPMENT SERVER ONLY
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
 const app = express();
 app.use(express.json({ limit: "500mb" }));
 
-// Bedrock router
-app.use("/api/ai", aiRouter);
+// Serve static files from dist directory
+app.use(express.static(path.join(__dirname, '../dist')));
 
-// Tool routes - now using the server registry
+// API routes
+app.use("/api/ai", aiRouter);
 app.use("/api/tools", serverRegistry.getRouter());
 
-app.listen(3001, () => {
-  console.log("Dev Server running on http://localhost:3001");
+// Serve index.html for all other routes (SPA support)
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, '../dist', 'index.html'));
+});
+
+const PORT = process.env.PORT || 3001;
+app.listen(PORT, () => {
+  console.log(`Server running on http://localhost:${PORT} in ${process.env.NODE_ENV || 'development'} mode`);
 });

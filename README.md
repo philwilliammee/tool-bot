@@ -206,7 +206,9 @@ tools/
 - [ ] Converse utils refactoring
 - [ ] Local database implementation
 - [ ] Data object store completion
-- [ ] Tool use preparation for CSV upload
+- [ ] implement build:prod
+- [ ] Tools should be Mono repos
+
 
 ## Example Usage
 

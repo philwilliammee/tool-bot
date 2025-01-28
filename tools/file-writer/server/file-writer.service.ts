@@ -1,10 +1,10 @@
 // tools/file-writer/server/file-writer.service.ts
-import { ServerTool } from "../../server/tool.interface";
+import { ServerTool } from "../../server/tool.interface.js";
 import { Request, Response } from "express";
-import { FileWriterInput, FileWriterResponse } from "../types";
-import fs from "fs/promises";
-import path from "path";
-import { FILE_WRITER_CONFIG, isPathSafe } from "./file-writer.types";
+import { FileWriterInput } from "../types.js";
+import * as fs from "fs/promises";
+import * as path from "path";
+import { FILE_WRITER_CONFIG, isPathSafe } from "./file-writer.types.js";
 
 class FileWriterService {
   private async ensureDirectoryExists(filePath: string) {

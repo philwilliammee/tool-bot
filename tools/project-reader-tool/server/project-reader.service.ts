@@ -1,18 +1,18 @@
 // tools/project-reader-tool/server/project-reader.service.ts
-import { ServerTool } from "../../server/tool.interface";
+import { ServerTool } from "../../server/tool.interface.js";
 import { Request, Response } from "express";
 import {
   ProjectReaderInput,
   ProjectReaderResponse,
   FileContent,
-} from "../types";
+} from "../types.js";
 import {
   PROJECT_READER_CONFIG,
   isPathSafe,
   isBinaryFile,
-} from "./project-reader.types";
-import fs from "fs/promises";
-import path from "path";
+} from "./project-reader.types.js";
+import * as fs from "fs/promises";
+import * as path from "path";
 import { glob } from "glob";
 
 class ProjectReaderService {

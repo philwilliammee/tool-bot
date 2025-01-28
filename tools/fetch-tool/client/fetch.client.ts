@@ -1,5 +1,5 @@
 import { ClientTool } from "../../client/tool.interface";
-import { FetchToolInput, FetchToolResponse } from "../types";
+import { FetchToolInput, FetchToolResponse } from "../server/fetch.types";
 
 export const fetchTool: ClientTool = {
   name: "fetch_url",

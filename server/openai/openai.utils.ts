@@ -7,7 +7,7 @@ import type {
   ChatCompletionTool,
 } from "openai/resources/chat/completions";
 import { Message, ToolConfiguration } from "@aws-sdk/client-bedrock-runtime";
-import { FunctionParameters } from "openai/resources/shared.mjs";
+import { FunctionParameters } from "openai/src/resources/shared.js";
 
 export function transformToOpenAIMessage(
   msg: Message

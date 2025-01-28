@@ -1,10 +1,10 @@
 // tools/file-tree-tool/server/file-tree.service.ts
-import { ServerTool } from "../../server/tool.interface";
+import { ServerTool } from "../../server/tool.interface.js";
 import { Request, Response } from "express";
-import { FileTreeInput, FileTreeResponse, FileTreeNode } from "../types";
-import { FILE_TREE_CONFIG, isPathSafe } from "./file-tree.types";
-import fs from "fs/promises";
-import path from "path";
+import { FileTreeInput, FileTreeResponse, FileTreeNode } from "../types.js";
+import { FILE_TREE_CONFIG, isPathSafe } from "./file-tree.types.js";
+import * as fs from "fs/promises";
+import * as path from "path";
 
 class FileTreeService {
   private fileCount = 0;

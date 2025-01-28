@@ -21,5 +21,5 @@
     "noUncheckedSideEffectImports": true,
     "types": ["node", "vite/client"],
   },
-  "include": ["src", "vite-env.d.ts", "server.ts", "server"],
+  "include": ["src", "vite-env.d.ts", "server.ts", "server", "tsconfig.server.json"],
 }

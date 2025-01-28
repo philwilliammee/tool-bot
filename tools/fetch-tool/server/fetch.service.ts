@@ -1,6 +1,6 @@
-import { ServerTool } from "../../server/tool.interface";
+import { ServerTool } from "../../server/tool.interface.js";
 import { Request, Response } from "express";
-import { FETCH_CONFIG, FetchToolInput, FetchToolResponse } from "./fetch.types";
+import { FETCH_CONFIG, FetchToolInput, FetchToolResponse } from "./fetch.types.js";
 
 class FetchService {
   private isUrlAllowed(url: string): boolean {

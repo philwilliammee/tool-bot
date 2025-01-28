@@ -1,7 +1,7 @@
 // server/ai.controller.ts
 import express from "express";
-import { BedrockService } from "./bedrock/bedrock.service";
-import { OpenAIService } from "./openai/openai.service";
+import { BedrockService } from "./bedrock/bedrock.service.js";
+import { OpenAIService } from "./openai/openai.service.js";
 
 // @todo type check process.env or find some other mechanism passed from the client for env variables.
 

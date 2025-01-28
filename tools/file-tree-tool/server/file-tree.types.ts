@@ -1,5 +1,4 @@
 // tools/file-tree-tool/server/file-tree.types.ts
-import { FileTreeNode } from "../types";
 import path from "path";
 
 export const FILE_TREE_CONFIG = {

@@ -9,6 +9,12 @@ import { fileTreeTool } from "../file-tree-tool/client/file-tree.client";
 import { projectReaderTool } from "../project-reader-tool/client/project-reader.client";
 import { octokitTool } from "../octokit-tool/client/octokit.client";
 
+// Make dataStore available globally for tools
+declare global {
+  interface Window {
+    availableData?: Record<string, any>[];
+  }
+}
 class ToolRegistry {
   private tools: ClientToolRegistry = {};
 

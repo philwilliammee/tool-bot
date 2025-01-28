@@ -1,25 +1,25 @@
-import { octokitConfig } from "./../octokit-tool/config";
+import { octokitConfig } from "./../octokit-tool/config.js";
 import { ToolConfiguration } from "@aws-sdk/client-bedrock-runtime";
 import { Router } from "express";
-import { ServerToolRegistry, ServerTool } from "./tool.interface";
+import { ServerToolRegistry, ServerTool } from "./tool.interface.js";
 
 // Tool implementations
-import { fetchTool } from "../fetch-tool/server/fetch.service";
-import { ldapTool } from "../ldap-tool/server/ldap.service";
-import { fileTreeTool } from "../file-tree-tool/server/file-tree.service";
-import { projectReaderTool } from "../project-reader-tool/server/project-reader.service";
-import { fileWriterTool } from "../file-writer/server/file-writer.service";
-import { octokitTool } from "../octokit-tool/server/octokit.service";
+import { fetchTool } from "../fetch-tool/server/fetch.service.js";
+import { ldapTool } from "../ldap-tool/server/ldap.service.js";
+import { fileTreeTool } from "../file-tree-tool/server/file-tree.service.js";
+import { projectReaderTool } from "../project-reader-tool/server/project-reader.service.js";
+import { fileWriterTool } from "../file-writer/server/file-writer.service.js";
+import { octokitTool } from "../octokit-tool/server/octokit.service.js";
 
 // Tool configs
-import { fetchToolConfig } from "../fetch-tool/config";
-import { ldapToolConfig } from "../ldap-tool/config";
-import { htmlToolConfig } from "../html-tool/config";
-import { mathToolConfig } from "../math-tool/config";
-import { fileTreeConfig } from "../file-tree-tool/config";
-import { fileWriterConfig } from "./../file-writer/config";
-import { projectReaderConfig } from "../project-reader-tool/config";
-import { codeExecutorConfig } from "./../code-executor/config";
+import { fetchToolConfig } from "../fetch-tool/config.js";
+import { ldapToolConfig } from "../ldap-tool/config.js";
+import { htmlToolConfig } from "../html-tool/config.js";
+import { mathToolConfig } from "../math-tool/config.js";
+import { fileTreeConfig } from "../file-tree-tool/config.js";
+import { fileWriterConfig } from "./../file-writer/config.js";
+import { projectReaderConfig } from "../project-reader-tool/config.js";
+import { codeExecutorConfig } from "./../code-executor/config.js";
 
 class ToolRegistry {
   private tools: ServerToolRegistry = {};

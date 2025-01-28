@@ -1,0 +1,30 @@
+{
+  "compilerOptions": {
+    "moduleResolution": "NodeNext",
+    "module": "NodeNext",
+    "target": "ES2020",
+    "noEmit": false,
+    "outDir": "dist-server",
+    "allowSyntheticDefaultImports": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "types": ["node", "express"],
+    "rootDir": ".",
+
+    /* Linting */
+    "strict": true,
+    "noFallthroughCasesInSwitch": true,
+    "noUnusedLocals": false,
+    "noUnusedParameters": false
+  },
+  "include": [
+    "server.ts",
+    "server/**/*",
+    "tools/server/**/*"
+  ],
+  "exclude": [
+    "src/**/*",
+    "tools/**/client/**/*",
+    "**/**.test.ts"
+  ]
+}

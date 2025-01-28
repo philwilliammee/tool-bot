@@ -1,12 +1,12 @@
 // server/openai/openai.service.ts
 import OpenAI from "openai";
 import { ConverseResponse, Message } from "@aws-sdk/client-bedrock-runtime";
-import { serverRegistry } from "../../tools/server/registry";
+import { serverRegistry } from "../../tools/server/registry.js";
 import type { ChatCompletionMessageParam } from "openai/resources/chat/completions";
 import {
   transformToolsToOpenAIFormat,
   transformToOpenAIMessage,
-} from "./openai.utils";
+} from "./openai.utils.js";
 
 export interface OpenAIServiceConfig {
   apiKey: string;

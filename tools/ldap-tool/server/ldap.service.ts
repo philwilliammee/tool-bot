@@ -1,7 +1,7 @@
-import { ServerTool } from "../../server/tool.interface";
+import { ServerTool } from "../../server/tool.interface.js";
 import { Request, Response } from "express";
 import { Client, SearchOptions } from "ldapts";
-import { ldapConfig, LdapData, LdapSearchInput } from "./ldap.types";
+import { ldapConfig, LdapData, LdapSearchInput } from "./ldap.types.js";
 
 class LdapService {
   private base: string;

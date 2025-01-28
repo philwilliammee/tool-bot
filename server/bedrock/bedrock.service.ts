@@ -6,7 +6,7 @@ import {
   Message,
   SystemContentBlock,
 } from "@aws-sdk/client-bedrock-runtime";
-import { serverRegistry } from "../../tools/server/registry";
+import { serverRegistry } from "../../tools/server/registry.js";
 
 export interface BedrockServiceConfig {
   region: string;
