@@ -1,4 +1,4 @@
-# AI Chat Assistant
+# Tool-Bot
 
 REQUIRED: Node 20.6.0 or higher
 
@@ -63,9 +63,6 @@ This project supports multiple AI providers, including AWS Bedrock and OpenAI.
 ### Potential Future Integrations
 
 - Ollama (local inference)
-- Google Vertex AI
-- Anthropic Claude API
-- Other Open Source Models
 
 ## Technical Architecture
 

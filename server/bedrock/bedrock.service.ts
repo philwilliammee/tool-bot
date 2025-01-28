@@ -58,7 +58,7 @@ export class BedrockService {
         toolConfig: serverRegistry.getToolConfig(),
         inferenceConfig: {
           temperature: 0.7,
-          maxTokens: 8000,
+          maxTokens: 8000, // 128000 openai max tokens
         },
       };
 
