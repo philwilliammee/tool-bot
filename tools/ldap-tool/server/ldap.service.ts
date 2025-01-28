@@ -4,14 +4,7 @@ import { Client, SearchOptions } from "ldapts";
 import { ldapConfig, LdapData, LdapSearchInput } from "./ldap.types.js";
 
 class LdapService {
-  private base: string;
   private cache: Map<string, LdapData[]> = new Map();
-  private dn: string;
-
-  constructor() {
-    this.dn = process.env.LDAP_DN || "";
-    this.base = process.env.LDAP_BASE || "";
-  }
 
   public async searchUser(searchTerm: string): Promise<LdapData[]> {
     if (!searchTerm || searchTerm.length < 2) {
@@ -33,7 +26,7 @@ class LdapService {
     });
 
     try {
-      await client.bind(this.dn, ldapConfig.password);
+      await client.bind(ldapConfig.dn, ldapConfig.password);
 
       const ldapSearchOptions: SearchOptions = {
         scope: "sub",
@@ -43,7 +36,7 @@ class LdapService {
       };
 
       const { searchEntries } = await client.search(
-        this.base,
+        ldapConfig.base,
         ldapSearchOptions
       );
       const entries = searchEntries as LdapData[];

@@ -2,6 +2,8 @@ export interface LdapConfig {
   url: string;
   user: string;
   password: string;
+  dn: string;
+  base: string;
 }
 
 export type LdapData = Record<string, string>;
@@ -36,6 +38,8 @@ export const ldapConfig: LdapConfig = {
   url: process.env.LDAP_URL!,
   user: process.env.LDAP_USER!,
   password: process.env.LDAP_PASSWORD!,
+  base: process.env.LDAP_BASE!,
+  dn: process.env.LDAP_DN!,
 };
 
 Object.freeze(ldapConfig);
