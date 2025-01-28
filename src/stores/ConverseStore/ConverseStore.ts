@@ -8,7 +8,7 @@ import { ToolHandler } from "./handlers/ToolHandler";
 import { determineActiveMessageRange } from "./utils/messageUtils";
 import { projectStore } from "../ProjectStore/ProjectStore";
 
-const DEFAULT_THRESHOLD = 15; // @todo make this sliding scaled based on token length.
+const DEFAULT_THRESHOLD = 10; // @todo make this sliding scaled based on token length.
 
 export class ConverseStore {
   private messageManager: MessageManager;

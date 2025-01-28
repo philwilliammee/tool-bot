@@ -22,17 +22,17 @@ class LdapService {
 
     const client = new Client({
       url: ldapConfig.url,
-      connectTimeout: 10000,
+      connectTimeout: 30000,
     });
 
     try {
       await client.bind(ldapConfig.dn, ldapConfig.password);
 
       const ldapSearchOptions: SearchOptions = {
-        scope: "sub",
+        scope: "one", // 'sub' for subtree
         filter,
         sizeLimit: 100,
-        timeLimit: 60,
+        timeLimit: 30,
       };
 
       const { searchEntries } = await client.search(

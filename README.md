@@ -22,37 +22,34 @@ An AI-powered chat bot that can help with various tasks through natural language
 
 ## Quick Start
 
-1. Clone and setup environment:
+1. **Clone and setup environment**:
+    ```bash
+    git clone https://github.com/philwilliammee/tool-bot
+    cd tool-bot
+    cp example.env .env
+    ```
 
-```bash
-git clone https://github.com/philwilliammee/tool-bot
-cd tool-bot
-cp example.env .env
-```
+2. **Configure your credentials in `.env`**:
+    ```bash
+    # For AWS Bedrock
+    AWS_REGION=your-aws-region
+    VITE_BEDROCK_MODEL_ID=your-model-id
+    AWS_ACCESS_KEY=your-aws-access-key
+    AWS_SECRET_KEY=your-aws-secret-key
 
-2. Configure your credentials in `.env`:
+    # For OpenAI
+    AI_CLIENT=openai
+    OPENAI_API_SESSION_KEY=your-openai-api-key
+    OPENAI_API_BASE=https://api.openai.com
+    ```
 
-```bash
-# For AWS Bedrock
-AWS_REGION=your-aws-region
-VITE_BEDROCK_MODEL_ID=your-model-id
-AWS_ACCESS_KEY=your-aws-access-key
-AWS_SECRET_KEY=your-aws-secret-key
+3. **Install and run**:
+    ```bash
+    npm install
+    npm run dev
+    ```
 
-# For OpenAI
-AI_CLIENT=openai
-OPENAI_API_SESSION_KEY=your-openai-api-key
-OPENAI_API_BASE=https://api.openai.com
-```
-
-3. Install and run:
-
-```bash
-npm install
-npm run dev
-```
-
-4. Open `http://localhost:5173` in your browser
+4. **Open** `http://localhost:5173` in your browser
 
 ## API Integration
 
@@ -96,7 +93,7 @@ This project supports multiple AI providers, including AWS Bedrock and OpenAI.
 - Sandboxed JavaScript execution
 - Support for popular libraries (Lodash, Moment, Chart.js, Math.js, D3.js)
 - Timeout management
-- Access to uploaded data via window.availableData
+- Access to uploaded data via `window.availableData`
 
 ### 2. HTML Tool
 - Advanced visualization rendering
@@ -128,6 +125,23 @@ This project supports multiple AI providers, including AWS Bedrock and OpenAI.
 - Matrix operations
 - Unit conversions
 
+### 7. GitHub Integration (New)
+- Execute GitHub API operations using Octokit
+- Support for both REST API and GraphQL queries
+- Authentication support via GitHub tokens
+- Error handling and response management
+- Example usage:
+  ```javascript
+  // Fetch repository information
+  octokit({
+    operation: "GET /repos/{owner}/{repo}",
+    parameters: {
+      owner: "octokit",
+      repo: "octokit.js"
+    }
+  });
+  ```
+
 ## Development Status
 
 ### Recent Updates ✅
@@ -139,6 +153,7 @@ This project supports multiple AI providers, including AWS Bedrock and OpenAI.
 - Type-safe tool implementations
 - Project structure reorganization
 - Error handling improvements
+- Added GitHub API integration via Octokit
 
 ### Current Focus 🚧
 - Data store implementation for visualization
@@ -170,22 +185,55 @@ tools/
     └── types.ts        # Type definitions
 ```
 
+## Adding Tool Dependencies
+
+For simplicity, this project uses a **single** `package.json` at the root to manage *all* dependencies (including those for tools).
+- **When adding a new tool**, place any required library dependencies in the **root** `package.json`.
+- Then `npm install` (or `npm install <lib> --save`) from the project root to make the new dependency available.
+- Each tool can import its dependencies directly from the root `node_modules`.
+
+This keeps setup simpler by avoiding multiple package.json files spread across various tool folders.
+
+## Build & Run
+
+Below are the main scripts from `package.json`. You can run them from the root folder:
+
+| Script         | Description                                                                  |
+| -------------- | ---------------------------------------------------------------------------- |
+| **`dev`**      | Starts both the client (Vite) and server (Nodemon) in development mode        |
+| **`build`**    | Builds client (`vite build`) and then compiles server to `dist-server/`       |
+| **`start:dev`**| Runs the compiled server from `dist-server/server.js` in development mode     |
+| **`start:prod`**| Same as above but sets `NODE_ENV=production` and uses `.env` at runtime       |
+| **`clean`**    | Deletes the `dist` and `dist-server` folders                                  |
+| **`preview`**  | Serves the production-built client at `http://localhost:4173`                 |
+
+Examples:
+
+```bash
+# Development (client + server):
+npm run dev
+
+# Production build:
+npm run build
+npm run start:prod
+```
+
 ## Best Practices
 
-1. Tool Development
+1. **Tool Development**
    - Follow standard configuration format
    - Implement proper error handling
    - Use TypeScript for type safety
    - Document capabilities and limitations
 
-2. Security
+2. **Security**
    - Sandbox code execution
    - Validate all inputs
    - Implement timeouts
    - Control server access
    - Sanitize outputs
 
-3. Data Handling
+3. **Data Handling**
    - Validate data types
    - Handle missing values
    - Process CSV strings appropriately
@@ -206,9 +254,6 @@ tools/
 - [ ] Converse utils refactoring
 - [ ] Local database implementation
 - [ ] Data object store completion
-- [ ] implement build:prod
-- [ ] Tools should be Mono repos
-
 
 ## Example Usage
 
