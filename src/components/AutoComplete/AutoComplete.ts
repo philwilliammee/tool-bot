@@ -28,6 +28,7 @@ export class HybridAutocomplete {
     search: ["ldap for netid", "directory for user", "for person"],
     display: ["a interesting visualization of the data"],
     show: [
+      "me something about math that you may not think I know",
       "me something interesting about math",
       "me something that you think I may not know",
       "me the current weather forecast for ",
@@ -36,6 +37,18 @@ export class HybridAutocomplete {
       "look them up in CIT website by last name. Create a full web page about them, outlining their accomplishment",
     ],
     what: ["can you do?"],
+    generate: [
+      "a example html page",
+      "the iconic snake game! explain the user interface and keybord commands",
+    ],
+    question: [
+      `A surveyor wants to know the height of a skyscraper. He places his inclinometer on a tripod 1m from the ground. At a distance of 50m from the skyscraper, he records an angle of elevation of 82∘.
+
+What is the height of the skyscraper? Give your answer to one decimal place.
+Generate the final output in html format using a chart to show the height of the syscraper and angle of elevation. Make sure to show your work format all calculations with latex.
+`,
+      `A builder is constructing a roof. The wood he is using for the sloped section of the roof is 4m long and the peak of the roof needs to be 2m high. What angle should the piece of wood make with the base of the roof?`,
+    ],
   };
 
   constructor(private textarea: HTMLTextAreaElement) {
