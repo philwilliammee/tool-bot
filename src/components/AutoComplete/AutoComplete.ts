@@ -4,6 +4,7 @@ export class HybridAutocomplete {
   private currentSelection = -1;
 
   // Hard-coded expansions, or you might accept them from the parent
+  // @todo load these from message array.
   readonly expansionsMap: Record<string, string[]> = {
     show: [
       "me the data",
@@ -155,6 +156,7 @@ export class HybridAutocomplete {
   /**
    * Insert only the last word with `suggestion`, plus a trailing space.
    * Then if the suggestion is recognized as a command, we show expansions immediately.
+   * Only a few minor issues here where sometimes the preceding word is replaced by the recommendation if it has no space after it.
    */
   public selectSuggestion(suggestion: string): void {
     if (!suggestion) return;
