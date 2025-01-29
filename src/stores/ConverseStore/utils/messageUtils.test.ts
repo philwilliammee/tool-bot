@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { Message } from "@aws-sdk/client-bedrock-runtime";
+import { ContentBlock, Message } from "@aws-sdk/client-bedrock-runtime";
 import { testData as Data } from "./conversationTestData";
 import { extendMessages } from "./messageUtils";
 
@@ -32,7 +32,7 @@ describe("extendMessages", () => {
 
     // Test a more complex message (HTML tool use)
     const htmlMessage = extended.find((msg) =>
-      msg.content?.some((block) => block.toolUse?.name === "html")
+      msg.content?.some((block: ContentBlock) => block.toolUse?.name === "html")
     );
     expect(htmlMessage?.content?.[0].text).toContain(
       "I'll create an engaging HTML presentation"

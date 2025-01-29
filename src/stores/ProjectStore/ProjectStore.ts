@@ -173,7 +173,7 @@ export class ProjectStore {
   }
 
   private saveMetadata(): void {
-    console.log("Saving project metadata:", this.metadata);
+    console.log("Saving project metadata:");
     localStorage.setItem(
       ProjectStore.METADATA_KEY,
       JSON.stringify(this.metadata)

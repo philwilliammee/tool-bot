@@ -8,8 +8,6 @@ import { ToolHandler } from "./handlers/ToolHandler";
 import { determineActiveMessageRange } from "./utils/messageUtils";
 import { projectStore } from "../ProjectStore/ProjectStore";
 
-const DEFAULT_THRESHOLD = 10; // @todo make this sliding scaled based on token length.
-
 export class ConverseStore {
   private messageManager: MessageManager;
   private llmHandler: LLMHandler;
@@ -17,9 +15,9 @@ export class ConverseStore {
   private messageChangeCallbacks: Array<(msgs: MessageExtended[]) => void> = [];
   private projectId: string | null = null;
 
-  constructor(threshold: number = DEFAULT_THRESHOLD) {
-    console.log("Initializing ConverseStore with threshold:", threshold);
-    this.messageManager = new MessageManager(threshold);
+  constructor() {
+    console.log("Initializing ConverseStore with threshold:");
+    this.messageManager = new MessageManager();
     this.llmHandler = new LLMHandler();
     this.toolHandler = new ToolHandler();
 

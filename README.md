@@ -207,12 +207,11 @@ Below are the main scripts from `package.json`. You can run them from the root f
 Examples:
 
 ```bash
-# Development (client + server):
+# Development (HMR Vite client + Nodemon server):
 npm run dev
 
-# Production build:
-npm run build
-npm run start:prod
+# Production build (static client + server):
+npm run deploy
 ```
 
 ## Best Practices
@@ -246,11 +245,13 @@ npm run start:prod
 
 ## Current Tasks
 
-- [ ] Auto token generation
 - [ ] CSV upload refinements
 - [ ] Converse utils refactoring
 - [ ] Local database implementation
-- [ ] Data object store completion
+- [x] sliding token limits
+- [ ] background task chat summarization
+- [ ] fix admin colspan in messages table
+- [ ] improved Message edit and monaco-editor
 
 ## Example Usage
 
