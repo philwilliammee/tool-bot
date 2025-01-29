@@ -35,6 +35,7 @@ export class HybridAutocomplete {
     then: [
       "look them up in CIT website by last name. Create a full web page about them, outlining their accomplishment",
     ],
+    what: ["can you do?"],
   };
 
   constructor(private textarea: HTMLTextAreaElement) {
