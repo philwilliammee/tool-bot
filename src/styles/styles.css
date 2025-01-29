@@ -1465,3 +1465,26 @@ header {
   border-radius: 0.5rem;
   padding: 2rem;
 }
+
+/* autocomplete styles */
+.suggestion-box {
+  position: absolute;
+  z-index: 9999;
+  display: none;
+  background-color: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.375rem;
+  max-height: 40px;
+  overflow-y: auto;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+}
+
+.suggestion-item {
+  padding: 0.5rem;
+  cursor: pointer;
+}
+
+.suggestion-item.selected,
+.suggestion-item:hover {
+  background-color: #e5e7eb;
+}
