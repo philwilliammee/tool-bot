@@ -243,16 +243,20 @@
                                                 <option value="1">Liked</option>
                                                 <option value="0">Not Liked</option>
                                             </select>
-                                            <select
-                                                id="tool-filter"
-                                                class="filter-select"
-                                            >
+                                            <select id="tool-filter" class="filter-select">
+                                                <!-- @todo these values should be dynamic from client tool config -->
                                                 <option value>All Messages</option>
                                                 <option value="any">Any Tool Use</option>
                                                 <option value="html">HTML Tool</option>
                                                 <option value="fetch_url">Fetch Tool</option>
                                                 <option value="math">Math Tool</option>
                                                 <option value="ldap_search">LDAP Tool</option>
+                                                <option value="octokit">GitHub Integration Tool</option>
+                                                <option value="code_executor">Code Executor Tool</option>
+                                                <option value="file_tree">File Tree Tool</option>
+                                                <option value="project_reader">Project Reader Tool</option>
+                                                <option value="file_writer">File Writer Tool</option>
+                                                <option value="data_store">Data Store Tool</option>
                                             </select>
                                             <label class="filter-checkbox-label">
                                                 <input
