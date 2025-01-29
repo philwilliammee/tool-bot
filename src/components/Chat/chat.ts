@@ -1,6 +1,7 @@
+import { HybridAutocomplete } from "./../AutoComplete/AutoComplete";
 import { ButtonSpinner } from "../ButtonSpinner/ButtonSpinner";
 import { store } from "../../stores/AppStore";
-import { effect } from "@preact/signals-core";
+import { effect, signal } from "@preact/signals-core";
 import { WorkArea } from "../WorkArea/WorkArea";
 import { converseStore } from "../../stores/ConverseStore/ConverseStore";
 import { MessageExtended } from "../../app.types";
@@ -17,10 +18,8 @@ declare global {
 
 // Configure marked for safe rendering
 marked.setOptions({
-  gfm: true, // GitHub Flavored Markdown
-  breaks: true, // Convert \n to <br>
-  // smartLists: true,
-  // smartypants: true,
+  gfm: true,
+  breaks: true,
 });
 
 interface ChatDependencies {
@@ -34,7 +33,13 @@ export class Chat {
   private button!: HTMLButtonElement;
   private workArea: HTMLElement;
   private cleanupFns: Array<() => void> = [];
-  private initialized: boolean = false;
+  private initialized = false;
+
+  // "Dumb" autocomplete (no internal text-area listeners)
+  private autocomplete: HybridAutocomplete | null = null;
+
+  // This signal tracks the text in our textarea
+  private inputValue = signal("");
 
   constructor(dependencies: ChatDependencies) {
     this.workArea = dependencies.workArea;
@@ -47,12 +52,18 @@ export class Chat {
       // Initialize WorkArea
       new WorkArea(this.workArea);
 
-      // Get DOM elements
+      // DOM
       this.initializeDOMElements();
       this.initializeButtonSpinner();
       this.setupPromptActions();
 
+      // Render
       this.render();
+
+      // Single input & keydown
+      this.setupPromptListeners();
+
+      // Additional store listeners/effects
       this.setupEventListeners();
       this.setupEffects();
     } catch (error) {
@@ -66,10 +77,178 @@ export class Chat {
       ".prompt-input"
     ) as HTMLTextAreaElement;
     this.chatMessages = document.querySelector(".chat-messages") as HTMLElement;
-
     if (!this.promptInput || !this.chatMessages) {
       throw new Error("Required DOM elements not found");
     }
+
+    // Create HybridAutocomplete
+    this.autocomplete = new HybridAutocomplete(this.promptInput);
+  }
+
+  private setupPromptListeners(): void {
+    // 1) On input => update signal
+    const onInput = () => {
+      this.inputValue.value = this.promptInput.value;
+    };
+    this.promptInput.addEventListener("input", onInput);
+    this.cleanupFns.push(() => {
+      this.promptInput.removeEventListener("input", onInput);
+    });
+
+    // 2) Single keydown => arrow nav, Enter, etc.
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (!this.autocomplete) return;
+
+      if (this.autocomplete.isVisible()) {
+        switch (e.key) {
+          case "ArrowDown":
+            e.preventDefault();
+            this.autocomplete.moveSelection(1);
+            break;
+          case "ArrowUp":
+            e.preventDefault();
+            this.autocomplete.moveSelection(-1);
+            break;
+          case "Enter":
+            if (this.hasHighlightedSuggestion()) {
+              e.preventDefault();
+              e.stopPropagation();
+              this.autocomplete.selectCurrent();
+            }
+            break;
+          case "Escape":
+            this.autocomplete.hideSuggestions();
+            break;
+        }
+      } else {
+        // If no suggestions => Enter => send message
+        if (e.key === "Enter" && !e.shiftKey) {
+          e.preventDefault();
+          this.handleGenerate();
+        }
+      }
+    };
+    this.promptInput.addEventListener("keydown", onKeyDown);
+    this.cleanupFns.push(() => {
+      this.promptInput.removeEventListener("keydown", onKeyDown);
+    });
+
+    // 3) Document click => hide suggestions if outside
+    const onDocumentClick = (ev: MouseEvent) => {
+      const target = ev.target as Node;
+      if (
+        this.autocomplete?.isVisible() &&
+        !this.promptInput.contains(target) &&
+        !this.autocomplete.suggestionBoxContains(target)
+      ) {
+        this.autocomplete.hideSuggestions();
+      }
+    };
+    document.addEventListener("click", onDocumentClick);
+    this.cleanupFns.push(() => {
+      document.removeEventListener("click", onDocumentClick);
+    });
+  }
+
+  private hasHighlightedSuggestion(): boolean {
+    // If your HybridAutocomplete has a public getter for currentSelection >= 0,
+    // you can use that. For now, just assume there's a highlight if visible.
+    return true;
+  }
+
+  private setupEventListeners(): void {
+    const cleanupMessagesChange = converseStore.onMessagesChange(() => {
+      this.render();
+    });
+    this.cleanupFns.push(cleanupMessagesChange);
+  }
+
+  private setupEffects(): void {
+    // 1) Show/hide spinner while generating
+    this.cleanupFns.push(
+      effect(() => {
+        const isGenerating = store.isGenerating.value;
+        this.promptInput.disabled = isGenerating;
+        isGenerating ? this.buttonSpinner.show() : this.buttonSpinner.hide();
+      })
+    );
+
+    // 2) If there's a pendingErrorPrompt, fill & clear
+    this.cleanupFns.push(
+      effect(() => {
+        const errorPrompt = store.pendingErrorPrompt.value;
+        if (errorPrompt) {
+          this.handleErrorPrompt(errorPrompt);
+        }
+      })
+    );
+
+    // 3) Show/hide suggestions (based on last word)
+    this.cleanupFns.push(
+      effect(() => {
+        if (!this.autocomplete) return;
+        const text = this.inputValue.value;
+        const lastWord = this.getLastWord(text);
+        if (lastWord.length >= 2) {
+          const suggestions = this.getSuggestions(lastWord);
+          if (suggestions.length) {
+            this.autocomplete.showSuggestions(suggestions);
+          } else {
+            this.autocomplete.hideSuggestions();
+          }
+        } else {
+          this.autocomplete.hideSuggestions();
+        }
+      })
+    );
+  }
+
+  /**
+   * Trim trailing spaces so "show " => "show".
+   */
+  private getLastWord(text: string): string {
+    const trimmed = text.trimEnd(); // remove trailing spaces
+    if (!trimmed) return "";
+    const parts = trimmed.split(/\s+/);
+    return parts[parts.length - 1]?.toLowerCase() ?? "";
+  }
+
+  /**
+   * Example "dumb" logic: if user typed a known command in full,
+   * show expansions. Otherwise show partial commands.
+   */
+  private getSuggestions(word: string): string[] {
+    const expansions = this.autocomplete?.expansionsMap ?? {};
+    const commands = Object.keys(expansions);
+
+    if (commands.includes(word)) {
+      return expansions[word];
+    }
+    return commands.filter((cmd) => cmd.startsWith(word));
+  }
+
+  private handleGenerate(): void {
+    if (store.isGenerating.value) return;
+
+    const prompt = this.inputValue.value.trim();
+    if (!prompt) {
+      store.showToast("Please type something before sending");
+      return;
+    }
+    converseStore.addMessage({
+      role: "user",
+      content: [{ text: prompt }],
+    });
+
+    // Clear
+    this.inputValue.value = "";
+    this.promptInput.value = "";
+  }
+
+  private async handleErrorPrompt(prompt: string) {
+    this.inputValue.value = prompt;
+    this.promptInput.value = prompt;
+    store.clearPendingErrorPrompt();
   }
 
   private setupPromptActions(): void {
@@ -91,7 +270,7 @@ export class Chat {
           const id = await dataStore.addFromFile(file);
           store.showToast(`Data uploaded: ${file.name}`);
           console.log("Data available with ID:", id);
-          fileInput.value = ""; // Reset input
+          fileInput.value = ""; // Reset
         } catch (error: any) {
           store.showToast(`Upload failed: ${error.message}`);
           console.error("Upload failed:", error);
@@ -109,7 +288,6 @@ export class Chat {
     if (!this.initialized) {
       this.initialized = true;
     }
-
     if (this.chatMessages) {
       const messages = converseStore.getMessages();
       this.renderMessages(messages);
@@ -119,39 +297,31 @@ export class Chat {
   private async renderMessages(messages: MessageExtended[]): Promise<void> {
     this.chatMessages.innerHTML = "";
 
-    // Sort messages by createdAt timestamp
+    // Sort by timestamp
     const sortedMessages = [...messages].sort(
       (a, b) => a.metadata.createdAt - b.metadata.createdAt
     );
-
-    // console.log(sortedMessages);
-
     const lastAssistant = this.findLastAssistant(sortedMessages);
 
-    // Process all messages first
-    const processedMessages = await Promise.all(
+    // Process messages
+    const processed = await Promise.all(
       sortedMessages.map(async (message) => {
-        const messageContent = message.content
+        const contentBlocks = message.content
           ?.map((block) => {
-            if (block.text) {
-              return block.text;
-            } else if (block.toolResult || block.toolUse) {
+            if (block.text) return block.text;
+            if (block.toolResult || block.toolUse) {
               const type = block.toolResult ? "Tool Result" : "Tool Use";
-              const content = block.toolResult || block.toolUse;
+              const c = block.toolResult || block.toolUse;
               return {
-                type: type,
-                content: `\`\`\`json\n${JSON.stringify(
-                  content,
-                  null,
-                  2
-                )}\n\`\`\``,
+                type,
+                content: `\`\`\`json\n${JSON.stringify(c, null, 2)}\n\`\`\``,
               };
             }
             return "";
           })
           .filter(Boolean);
 
-        if (!messageContent) return null;
+        if (!contentBlocks) return null;
 
         const templateId = `${message.role}-message-template`;
         const template = document.getElementById(
@@ -160,23 +330,22 @@ export class Chat {
         if (!template) return null;
 
         const msgElem = template.content.cloneNode(true) as HTMLElement;
-        const contentWrapper = msgElem.querySelector(
-          ".message-content-wrapper"
-        );
-        if (!contentWrapper) return null;
+        const wrapper = msgElem.querySelector(".message-content-wrapper");
+        if (!wrapper) return null;
 
-        contentWrapper.setAttribute("data-message-id", message.id);
-        contentWrapper.setAttribute(
+        wrapper.setAttribute("data-message-id", message.id);
+        wrapper.setAttribute(
           "data-timestamp",
           message.metadata.createdAt.toString()
         );
 
-        // Check if this is the last assistant message
         const isLatestAI = message.id === lastAssistant?.id;
 
-        messageContent.forEach(async (content) => {
+        // Insert content
+        for (const content of contentBlocks) {
           if (typeof content === "string") {
             if (content.length > 300) {
+              // show partial
               const preview = document.createElement("div");
               preview.className = "message-preview markdown-body";
               preview.innerHTML = await marked(content.slice(0, 300) + "...");
@@ -197,11 +366,10 @@ export class Chat {
                   : "Show less";
               });
 
-              contentWrapper.appendChild(preview);
-              contentWrapper.appendChild(full);
-              contentWrapper.appendChild(toggleBtn);
+              wrapper.appendChild(preview);
+              wrapper.appendChild(full);
+              wrapper.appendChild(toggleBtn);
 
-              // Set initial visibility based on whether it's the latest AI message
               if (isLatestAI) {
                 full.classList.remove("hidden");
                 preview.classList.add("hidden");
@@ -210,59 +378,53 @@ export class Chat {
                 preview.classList.remove("hidden");
               }
             } else {
-              contentWrapper.classList.add("markdown-body");
-              contentWrapper.innerHTML = await marked(content);
+              // short text
+              wrapper.classList.add("markdown-body");
+              wrapper.innerHTML = await marked(content);
             }
           } else {
             // Tool content
             const details = document.createElement("details");
             details.className = "tool-disclosure";
-            // Open by default only if it's the latest AI message
             details.open = isLatestAI;
 
             const summary = document.createElement("summary");
             summary.className = "tool-header";
-            // @todo add tool name
             summary.textContent = content.type;
 
-            const contentDiv = document.createElement("div");
-            contentDiv.className = "tool-content markdown-body";
-            contentDiv.innerHTML = await marked(content.content);
-            contentWrapper.classList.add("markdown-body");
-            details.appendChild(summary);
-            details.appendChild(contentDiv);
-            contentWrapper.appendChild(details);
-          }
-        });
+            const cDiv = document.createElement("div");
+            cDiv.className = "tool-content markdown-body";
+            cDiv.innerHTML = await marked(content.content);
 
+            wrapper.classList.add("markdown-body");
+            details.appendChild(summary);
+            details.appendChild(cDiv);
+            wrapper.appendChild(details);
+          }
+        }
         return msgElem;
       })
     );
 
-    // Filter out null results and add all messages to DOM at once
-    const validMessages = processedMessages.filter(
-      (msg): msg is HTMLElement => msg !== null
-    );
-    validMessages.forEach((msgElem) => {
-      this.chatMessages.appendChild(msgElem);
+    const valid = processed.filter((n): n is HTMLElement => n !== null);
+    valid.forEach((elem) => {
+      this.chatMessages.appendChild(elem);
     });
 
-    // Process code blocks
+    // Syntax highlight if available
     this.chatMessages.querySelectorAll("pre code").forEach((block) => {
       if (window.hljs) {
         window.hljs.highlightElement(block as HTMLElement);
       }
     });
 
-    requestAnimationFrame(() => {
-      this.scrollToBottom();
-    });
+    // Scroll down
+    requestAnimationFrame(() => this.scrollToBottom());
   }
 
   private findLastAssistant(
     messages: MessageExtended[]
   ): MessageExtended | undefined {
-    // Loop from end to start to find the last assistant message
     for (let i = messages.length - 1; i >= 0; i--) {
       if (messages[i].role === "assistant") {
         return messages[i];
@@ -273,72 +435,13 @@ export class Chat {
 
   private scrollToBottom(): void {
     if (this.chatMessages) {
-      const lastMessage = this.chatMessages.lastElementChild;
-      lastMessage?.scrollIntoView({ behavior: "smooth", block: "end" });
-
-      // Fallback direct scroll
+      this.chatMessages.lastElementChild?.scrollIntoView({
+        behavior: "smooth",
+        block: "end",
+      });
       this.chatMessages.scrollTop = this.chatMessages.scrollHeight;
     }
   }
-
-  private setupEventListeners(): void {
-    this.button.onclick = this.handleGenerate;
-    this.promptInput.onkeydown = this.handleKeyDown;
-
-    const cleanup = converseStore.onMessagesChange(() => {
-      this.render();
-    });
-    this.cleanupFns.push(cleanup);
-  }
-
-  private handleGenerate = (e: MouseEvent): void => {
-    e.preventDefault();
-    if (store.isGenerating.value) return;
-
-    const prompt = this.promptInput.value.trim();
-    if (!prompt) {
-      store.showToast("Please type something before sending");
-      return;
-    }
-
-    converseStore.addMessage({
-      role: "user",
-      content: [{ text: prompt }],
-    });
-
-    this.promptInput.value = "";
-  };
-
-  private setupEffects(): void {
-    this.cleanupFns.push(
-      effect(() => {
-        const isGenerating = store.isGenerating.value;
-        this.promptInput.disabled = isGenerating;
-        isGenerating ? this.buttonSpinner.show() : this.buttonSpinner.hide();
-      })
-    );
-
-    this.cleanupFns.push(
-      effect(() => {
-        const errorPrompt = store.pendingErrorPrompt.value;
-        if (errorPrompt) {
-          this.handleErrorPrompt(errorPrompt);
-        }
-      })
-    );
-  }
-
-  private async handleErrorPrompt(prompt: string) {
-    this.promptInput.value = prompt;
-    store.clearPendingErrorPrompt();
-  }
-
-  private handleKeyDown = (e: KeyboardEvent): void => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      this.handleGenerate(new MouseEvent("click"));
-    }
-  };
 
   public destroy(): void {
     try {
@@ -351,10 +454,8 @@ export class Chat {
       if (this.promptInput) {
         this.promptInput.onkeydown = null;
       }
-
-      if (this.buttonSpinner) {
-        this.buttonSpinner.destroy();
-      }
+      this.autocomplete?.destroy();
+      this.buttonSpinner?.destroy();
 
       this.initialized = false;
     } catch (error) {
