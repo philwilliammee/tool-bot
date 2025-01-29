@@ -1,6 +1,7 @@
 import { Message } from "@aws-sdk/client-bedrock-runtime";
 import { MessageExtended } from "../../../app.types";
 
+// @todo add chat summary a llm tool or agent that summarizes the older pieces of the chat context.
 /**
  * Configuration for managing conversation context windows based on token limits.
  * maxTokens sets the absolute limit, targetTokens is used to calculate the optimal

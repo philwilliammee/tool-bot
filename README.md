@@ -248,7 +248,7 @@ npm run deploy
 - [ ] CSV upload refinements
 - [ ] Converse utils refactoring
 - [ ] Local database implementation
-- [ ] sliding token limits
+- [x] sliding token limits
 - [ ] background task chat summarization
 - [ ] fix admin colspan in messages table
 - [ ] improved Message edit and monaco-editor
