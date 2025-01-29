@@ -30,7 +30,7 @@ export class Chat {
   private buttonSpinner!: ButtonSpinner;
   private promptInput!: HTMLTextAreaElement;
   private chatMessages!: HTMLElement;
-  private button!: HTMLButtonElement;
+  private generateButton!: HTMLButtonElement;
   private workArea: HTMLElement;
   private cleanupFns: Array<() => void> = [];
   private initialized = false;
@@ -157,10 +157,14 @@ export class Chat {
   }
 
   private setupEventListeners(): void {
+    this.generateButton.onclick = () => this.handleGenerate();
+
     const cleanupMessagesChange = converseStore.onMessagesChange(() => {
       this.render();
     });
-    this.cleanupFns.push(cleanupMessagesChange);
+    this.cleanupFns.push(cleanupMessagesChange, () => {
+      this.generateButton.onclick = null;
+    });
   }
 
   private setupEffects(): void {
@@ -281,7 +285,7 @@ export class Chat {
 
   private initializeButtonSpinner(): void {
     this.buttonSpinner = new ButtonSpinner();
-    this.button = this.buttonSpinner.getElement();
+    this.generateButton = this.buttonSpinner.getElement();
   }
 
   private render(): void {
@@ -448,8 +452,8 @@ export class Chat {
       this.cleanupFns.forEach((fn) => fn());
       this.cleanupFns = [];
 
-      if (this.button) {
-        this.button.onclick = null;
+      if (this.generateButton) {
+        this.generateButton.onclick = null;
       }
       if (this.promptInput) {
         this.promptInput.onkeydown = null;

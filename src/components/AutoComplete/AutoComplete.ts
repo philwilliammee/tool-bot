@@ -20,64 +20,20 @@ export class HybridAutocomplete {
       "project reader",
     ],
     lookup: [
-      "look up user in ldap with a search term of",
-      "user in ldap",
-      "netid in directory",
-      "person in cit",
+      "user in ldap with a search term of",
+
       "profile on website",
       "information about",
     ],
-    search: [
-      "ldap for netid",
-      "directory for user",
-      "for person",
-      "cornell directory",
-      "cit website",
-    ],
-    create: [
-      "profile page",
-      "test results page",
-      "tool status report",
-      "web visualization",
-      "html summary",
-    ],
-    run: [
-      "tool tests",
-      "ldap search",
-      "directory lookup",
-      "all tool checks",
-      "system test",
-    ],
-    generate: [
-      "test report",
-      "user profile",
-      "tool status",
-      "results page",
-      "summary html",
-    ],
-    check: [
-      "tool status",
-      "ldap connection",
-      "search results",
-      "test results",
-      "all tools",
-    ],
-    display: [
-      "test results",
-      "user profile",
-      "tool status",
-      "search results",
-      "system check",
-    ],
-    verify: [
-      "tool operation",
-      "ldap search",
-      "test results",
-      "all tools",
-      "system status",
+    search: ["ldap for netid", "directory for user", "for person"],
+    display: ["a interesting visualization of the data"],
+    show: [
+      "me something interesting about math",
+      "me something that you think I may not know",
+      "me the current weather forecast for ",
     ],
     then: [
-      "Then look them up in CIT website by last name. Create a full web page about them, outlining their accomplishment",
+      "look them up in CIT website by last name. Create a full web page about them, outlining their accomplishment",
     ],
   };
 
