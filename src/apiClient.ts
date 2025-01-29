@@ -6,7 +6,7 @@ export async function postMessage(
   systemPrompt: string
 ): Promise<ConverseResponse> {
   console.log(
-    `[API CLIENT] POST request with modelId: ${modelId} and messages count: ${messages.length}`
+    `[API CLIENT] POST request with messages count: ${messages.length}`
   );
   const response = await fetch("/api/ai", {
     method: "POST",
