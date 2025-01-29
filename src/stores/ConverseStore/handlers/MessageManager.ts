@@ -2,14 +2,13 @@
 import { Message } from "@aws-sdk/client-bedrock-runtime";
 import { MessageExtended } from "../../../app.types";
 
+const DEFAULT_THRESHOLD = 10; // @todo make this sliding scaled based on token length.
+
 export class MessageManager {
   private messages: Map<string, MessageExtended> = new Map();
   private messageOrder: string[] = [];
   private sequence: number = 0;
-
-  constructor(public threshold: number) {
-    console.log("Initializing MessageManager with threshold:", threshold);
-  }
+  threshold: number = DEFAULT_THRESHOLD;
 
   public getNextId(): string {
     this.sequence += 1;
