@@ -7,6 +7,7 @@ import { converseStore } from "../../stores/ConverseStore/ConverseStore";
 import { MessageExtended } from "../../app.types";
 import { marked } from "marked";
 import { dataStore } from "../../stores/DataStore/DataStore";
+import { ReExecuteButton } from "../../ReExecuteButton/ReExecuteButton";
 
 declare global {
   interface Window {
@@ -34,6 +35,7 @@ export class Chat {
   private workArea: HTMLElement;
   private cleanupFns: Array<() => void> = [];
   private initialized = false;
+  private scrollButton!: HTMLButtonElement;
 
   // "Dumb" autocomplete (no internal text-area listeners)
   private autocomplete: HybridAutocomplete | null = null;
@@ -77,12 +79,85 @@ export class Chat {
       ".prompt-input"
     ) as HTMLTextAreaElement;
     this.chatMessages = document.querySelector(".chat-messages") as HTMLElement;
-    if (!this.promptInput || !this.chatMessages) {
+    this.scrollButton = document.querySelector(
+      ".scroll-bottom-btn"
+    ) as HTMLButtonElement;
+
+    if (!this.promptInput || !this.chatMessages || !this.scrollButton) {
       throw new Error("Required DOM elements not found");
     }
 
     // Create HybridAutocomplete
     this.autocomplete = new HybridAutocomplete(this.promptInput);
+
+    this.setupScrollButton();
+  }
+  private setupScrollButton(): void {
+    let timeout: number;
+
+    // Show/hide button based on scroll position with debounce
+    const toggleScrollButton = () => {
+      clearTimeout(timeout);
+      timeout = window.setTimeout(() => {
+        const { scrollTop, scrollHeight, clientHeight } = this.chatMessages;
+        const distanceFromBottom = scrollHeight - scrollTop - clientHeight;
+        const shouldShow = distanceFromBottom > 200; // Increased threshold
+
+        // Only toggle if state actually changes
+        if (shouldShow !== this.scrollButton.classList.contains("visible")) {
+          this.scrollButton.classList.toggle("visible", shouldShow);
+        }
+      }, 100); // Small delay for smoothness
+    };
+
+    // Handle scroll events with passive option for better performance
+    this.chatMessages.addEventListener("scroll", toggleScrollButton, {
+      passive: true,
+    });
+
+    // Handle click with smooth scroll
+    const handleClick = () => {
+      this.scrollToBottom();
+      // Hide button immediately on click
+      this.scrollButton.classList.remove("visible");
+    };
+
+    this.scrollButton.addEventListener("click", handleClick);
+
+    // Add to cleanup
+    this.cleanupFns.push(() => {
+      clearTimeout(timeout);
+      this.chatMessages.removeEventListener("scroll", toggleScrollButton);
+      this.scrollButton.removeEventListener("click", handleClick);
+    });
+
+    // Initial check
+    toggleScrollButton();
+  }
+
+  // Modify scrollToBottom to be smoother
+  private scrollToBottom(): void {
+    if (this.chatMessages) {
+      const duration = 200; // milliseconds - adjust this to control speed
+      const start = this.chatMessages.scrollTop;
+      const end =
+        this.chatMessages.scrollHeight - this.chatMessages.clientHeight;
+      const change = end - start;
+      const startTime = performance.now();
+
+      const animateScroll = (currentTime: number) => {
+        const elapsed = currentTime - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+
+        this.chatMessages.scrollTop = start + change * progress;
+
+        if (progress < 1) {
+          requestAnimationFrame(animateScroll);
+        }
+      };
+
+      requestAnimationFrame(animateScroll);
+    }
   }
 
   private setupPromptListeners(): void {
@@ -288,13 +363,18 @@ export class Chat {
     this.generateButton = this.buttonSpinner.getElement();
   }
 
+  // Update existing render method to check scroll button visibility
   private render(): void {
     if (!this.initialized) {
       this.initialized = true;
     }
     if (this.chatMessages) {
       const messages = converseStore.getMessages();
-      this.renderMessages(messages);
+      this.renderMessages(messages).then(() => {
+        // Check scroll button visibility after rendering
+        const event = new Event("scroll");
+        this.chatMessages.dispatchEvent(event);
+      });
     }
   }
 
@@ -358,6 +438,17 @@ export class Chat {
               full.className = "message-full-content markdown-body";
               full.innerHTML = await marked(content);
 
+              wrapper.appendChild(preview);
+              wrapper.appendChild(full);
+
+              // Get or create actions div
+              let actionsDiv = msgElem.querySelector(".message-actions");
+              if (!actionsDiv) {
+                actionsDiv = document.createElement("div");
+                actionsDiv.className = "message-actions";
+                msgElem.appendChild(actionsDiv);
+              }
+
               const toggleBtn = document.createElement("button");
               toggleBtn.className = "read-more-btn";
               toggleBtn.textContent = isLatestAI ? "Show less" : "Read more";
@@ -370,9 +461,7 @@ export class Chat {
                   : "Show less";
               });
 
-              wrapper.appendChild(preview);
-              wrapper.appendChild(full);
-              wrapper.appendChild(toggleBtn);
+              actionsDiv.appendChild(toggleBtn);
 
               if (isLatestAI) {
                 full.classList.remove("hidden");
@@ -404,6 +493,23 @@ export class Chat {
             details.appendChild(summary);
             details.appendChild(cDiv);
             wrapper.appendChild(details);
+
+            // Add re-execute button to actions if it's a tool use
+            if (
+              content.type === "Tool Use" &&
+              ReExecuteButton.hasHtmlTool(message)
+            ) {
+              let actionsDiv = msgElem.querySelector(".message-actions");
+              if (!actionsDiv) {
+                actionsDiv = document.createElement("div");
+                actionsDiv.className = "message-actions";
+                msgElem.appendChild(actionsDiv);
+              }
+
+              const reExecuteButton = new ReExecuteButton(message);
+              actionsDiv.appendChild(reExecuteButton.getElement());
+              this.cleanupFns.push(() => reExecuteButton.destroy());
+            }
           }
         }
         return msgElem;
@@ -422,10 +528,13 @@ export class Chat {
       }
     });
 
+    // Check scroll button visibility after content is rendered
+    const scrollEvent = new Event("scroll");
+    this.chatMessages.dispatchEvent(scrollEvent);
+
     // Scroll down
     requestAnimationFrame(() => this.scrollToBottom());
   }
-
   private findLastAssistant(
     messages: MessageExtended[]
   ): MessageExtended | undefined {
@@ -435,16 +544,6 @@ export class Chat {
       }
     }
     return undefined;
-  }
-
-  private scrollToBottom(): void {
-    if (this.chatMessages) {
-      this.chatMessages.lastElementChild?.scrollIntoView({
-        behavior: "smooth",
-        block: "end",
-      });
-      this.chatMessages.scrollTop = this.chatMessages.scrollHeight;
-    }
   }
 
   public destroy(): void {
@@ -457,6 +556,9 @@ export class Chat {
       }
       if (this.promptInput) {
         this.promptInput.onkeydown = null;
+      }
+      if (this.scrollButton) {
+        this.scrollButton.onclick = null;
       }
       this.autocomplete?.destroy();
       this.buttonSpinner?.destroy();
