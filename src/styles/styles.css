@@ -1185,17 +1185,10 @@ code {
 }
 
 .left-column.expanded {
-  width: 100%;
-  max-width: 1200px; /* or whatever maximum width you prefer */
-  margin: 0 auto;
-  border-right: none; /* optionally remove the border when expanded */
-}
-
-/* You might want to adjust the header within expanded state too */
-.left-column.expanded header {
-  max-width: 1200px;
-  margin: 0 auto;
-  width: 100%;
+  width: 100%; /* Full width */
+  max-width: none; /* Remove max-width */
+  margin: 0; /* Remove auto margin */
+  border-right: none;
 }
 
 .right-column {
@@ -1215,6 +1208,21 @@ code {
   flex: 0;
 }
 
+.prompt-container,
+.chat-messages {
+  max-width: 980px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 0 1rem; /* Optional: adds some breathing room */
+}
+
+/* Optional: remove padding on larger screens */
+@media (min-width: 1020px) { /* 980px + 40px for padding */
+  .prompt-container,
+  .chat-messages {
+    padding: 0;
+  }
+}
 /* Style for the toggle button */
 .toggle-panel-btn {
   background: none;
