@@ -245,12 +245,11 @@ npm run deploy
 
 ## Current Tasks
 
-- [ ] CSV upload refinements
 - [ ] Converse utils refactoring
 - [ ] Local database implementation
 - [x] sliding token limits
 - [ ] background task chat summarization
-- [ ] fix admin colspan in messages table
+- [x] fix admin colspan in messages table
 - [ ] improved Message edit and monaco-editor
 
 ## Example Usage

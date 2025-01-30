@@ -7,33 +7,15 @@ export const htmlToolConfig: ToolConfiguration = {
       toolSpec: {
         name: "html",
         description: `
-Renders HTML content with data visualization capabilities.
+Renders HTML content with data visualization capabilities in a secure Iframe.
 
-Available data can be accessed via window.availableData.
+Requirements:
+- Escape special characters properly.
+- Use HTML5, CSS3, and modern ES6+ JavaScript.
+- Keep responses concise and human-readable but inline (no multiline formatting).
+- No comments.
 
-When creating visualizations:
-1. Parse CSV string values to appropriate types
-2. Include error handling
-3. Use Chart.js or D3.js for visualizations
-4. Add proper labels and titles
-5. Consider data types when processing values
-
-Example:
-const data = window.availableData;
-const processedData = data.map(item => ({
-  ...item,
-  value: parseFloat(item.value) || 0
-}));
-
-new Chart(ctx, {
-  type: 'bar',
-  data: {
-    labels: processedData.map(d => d.label),
-    datasets: [{
-      data: processedData.map(d => d.value)
-    }]
-  }
-});
+If data is available it can be accessed via window.availableData. Access this in the html <script> tag make sure you're code is wrapped in an IIFE with error handling. Please ensure safe parsing for all numeric fields (parseFloat for decimals, parseInt for whole numbers) and include error handling for missing/invalid values with appropriate number formatting.
 `,
         inputSchema: {
           json: {

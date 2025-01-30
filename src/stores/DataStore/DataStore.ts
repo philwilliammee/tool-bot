@@ -8,15 +8,19 @@ export function createDataStore() {
   const currentData = signal<DataObject | null>(null);
 
   const parseCSV = (content: string): { headers: string[]; data: any[] } => {
-    const lines = content.split("\n");
+    const lines = content
+      .split(/\r?\n/) // Be safe with CRLF as well
+      .filter((line) => line.trim() !== ""); // Drop empty lines
+
     const headers = lines[0].split(",").map((h) => h.trim());
     const data = lines.slice(1).map((line) => {
       const values = line.split(",").map((v) => v.trim());
       return headers.reduce((obj, header, i) => {
         obj[header] = values[i];
         return obj;
-      }, {} as any);
+      }, {} as Record<string, any>);
     });
+
     return { headers, data };
   };
 

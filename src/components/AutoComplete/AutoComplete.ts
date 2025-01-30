@@ -45,7 +45,7 @@ export class HybridAutocomplete {
     generate: [
       "a example html page",
       "the iconic snake game! explain the user interface and keyboard commands",
-      "a complete dashboard page with the full analysis. Please ensure safe parsing for all numeric fields (parseFloat for decimals, parseInt for whole numbers) and include error handling for missing/invalid values with appropriate number formatting",
+      "a dashboard page with the analysis.",
     ],
     question: [
       `A surveyor wants to know the height of a skyscraper. He places his inclinometer on a tripod 1m from the ground. At a distance of 50m from the skyscraper, he records an angle of elevation of 82∘.
@@ -57,6 +57,9 @@ Generate the final output in html format using a chart to show the height of the
     ],
     describe: ["the available data."],
     apply: ["data science techniques to analyze the data"],
+    output: [
+      "the complete file this is a production environment, make sure to test the file and include all content in the output.",
+    ],
   };
 
   constructor(private textarea: HTMLTextAreaElement) {
