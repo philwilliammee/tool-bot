@@ -106,6 +106,24 @@
                     >
                         <div class="chat-section">
                             <div class="chat-messages"></div>
+                            <button
+                                class="scroll-bottom-btn"
+                                title="Scroll to bottom"
+                            >
+                                <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    width="24"
+                                    height="24"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    stroke-width="2"
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                >
+                                    <polyline points="6 9 12 15 18 9"></polyline>
+                                </svg>
+                            </button>
                             <div class="prompt-container">
                                 <textarea
                                     class="prompt-input"
@@ -183,7 +201,10 @@
                         >
                             Preview
                         </button>
-                        <button class="tab-button" data-tab="data">
+                        <button
+                            class="tab-button"
+                            data-tab="data"
+                        >
                             Data
                         </button>
                     </div>
@@ -235,15 +256,10 @@
                                                 <option value="user">User</option>
                                                 <option value="assistant">Assistant</option>
                                             </select>
-                                            <!-- <select
-                                                id="rating-filter"
+                                            <select
+                                                id="tool-filter"
                                                 class="filter-select"
                                             >
-                                                <option value>All Ratings</option>
-                                                <option value="1">Liked</option>
-                                                <option value="0">Not Liked</option>
-                                            </select> -->
-                                            <select id="tool-filter" class="filter-select">
                                                 <!-- @todo these values should be dynamic from client tool config -->
                                                 <option value>All Messages</option>
                                                 <option value="any">Any Tool Use</option>
@@ -328,7 +344,10 @@
                             </div>
                         </div>
 
-                        <div id="data-tab" class="tab-content">
+                        <div
+                            id="data-tab"
+                            class="tab-content"
+                        >
                             <div class="data-area">
                                 <div class="data-area-header">
                                     <h2 class="data-area-title">Data Objects</h2>
@@ -598,12 +617,18 @@
             <div class="chat-message user">
                 <div class="message-content-wrapper"></div>
             </div>
+            <div class="message-actions">
+            </div>
         </template>
 
         <!-- Assistant message template -->
         <template id="assistant-message-template">
             <div class="chat-message assistant">
-                <div class="message-content-wrapper"></div>
+                <div class="message-content-wrapper">
+                    <!-- message content goes here -->
+                </div>
+                <div class="message-actions">
+                </div>
             </div>
         </template>
 
@@ -617,7 +642,10 @@
         <!-- Empty state template -->
         <template id="empty-state-template">
             <tr>
-                <td colspan="4" class="empty-state">
+                <td
+                    colspan="4"
+                    class="empty-state"
+                >
                     No messages available
                 </td>
             </tr>
@@ -825,7 +853,6 @@
                 Archived
             </span>
         </template>
-
         <script
             type="module"
             src="/src/main.ts"

@@ -68,32 +68,29 @@ export class MainApplication {
         ?.classList.add("collapsed");
       store.setPanelExpanded(true);
     }
+
     // Handle toggle button clicks
     const handleToggle = () => {
-      this.leftColumn.classList.toggle("expanded");
-      this.mainContent
-        .querySelector(".right-column")
-        ?.classList.toggle("collapsed");
-      const isExpanded = this.leftColumn.classList.contains("expanded");
-
-      // Store state
-      localStorage.setItem("chatPanelExpanded", isExpanded.toString());
+      const isExpanded = !store.isPanelExpanded.value;
       store.setPanelExpanded(isExpanded);
     };
 
     this.toggleButton.addEventListener("click", handleToggle);
-
-    // Add to cleanup
     this.cleanupFns.push(() => {
       this.toggleButton.removeEventListener("click", handleToggle);
     });
 
-    this.toggleButton.addEventListener("click", handleToggle);
-
-    // Add to cleanup
-    this.cleanupFns.push(() => {
-      this.toggleButton.removeEventListener("click", handleToggle);
-    });
+    // Listen for store changes
+    this.cleanupFns.push(
+      effect(() => {
+        const isExpanded = store.isPanelExpanded.value;
+        this.leftColumn.classList.toggle("expanded", isExpanded);
+        this.mainContent
+          .querySelector(".right-column")
+          ?.classList.toggle("collapsed", isExpanded);
+        localStorage.setItem("chatPanelExpanded", isExpanded.toString());
+      })
+    );
   }
 
   private initializeTabs(): void {

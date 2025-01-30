@@ -3,6 +3,7 @@ import { store } from "../../stores/AppStore";
 import { effect } from "@preact/signals-core";
 import { MessageExtended } from "../../app.types";
 import { htmlTool } from "../../../tools/html-tool/client/html.client";
+import { ReExecuteButton } from "../../ReExecuteButton/ReExecuteButton";
 
 interface FilterState {
   search: string;
@@ -365,44 +366,20 @@ export class MessageTable {
 
     cell.appendChild(contentContainer);
   }
-
   private setupActionButtons(row: Element, message: MessageExtended): void {
     const actionButtons = row.querySelector(".action-buttons");
     if (!actionButtons) return;
 
     const buttonCleanups: Array<() => void> = [];
 
-    if (message.content?.some((block) => block.toolUse?.name === "html")) {
-      const reExecuteTemplate = document.getElementById(
-        "re-execute-button-template"
-      ) as HTMLTemplateElement;
-      if (reExecuteTemplate) {
-        const reExecuteBtn = reExecuteTemplate.content.cloneNode(
-          true
-        ) as HTMLElement;
-        const button = reExecuteBtn.querySelector("button");
-
-        const handler = async () => {
-          const htmlToolUse = message.content?.find(
-            (block) => block.toolUse?.name === "html"
-          );
-          if (htmlToolUse?.toolUse && !store.isGenerating.value) {
-            try {
-              await htmlTool.execute(htmlToolUse.toolUse.input);
-              store.setActiveTab("preview");
-            } catch (error) {
-              console.error("Failed to re-execute HTML:", error);
-              store.showToast("Failed to re-execute HTML");
-            }
-          }
-        };
-
-        button?.addEventListener("click", handler);
-        buttonCleanups.push(() =>
-          button?.removeEventListener("click", handler)
-        );
-        actionButtons.insertBefore(reExecuteBtn, actionButtons.firstChild);
-      }
+    // Add re-execute button if message has HTML tool
+    if (ReExecuteButton.hasHtmlTool(message)) {
+      const reExecuteButton = new ReExecuteButton(message);
+      actionButtons.insertBefore(
+        reExecuteButton.getElement(),
+        actionButtons.firstChild
+      );
+      buttonCleanups.push(() => reExecuteButton.destroy());
     }
 
     const buttons = {
@@ -427,7 +404,6 @@ export class MessageTable {
 
     this.cleanupFns.push(...buttonCleanups);
   }
-
   public destroy(): void {
     this.cleanupFns.forEach((cleanup) => cleanup());
     this.cleanupFns = [];
