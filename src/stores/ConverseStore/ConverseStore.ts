@@ -128,6 +128,8 @@ export class ConverseStore {
         this.messageManager.threshold
       );
 
+      // check if there is data in the data stor if so append it to the first user message content block []
+
       const result = await this.llmHandler.callLLM(activeMessages);
       this.addMessage(result);
     } catch (error: any) {

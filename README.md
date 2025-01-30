@@ -251,6 +251,7 @@ npm run deploy
 - [ ] background task chat summarization
 - [x] fix admin colspan in messages table
 - [ ] improved Message edit and monaco-editor
+- [ ] available data should show in the user Converse messages[]
 
 ## Example Usage
 
