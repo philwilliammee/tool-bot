@@ -59,9 +59,9 @@ export class MessageTable {
     this.roleFilter = document.getElementById(
       "role-filter"
     ) as HTMLSelectElement;
-    this.ratingFilter = document.getElementById(
-      "rating-filter"
-    ) as HTMLSelectElement;
+    // this.ratingFilter = document.getElementById(
+    //   "rating-filter"
+    // ) as HTMLSelectElement;
     this.toolFilter = document.getElementById(
       "tool-filter"
     ) as HTMLSelectElement;
@@ -281,10 +281,10 @@ export class MessageTable {
         this.fillContentCell(contentCell, message);
       }
 
-      const ratingCell = row.querySelector(".rating-cell");
-      if (ratingCell) {
-        this.setupRating(ratingCell, message);
-      }
+      // const ratingCell = row.querySelector(".rating-cell");
+      // if (ratingCell) {
+      //   this.setupRating(ratingCell, message);
+      // }
 
       const timestampCell = row.querySelector(".timestamp-cell");
       if (timestampCell) {
@@ -310,22 +310,22 @@ export class MessageTable {
     }
   }
 
-  private setupRating(cell: Element, message: MessageExtended): void {
-    const heartIcon = document.createElement("span");
-    heartIcon.className = "heart-icon";
-    heartIcon.innerHTML = message.metadata?.userRating ? "❤️" : "🤍";
-    heartIcon.style.cursor = "pointer";
+  // private setupRating(cell: Element, message: MessageExtended): void {
+  //   const heartIcon = document.createElement("span");
+  //   heartIcon.className = "heart-icon";
+  //   heartIcon.innerHTML = message.metadata?.userRating ? "❤️" : "🤍";
+  //   heartIcon.style.cursor = "pointer";
 
-    const handler = () => {
-      const newRating = message.metadata?.userRating ? 0 : 1;
-      converseStore.updateMessageRating(message.id, newRating);
-    };
+  //   const handler = () => {
+  //     const newRating = message.metadata?.userRating ? 0 : 1;
+  //     converseStore.updateMessageRating(message.id, newRating);
+  //   };
 
-    heartIcon.addEventListener("click", handler);
-    this.cleanupFns.push(() => heartIcon.removeEventListener("click", handler));
+  //   heartIcon.addEventListener("click", handler);
+  //   this.cleanupFns.push(() => heartIcon.removeEventListener("click", handler));
 
-    cell.appendChild(heartIcon);
-  }
+  //   cell.appendChild(heartIcon);
+  // }
 
   private fillContentCell(cell: Element, message: MessageExtended): void {
     cell.innerHTML = "";

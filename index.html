@@ -235,14 +235,14 @@
                                                 <option value="user">User</option>
                                                 <option value="assistant">Assistant</option>
                                             </select>
-                                            <select
+                                            <!-- <select
                                                 id="rating-filter"
                                                 class="filter-select"
                                             >
                                                 <option value>All Ratings</option>
                                                 <option value="1">Liked</option>
                                                 <option value="0">Not Liked</option>
-                                            </select>
+                                            </select> -->
                                             <select id="tool-filter" class="filter-select">
                                                 <!-- @todo these values should be dynamic from client tool config -->
                                                 <option value>All Messages</option>
@@ -316,7 +316,7 @@
                                         <tr>
                                             <th>Role</th>
                                             <th>Content</th>
-                                            <th>Rating</th>
+                                            <!-- <th>Rating</th> -->
                                             <th>Timestamp</th>
                                             <th>Actions</th>
                                         </tr>
@@ -373,10 +373,10 @@
                         <strong>Tags:</strong>
                         <div class="tags-value"></div>
                     </div>
-                    <div class="message-detail">
+                    <!-- <div class="message-detail">
                         <strong>Rating:</strong>
                         <span class="rating-value"></span>
-                    </div>
+                    </div> -->
                     <div class="message-detail">
                         <strong>Timestamp:</strong>
                         <span class="timestamp-value"></span>
@@ -416,7 +416,7 @@
                             placeholder="Enter tags..."
                         >
                     </div>
-                    <div class="form-group">
+                    <!-- <div class="form-group">
                         <label>Rating</label>
                         <div class="rating-toggle">
                             <span class="heart-toggle">🤍</span>
@@ -426,7 +426,7 @@
                                 value="0"
                             >
                         </div>
-                    </div>
+                    </div> -->
                     <div class="modal-actions">
                         <button
                             type="submit"
@@ -482,7 +482,7 @@
                             placeholder="Enter tags..."
                         >
                     </div>
-                    <div class="form-group">
+                    <!-- <div class="form-group">
                         <label>Rating</label>
                         <div class="rating-toggle">
                             <span class="heart-toggle">🤍</span>
@@ -492,7 +492,7 @@
                                 value="0"
                             >
                         </div>
-                    </div>
+                    </div> -->
                     <div class="modal-actions">
                         <button
                             type="submit"
@@ -617,10 +617,7 @@
         <!-- Empty state template -->
         <template id="empty-state-template">
             <tr>
-                <td
-                    colspan="4"
-                    class="empty-state"
-                >
+                <td colspan="4" class="empty-state">
                     No messages available
                 </td>
             </tr>
@@ -633,7 +630,7 @@
                     <span class="role-badge"></span>
                 </td>
                 <td class="message-content"></td>
-                <td class="rating-cell"></td>
+                <!-- <td class="rating-cell"></td> -->
                 <td class="timestamp-cell"></td>
                 <td>
                     <div class="action-buttons">

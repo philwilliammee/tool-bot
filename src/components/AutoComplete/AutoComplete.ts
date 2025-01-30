@@ -25,7 +25,12 @@ export class HybridAutocomplete {
       "profile on website",
       "information about",
     ],
-    search: ["ldap for netid", "directory for user", "for person"],
+    search: [
+      "ldap for netid",
+      "ldap directory for 'Ayham Boucher' also look up in CIT website by last name. Create a full web page about them, outlining their accomplishment. Use this image for the profile pic: https://infosci.cornell.edu/sites/default/files/AB%20profile%20%281%29.jpeg make sure to size the image to its container",
+      "directory for user",
+      "for person",
+    ],
     display: ["a interesting visualization of the data"],
     show: [
       "me something about math that you may not think I know",

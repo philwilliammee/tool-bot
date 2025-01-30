@@ -11,7 +11,7 @@ export class ViewModal extends BaseModal {
     const roleElement = this.dialog.querySelector(".role-value");
     const contentElement = this.dialog.querySelector(".content-value");
     const tagsElement = this.dialog.querySelector(".tags-value");
-    const ratingElement = this.dialog.querySelector(".rating-value");
+    // const ratingElement = this.dialog.querySelector(".rating-value");
     const timestampElement = this.dialog.querySelector(".timestamp-value");
 
     if (roleElement) roleElement.textContent = message.role || "unknown";
@@ -22,9 +22,9 @@ export class ViewModal extends BaseModal {
       this.renderTags(tagsElement, message.metadata?.tags);
     }
 
-    if (ratingElement) {
-      ratingElement.textContent = message.metadata?.userRating ? "❤️" : "🤍";
-    }
+    // if (ratingElement) {
+    //   ratingElement.textContent = message.metadata?.userRating ? "❤️" : "🤍";
+    // }
 
     if (timestampElement) {
       timestampElement.textContent = new Date(
