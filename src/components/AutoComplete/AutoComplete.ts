@@ -44,7 +44,8 @@ export class HybridAutocomplete {
     what: ["can you do?"],
     generate: [
       "a example html page",
-      "the iconic snake game! explain the user interface and keybord commands",
+      "the iconic snake game! explain the user interface and keyboard commands",
+      "a dashboard page with the analysis.",
     ],
     question: [
       `A surveyor wants to know the height of a skyscraper. He places his inclinometer on a tripod 1m from the ground. At a distance of 50m from the skyscraper, he records an angle of elevation of 82∘.
@@ -53,6 +54,11 @@ What is the height of the skyscraper? Give your answer to one decimal place.
 Generate the final output in html format using a chart to show the height of the syscraper and angle of elevation. Make sure to show your work format all calculations with latex.
 `,
       `A builder is constructing a roof. The wood he is using for the sloped section of the roof is 4m long and the peak of the roof needs to be 2m high. What angle should the piece of wood make with the base of the roof?`,
+    ],
+    describe: ["the available data."],
+    apply: ["data science techniques to analyze the data"],
+    output: [
+      "the complete file this is a production environment, make sure to test the file and include all content in the output.",
     ],
   };
 
@@ -63,7 +69,14 @@ Generate the final output in html format using a chart to show the height of the
   private createSuggestionBox(): HTMLDivElement {
     const box = document.createElement("div");
     box.className = "suggestion-box";
-    this.textarea.parentElement?.appendChild(box);
+
+    // Find the prompt container (which will be our container context)
+    const promptContainer = this.textarea.closest(".prompt-container");
+    if (!promptContainer) {
+      throw new Error("Prompt container not found");
+    }
+
+    promptContainer.appendChild(box);
     return box;
   }
 
@@ -81,7 +94,6 @@ Generate the final output in html format using a chart to show the height of the
       div.className = "suggestion-item";
       div.textContent = suggestion;
 
-      // Click = choose immediately
       div.addEventListener("click", () => this.selectSuggestion(suggestion));
       div.addEventListener("mouseenter", () => {
         this.currentSelection = index;
@@ -90,11 +102,7 @@ Generate the final output in html format using a chart to show the height of the
       this.suggestionBox.appendChild(div);
     });
 
-    // Position & display
-    const rect = this.textarea.getBoundingClientRect();
-    this.suggestionBox.style.top = `${rect.bottom + window.scrollY}px`;
-    this.suggestionBox.style.left = `${rect.left + window.scrollX}px`;
-    this.suggestionBox.style.width = `${rect.width}px`;
+    // Position using container relative positioning
     this.suggestionBox.style.display = "block";
   }
 
