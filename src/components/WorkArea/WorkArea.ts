@@ -4,11 +4,13 @@ import { store } from "../../stores/AppStore";
 import { MessageTable } from "./MessageTable";
 import { WorkAreaModals } from "./WorkAreaModals";
 import { MessageExtended } from "../../app.types";
+import { dataStore } from "../../stores/DataStore/DataStore";
+import { marked } from "marked"; // Add this import for markdown rendering
 
 export class WorkArea {
   private modals: WorkAreaModals;
   private messageTable: MessageTable;
-  private initialized: boolean = false;
+  // private initialized: boolean = false;
   private cleanupFns: Array<() => void> = [];
 
   constructor(private element: HTMLElement) {
@@ -26,6 +28,7 @@ export class WorkArea {
   private initialize(): void {
     this.messageTable.mount();
     this.setupEventListeners();
+    this.initializeDataContextPanel();
 
     this.cleanupFns.push(
       effect(() => {
@@ -37,7 +40,7 @@ export class WorkArea {
     this.cleanupFns.push(
       effect(() => {
         if (store.isGenerating.value) {
-          this.disableInteractions();
+          // this.disableInteractions();
         } else {
           this.enableInteractions();
         }
@@ -51,6 +54,76 @@ export class WorkArea {
     this.initialized = true;
   }
 
+  // Add new method for data context panel
+  private initializeDataContextPanel(): void {
+    const header = this.element.querySelector(".work-area-header");
+    if (!header) return;
+
+    const panel = document.createElement("div");
+    panel.className = "data-context-panel";
+    panel.innerHTML = `
+      <button class="data-context-button">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M12 2H2v10l9.29 9.29c.94.94 2.48.94 3.42 0l6.58-6.58c.94-.94.94-2.48 0-3.42L12 2Z"/>
+          <path d="M7 7h.01"/>
+        </svg>
+        Data Context
+      </button>
+      <div class="data-context-popover" popover>
+        <pre class="data-context-text markdown-body"></pre>
+        <div class="data-context-info">
+          Added to first non-tool user message when calling LLM
+        </div>
+      </div>
+    `;
+
+    const button = panel.querySelector(".data-context-button");
+    const popover = panel.querySelector(".data-context-popover") as HTMLElement;
+
+    button?.addEventListener("click", () => {
+      console.log("Data context button clicked");
+      popover?.togglePopover();
+    });
+
+    // Add after message count but before actions
+    const messageCount = header.querySelector(".message-count");
+    if (messageCount) {
+      messageCount.after(panel);
+    } else {
+      header.appendChild(panel);
+    }
+
+    const textElement = panel.querySelector(".data-context-text");
+
+    const updateContent = async (content: string | null) => {
+      if (!textElement) return;
+
+      if (content) {
+        const rendered = await marked(content);
+        textElement.innerHTML = rendered;
+        panel.classList.add("has-data");
+        button?.classList.add("has-data");
+      } else {
+        textElement.textContent = "No data loaded";
+        panel.classList.remove("has-data");
+        button?.classList.remove("has-data");
+      }
+    };
+
+    this.cleanupFns.push(
+      effect(() => {
+        const dataContext = dataStore.getDataContextText();
+        updateContent(dataContext);
+      })
+    );
+
+    // Cleanup popover
+    this.cleanupFns.push(() => {
+      popover?.hidePopover();
+    });
+  }
+
+  // Rest of existing methods remain unchanged
   private updateDynamicContent(): void {
     if (store.activeTab.value === "work-area") {
       this.updateMessageCount();
@@ -84,11 +157,11 @@ export class WorkArea {
     }
   }
 
-  private disableInteractions(): void {
-    this.element
-      .querySelectorAll("button")
-      .forEach((btn) => (btn.disabled = true));
-  }
+  // private disableInteractions(): void {
+  //   this.element
+  //     .querySelectorAll("button")
+  //     .forEach((btn) => (btn.disabled = true));
+  // }
 
   private enableInteractions(): void {
     this.updateButtonStates();
@@ -154,7 +227,7 @@ export class WorkArea {
 
   private handleViewMessage(id: string): void {
     const message = converseStore.getMessage(id);
-    if (!message || store.isGenerating.value) return;
+    if (!message) return;
     this.modals.showViewModal(message);
   }
 
@@ -162,11 +235,7 @@ export class WorkArea {
     const message = converseStore.getMessage(id);
     if (!message || store.isGenerating.value) return;
 
-    this.modals.showEditModal(message, () => {
-      this.handleMessageOperation(() => {
-        // Update is handled in the modal
-      }, "Message updated successfully");
-    });
+    this.modals.showEditModal(message);
   }
 
   private handleDeleteMessage(id: string): void {

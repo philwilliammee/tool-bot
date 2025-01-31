@@ -93,6 +93,47 @@ export function createDataStore() {
       return id;
     },
 
+    // Add new private method to create data context block
+    getDataContextText(): string | null {
+      const data = currentData.value;
+      if (!data) return "";
+      const sampleData = Array.isArray(data.data) ? data.data[0] : data.data;
+      const fields = Object.entries(sampleData).reduce(
+        (acc, [key, value]) => {
+          const numValue = Number(value);
+          if (!isNaN(numValue)) {
+            acc[Number.isInteger(numValue) ? "integer" : "float"].push(key);
+          } else {
+            acc["string"].push(key);
+          }
+          return acc;
+        },
+        { float: [], integer: [], string: [] } as Record<string, string[]>
+      );
+
+      const sampleRecords = Array.isArray(data.data)
+        ? data.data.slice(0, 5)
+        : [data.data];
+
+      return `### Data Structure Overview
+      Total Records: ${Array.isArray(data.data) ? data.data.length : "N/A"}
+
+      Field Types:
+      - Floating Point: ${fields.float.join(", ") || "None"}
+      - Integer: ${fields.integer.join(", ") || "None"}
+      - Text/String: ${fields.string.join(", ") || "None"}
+
+      ### Sample Data (First 5 Records)
+      \`\`\`json
+      ${JSON.stringify(sampleRecords)}
+      \`\`\`
+
+      ### How to access the available data
+      1. Data is available in two contexts:
+         - code_executor tool: window.availableData
+         - html tool: The iframe automatically has this data loaded as window.availableData`;
+    },
+
     retrieveData(key: string): DataObject | null {
       return dataMap.value.get(key) || null;
     },

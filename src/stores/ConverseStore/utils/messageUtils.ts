@@ -1,7 +1,7 @@
 // src/utils/messageUtils.ts
 
 import { Message } from "@aws-sdk/client-bedrock-runtime";
-import { MessageExtended } from "../types/tool.types";
+import { MessageExtended } from "../../../app.types";
 
 function extractTags(message: Message): string[] {
   const text = message.content?.map((block) => block.text).join(" ") || "";

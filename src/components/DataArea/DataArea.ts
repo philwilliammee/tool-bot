@@ -1,26 +1,54 @@
 // src/components/DataArea/DataArea.ts
 import { effect } from "@preact/signals-core";
 import { dataStore } from "../../stores/DataStore/DataStore";
+import { store } from "../../stores/AppStore";
 
 export class DataArea {
   private container: HTMLElement;
-
+  private cleanupFns: Array<() => void> = [];
   constructor() {
     this.container = document.querySelector(".data-list") as HTMLElement;
     if (!this.container) {
       throw new Error("Data list container not found");
     }
 
+    this.setupClearButton();
     this.render();
     this.setupEffects();
   }
 
-  private setupEffects() {
-    effect(() => {
-      const data = dataStore.getData();
-      this.updateDataStatus(data);
-      this.render();
+  private setupClearButton(): void {
+    const clearButton = document.querySelector(
+      ".data-area-header .delete-btn"
+    ) as HTMLButtonElement;
+    if (!clearButton) return;
+
+    clearButton.addEventListener("click", () => {
+      if (confirm("Are you sure you want to clear the current data?")) {
+        dataStore.clear();
+        store.showToast("Data cleared successfully");
+      }
     });
+
+    // Update button state based on data presence and active tab
+    this.cleanupFns.push(
+      effect(() => {
+        const hasData = !!dataStore.getData();
+        const isDataTab = store.activeTab.value === "data";
+        clearButton.style.display = isDataTab ? "flex" : "none";
+        clearButton.disabled = !hasData;
+      })
+    );
+  }
+
+  private setupEffects() {
+    this.cleanupFns.push(
+      effect(() => {
+        const data = dataStore.getData();
+        this.updateDataStatus(data);
+        this.render();
+      })
+    );
   }
 
   private updateDataStatus(data: any) {
@@ -124,6 +152,7 @@ export class DataArea {
   }
 
   public destroy() {
+    this.cleanupFns.forEach((cleanup) => cleanup());
     this.container.innerHTML = "";
   }
 }

@@ -6,8 +6,14 @@ export const codeExecutorConfig: ToolConfiguration = {
     {
       toolSpec: {
         name: "code_executor",
-        description:
-          "Execute JavaScript code in a sandboxed environment with access to common libraries. Data, when available, can be accessed via window.availableData.",
+        description: `
+Execute JavaScript code in a sandboxed environment with access to common libraries. Data, when available, can be accessed via window.availableData.
+Requirements:
+- Escape special characters properly.
+- Use modern ES6+ JavaScript.
+- Keep responses concise and human-readable but inline (no multiline formatting).
+- No comments.
+`,
         inputSchema: {
           json: {
             type: "object",

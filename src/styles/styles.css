@@ -1567,3 +1567,78 @@ header {
 .scroll-bottom-btn.visible {
   opacity: 1;
 }
+
+.data-context-button {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem;
+  border: none;
+  background: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 0.875rem;
+}
+
+.data-context-button:hover {
+  color: var(--primary-color);
+}
+
+.data-context-button.has-data {
+  color: var(--primary-color);
+}
+
+.data-context-popover {
+  width: 500px;
+  background: white;
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius);
+  box-shadow: var(--shadow-md);
+}
+
+.data-context-text {
+  padding: 1rem;
+  margin: 0;
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.data-context-info {
+  padding: 0.75rem;
+  background: var(--gray-50);
+  border-top: 1px solid var(--border-color);
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+  font-style: italic;
+}
+
+@media (max-width: 640px) {
+  .data-context-popover {
+    width: calc(100vw - 2rem);
+    margin: 0 1rem;
+  }
+}
+
+/* Data area header styles */
+.data-area-header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.data-area-title {
+  margin: 0;
+  flex: 1;
+}
+
+.data-count {
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+}
+
+/* Add this to your styles */
+.tab-content:not(.active) .data-area-header .delete-btn {
+  display: none;
+}
