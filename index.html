@@ -234,7 +234,7 @@
                             <div id="work_area">
                                 <div class="work-area-header">
                                     <div class="work-area-title-group">
-                                        <h2 class="work-area-title">Chat Admin Interface</h2>
+                                        <h2 class="work-area-title">Conversation Admin</h2>
                                         <span class="message-count">0 messages</span>
                                     </div>
                                     <!-- Add this after the work-area-title-group div and before work-area-actions -->
@@ -344,18 +344,20 @@
                             </div>
                         </div>
 
-                        <div
-                            id="data-tab"
-                            class="tab-content"
-                        >
+                        <div id="data-tab" class="tab-content">  <!-- Add id and tab-content class -->
                             <div class="data-area">
                                 <div class="data-area-header">
                                     <h2 class="data-area-title">Data Objects</h2>
-                                    <div class="data-count">0 objects</div>
+                                    <div class="data-count">No Data</div>
+                                    <button class="btn action-btn delete-btn" title="Clear Data">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                            <path d="M3 6h18"></path>
+                                            <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
+                                            <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
+                                        </svg>
+                                    </button>
                                 </div>
-                                <div class="data-list">
-                                    <!-- Dynamic content will go here -->
-                                </div>
+                                <div class="data-list"></div>
                             </div>
                         </div>
                     </div>

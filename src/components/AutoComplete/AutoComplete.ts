@@ -46,6 +46,7 @@ export class HybridAutocomplete {
       "a example html page",
       "the iconic snake game! explain the user interface and keyboard commands",
       "a dashboard page with the analysis.",
+      "a dashboard page with a comprehensive analysis.",
     ],
     question: [
       `A surveyor wants to know the height of a skyscraper. He places his inclinometer on a tripod 1m from the ground. At a distance of 50m from the skyscraper, he records an angle of elevation of 82∘.

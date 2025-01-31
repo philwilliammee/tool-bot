@@ -6,9 +6,11 @@ import { effect } from "@preact/signals-core";
 import { ProjectManager } from "../components/ProjectManager/ProjectManager";
 import { DataArea } from "../components/DataArea/DataArea";
 
+type TabId = "preview" | "work-area" | "data";
+
 export class MainApplication {
   private chat!: Chat;
-  private workArea!: HTMLElement;
+  public workArea!: HTMLElement;
   private tabButtons!: NodeListOf<HTMLButtonElement>;
   private tabContents!: NodeListOf<HTMLElement>;
   private cleanupFns: Array<() => void> = [];
@@ -17,7 +19,6 @@ export class MainApplication {
   private leftColumn!: HTMLElement;
   private toggleButton!: HTMLButtonElement;
   private projectManager: ProjectManager;
-  private dataArea: DataArea | null = null;
 
   constructor() {
     console.log("Initializing MainApplication");
@@ -55,6 +56,7 @@ export class MainApplication {
     this.chat = new Chat({
       workArea: this.workArea,
     });
+    new DataArea(); // for dat uploads and viewing
   }
 
   private initializePanelToggle(): void {
@@ -112,7 +114,7 @@ export class MainApplication {
     // Add click handlers to update store
     this.tabButtons.forEach((button) => {
       button.addEventListener("click", () => {
-        const tabId = button.dataset.tab as "preview" | "work-area";
+        const tabId = button.dataset.tab as TabId;
         store.setActiveTab(tabId);
       });
     });
@@ -145,27 +147,14 @@ export class MainApplication {
     // Initialize from stored state
     const storedTab = localStorage.getItem("activeTab");
     if (storedTab) {
-      store.setActiveTab(storedTab as "preview" | "work-area");
+      store.setActiveTab(storedTab as TabId);
+      // Persist tab changes
+      this.cleanupFns.push(
+        effect(() => {
+          localStorage.setItem("activeTab", store.activeTab.value);
+        })
+      );
     }
-
-    // Persist tab changes
-    this.cleanupFns.push(
-      effect(() => {
-        localStorage.setItem("activeTab", store.activeTab.value);
-      })
-    );
-
-    effect(() => {
-      const activeTabId = store.activeTab.value;
-      if (activeTabId === "data") {
-        if (!this.dataArea) {
-          this.dataArea = new DataArea();
-        }
-      } else {
-        this.dataArea?.destroy();
-        this.dataArea = null;
-      }
-    });
   }
 
   public destroy(): void {
@@ -186,7 +175,5 @@ export class MainApplication {
     // Clean up panel state
     localStorage.removeItem("chatPanelCollapsed");
     this.projectManager.destroy();
-
-    this.dataArea?.destroy();
   }
 }

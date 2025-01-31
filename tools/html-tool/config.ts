@@ -15,7 +15,11 @@ Requirements:
 - Keep responses concise and human-readable but inline (no multiline formatting).
 - No comments.
 
-If data is available it can be accessed via window.availableData. Access this in the html <script> tag make sure you're code is wrapped in an IIFE with error handling. Please ensure safe parsing for all numeric fields (parseFloat for decimals, parseInt for whole numbers) and include error handling for missing/invalid values with appropriate number formatting.
+If the user makes you aware of available data:
+- it can be accessed via window.availableData.
+- Access this in the html <script> tag make sure you're code is wrapped in an IIFE with error handling.
+- always strive to make the html a reusable template with the javascript code as a separate script tag that updates the html content with the data.
+
 `,
         inputSchema: {
           json: {

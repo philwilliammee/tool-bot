@@ -7,6 +7,7 @@ import { MessageManager } from "./handlers/MessageManager";
 import { ToolHandler } from "./handlers/ToolHandler";
 import { determineActiveMessageRange } from "./utils/messageUtils";
 import { projectStore } from "../ProjectStore/ProjectStore";
+import { dataStore } from "../DataStore/DataStore";
 
 export class ConverseStore {
   private messageManager: MessageManager;
@@ -128,9 +129,37 @@ export class ConverseStore {
         this.messageManager.threshold
       );
 
-      // check if there is data in the data stor if so append it to the first user message content block []
+      // Add data context if available
+      const messagesForLLM = [...activeMessages];
+      const dataContext = dataStore.getDataContextText();
 
-      const result = await this.llmHandler.callLLM(activeMessages);
+      if (dataContext) {
+        // Find first non-tool user message
+        const userIndex = messagesForLLM.findIndex(
+          (m) =>
+            m.role === "user" &&
+            !m.content?.some((block) => block.toolUse || block.toolResult)
+        );
+
+        if (userIndex !== -1) {
+          messagesForLLM[userIndex] = {
+            ...messagesForLLM[userIndex],
+            content: [
+              { text: dataContext },
+              ...(messagesForLLM[userIndex].content || []),
+            ],
+          };
+        }
+      }
+
+      // Debug log what's being sent
+      console.log("Sending to LLM:", {
+        totalMessages: messagesForLLM.length,
+        dataContextAdded: !!dataContext,
+        messages: messagesForLLM,
+      });
+
+      const result = await this.llmHandler.callLLM(messagesForLLM);
       this.addMessage(result);
     } catch (error: any) {
       console.error("LLM call failed:", error);

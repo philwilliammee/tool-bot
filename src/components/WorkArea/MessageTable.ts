@@ -1,5 +1,4 @@
 import { converseStore } from "../../stores/ConverseStore/ConverseStore";
-import { store } from "../../stores/AppStore";
 import { effect } from "@preact/signals-core";
 import { MessageExtended } from "../../app.types";
 import { ReExecuteButton } from "../../ReExecuteButton/ReExecuteButton";
@@ -82,10 +81,10 @@ export class MessageTable {
     });
 
     const storeCleanup = effect(() => {
-      const buttons = this.tbody?.querySelectorAll(".action-btn");
-      buttons?.forEach((button) => {
-        (button as HTMLButtonElement).disabled = store.isGenerating.value;
-      });
+      // const buttons = this.tbody?.querySelectorAll(".action-btn");
+      // buttons?.forEach((button) => {
+      //   (button as HTMLButtonElement).disabled = store.isGenerating.value;
+      // });
     });
 
     this.cleanupFns.push(chatCleanup, storeCleanup);
