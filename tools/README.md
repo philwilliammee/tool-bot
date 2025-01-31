@@ -1,6 +1,6 @@
 # AI Tool Registry
 
-A modular system for creating and managing tools that can be used by AI models via Bedrock. This system provides both client-side and server-side implementations with standardized interfaces.
+A modular system for creating and managing tools that can be used by AI models. This system provides both client-side and server-side implementations with standardized interfaces.
 
 ## Structure
 
@@ -198,7 +198,7 @@ export const yourTool: ServerTool = {
 ## Best Practices
 
 1. Configuration Requirements
-   - Always follow the exact Bedrock ToolConfiguration format
+   - Always follow the exact ToolConfiguration format
    - Include comprehensive description and examples
    - Properly specify required fields
    - Use appropriate JSON Schema types and validation
