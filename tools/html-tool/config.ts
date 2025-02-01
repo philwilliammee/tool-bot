@@ -1,4 +1,3 @@
-// tools/html-tool/config.ts
 import { ToolConfiguration } from "@aws-sdk/client-bedrock-runtime";
 
 export const htmlToolConfig: ToolConfiguration = {
@@ -7,19 +6,21 @@ export const htmlToolConfig: ToolConfiguration = {
       toolSpec: {
         name: "html",
         description: `
-Renders HTML content with data visualization capabilities in a secure Iframe.
+Render HTML content in an isolated iframe environment. The iframe:
+  - Receives HTML, CSS, and JavaScript inline and executes them securely.
+  - Sends console output (console.log) back to the parent via postMessage.
+  - Does not preserve state across render calls.
 
 Requirements:
-- Escape special characters properly.
-- Use HTML5, CSS3, and modern ES6+ JavaScript.
-- Keep responses concise and human-readable but inline (no multiline formatting).
-- No comments.
+  - Escape special characters.
+  - Use HTML5, CSS3, and modern ES6+ JavaScript.
+  - Keep responses concise and inline.
+  - No comments.
 
-If the user makes you aware of available data:
-- it can be accessed via window.availableData.
-- Access this in the html <script> tag make sure you're code is wrapped in an IIFE with error handling.
-- always strive to make the html a reusable template with the javascript code as a separate script tag that updates the html content with the data.
-
+If additional data is provided:
+  - It is accessible via \`window.availableData\`.
+  - Wrap JavaScript in an IIFE that gracefully handles errors.
+  - Keep the HTML a reusable template; place the JavaScript in a separate script tag to dynamically update the content with the data.
 `,
         inputSchema: {
           json: {
@@ -27,12 +28,32 @@ If the user makes you aware of available data:
             properties: {
               html: {
                 type: "string",
-                description: "Raw HTML markup to render",
+                description: "Raw HTML markup",
               },
-              context: {
+              css: {
+                type: "string",
+                description: "CSS styles",
+              },
+              javascript: {
                 type: "string",
                 description:
-                  "Additional context about the visualization or HTML purpose",
+                  "JavaScript code to execute; use console.log for output",
+              },
+              libraries: {
+                type: "array",
+                description: "List of CDN libraries to include in the iframe",
+                items: {
+                  type: "string",
+                  enum: [
+                    "https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js",
+                    "https://cdn.jsdelivr.net/npm/d3@7.8.5/dist/d3.min.js",
+                    "https://unpkg.com/react@18/umd/react.production.min.js",
+                    "https://unpkg.com/react-dom@18/umd/react-dom.production.min.js",
+                    "https://cdn.jsdelivr.net/npm/vue@3.2.37/dist/vue.global.prod.js",
+                    "https://cdn.jsdelivr.net/npm/three@0.150.1/build/three.min.js",
+                  ],
+                },
+                default: [],
               },
             },
             required: ["html"],

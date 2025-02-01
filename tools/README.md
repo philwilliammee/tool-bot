@@ -21,7 +21,7 @@ tools/
 ## Tool Categories
 
 ### Client-Only Tools
-- HTML Tool: Renders HTML content directly in browser
+- HTML Tool: Renders HTML content directly in browser with support for React, Vue, and vanilla JavaScript
 - Math Tool: Performs calculations using mathjs library
 - Code Executor: Executes JavaScript in sandboxed environment
 
@@ -59,6 +59,54 @@ export const toolConfig: ToolConfiguration = {
 ```
 
 ### Actual Implementation Examples
+
+#### HTML Tool Configuration with React Support
+```typescript
+export const htmlToolConfig: ToolConfiguration = {
+    tools: [{
+        toolSpec: {
+            name: "html",
+            description: "Render HTML content in an isolated iframe environment. Supports React, Vue, and vanilla JavaScript.",
+            inputSchema: {
+                json: {
+                    type: "object",
+                    properties: {
+                        html: {
+                            type: "string",
+                            description: "Raw HTML markup"
+                        },
+                        css: {
+                            type: "string",
+                            description: "CSS styles"
+                        },
+                        javascript: {
+                            type: "string",
+                            description: "JavaScript code to execute; use console.log for output"
+                        },
+                        libraries: {
+                            type: "array",
+                            description: "List of CDN libraries to include in the iframe",
+                            items: {
+                                type: "string",
+                                enum: [
+                                    "https://unpkg.com/react@18/umd/react.production.min.js",
+                                    "https://unpkg.com/react-dom@18/umd/react-dom.production.min.js",
+                                    "https://cdn.jsdelivr.net/npm/vue@3.2.37/dist/vue.global.prod.js",
+                                    "https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js",
+                                    "https://cdn.jsdelivr.net/npm/d3@7.8.5/dist/d3.min.js",
+                                    "https://cdn.jsdelivr.net/npm/three@0.150.1/build/three.min.js"
+                                ]
+                            },
+                            default: []
+                        }
+                    },
+                    required: ["html"]
+                }
+            }
+        }
+    }]
+};
+```
 
 #### Code Executor Configuration
 ```typescript
@@ -193,6 +241,39 @@ export const yourTool: ServerTool = {
         }
     }
 };
+```
+
+## Using React in HTML Tool
+
+To use React in the HTML tool, you need to:
+
+1. Include the React libraries in your request:
+```javascript
+{
+    "libraries": [
+        "https://unpkg.com/react@18/umd/react.production.min.js",
+        "https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"
+    ]
+}
+```
+
+2. Write your React components in the JavaScript section:
+```javascript
+{
+    "html": "<div id='root'></div>",
+    "javascript": `
+        const App = () => {
+            const [count, setCount] = React.useState(0);
+            return React.createElement('button', {
+                onClick: () => setCount(c => c + 1)
+            }, 'Count: ' + count);
+        };
+        ReactDOM.render(
+            React.createElement(App),
+            document.getElementById('root')
+        );
+    `
+}
 ```
 
 ## Best Practices
