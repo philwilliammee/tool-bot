@@ -94,10 +94,33 @@ This project supports multiple AI providers, including AWS Bedrock and OpenAI.
 
 ### 2. HTML Tool
 - Advanced visualization rendering
+- React, Vue, and vanilla JavaScript support
 - Chart.js and D3.js integration
 - Data-aware rendering with CSV/JSON support
 - Interactive component support
 - Error handling for data processing
+- Example React usage:
+  ```javascript
+  {
+    "libraries": [
+      "https://unpkg.com/react@18/umd/react.production.min.js",
+      "https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"
+    ],
+    "html": "<div id='root'></div>",
+    "javascript": `
+      const App = () => {
+        const [count, setCount] = React.useState(0);
+        return React.createElement('button', {
+          onClick: () => setCount(c => c + 1)
+        }, 'Count: ' + count);
+      };
+      ReactDOM.render(
+        React.createElement(App),
+        document.getElementById('root')
+      );
+    `
+  }
+  ```
 
 ### 3. File System Tools
 - **File Tree**: Directory structure visualization
@@ -145,6 +168,7 @@ This project supports multiple AI providers, including AWS Bedrock and OpenAI.
 - Enhanced data visualization system
 - CSV/JSON data upload support
 - Improved tool configuration system
+- Added React support to HTML Tool
 - Advanced HTML rendering capabilities
 - Comprehensive tool documentation
 - Type-safe tool implementations
@@ -255,23 +279,46 @@ npm run deploy
 
 ## Example Usage
 
-### Data Visualization
+### Data Visualization with React
 ```javascript
 const data = window.availableData;
-const processedData = data.map(item => ({
-  ...item,
-  value: parseFloat(item.value) || 0
-}));
 
-new Chart(ctx, {
-  type: 'bar',
-  data: {
-    labels: processedData.map(d => d.label),
-    datasets: [{
-      data: processedData.map(d => d.value)
-    }]
-  }
-});
+// React component example
+{
+  "libraries": [
+    "https://unpkg.com/react@18/umd/react.production.min.js",
+    "https://unpkg.com/react-dom@18/umd/react-dom.production.min.js",
+    "https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"
+  ],
+  "html": "<div id='root'></div>",
+  "javascript": `
+    const App = () => {
+      const [chartData] = React.useState(window.availableData);
+      
+      React.useEffect(() => {
+        const ctx = document.createElement('canvas');
+        document.getElementById('root').appendChild(ctx);
+        
+        new Chart(ctx, {
+          type: 'bar',
+          data: {
+            labels: chartData.map(d => d.label),
+            datasets: [{
+              data: chartData.map(d => parseFloat(d.value) || 0)
+            }]
+          }
+        });
+      }, []);
+      
+      return null;
+    };
+    
+    ReactDOM.render(
+      React.createElement(App),
+      document.getElementById('root')
+    );
+  `
+}
 ```
 
 ### Tool Integration
