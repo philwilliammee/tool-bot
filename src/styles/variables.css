@@ -1,0 +1,17 @@
+/* ============================
+   1) GLOBAL VARIABLES
+============================ */
+:root {
+  /* Colors */
+  --primary: #3b82f6;
+  --primary-transparent: rgba(59, 130, 246, 0.2);
+  --success: #22c55e;
+  --danger: #ef4444;
+  --text-primary: #1f2937;
+  --border-color: #e5e7eb;
+  --bg-input: #ffffff;
+  --cell-bg: #ffffff;
+
+  /* Layout */
+  --header-height: 64px;
+}

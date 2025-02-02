@@ -1,0 +1,79 @@
+/* ============================
+   10) MODAL STYLES
+============================ */
+.modal {
+  border: none;
+  border-radius: 0.5rem;
+  padding: 0;
+  max-width: 1000px;
+  width: 90%;
+  background: white;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  margin: auto;
+}
+
+.modal::backdrop {
+  background: rgba(0, 0, 0, 0.5);
+}
+
+.modal-content {
+  padding: 1.5rem;
+}
+
+.modal h3 {
+  margin: 0 0 1rem 0;
+  font-size: 1.25rem;
+  color: #1f2937;
+}
+
+.message-details {
+  background: #f9fafb;
+  border-radius: 0.375rem;
+  padding: 1rem;
+  margin: 1rem 0;
+}
+
+.message-detail {
+  margin-bottom: 0.75rem;
+}
+
+.message-detail pre {
+  margin-top: 0.5rem;
+  white-space: pre-wrap;
+  background: white;
+  padding: 0.75rem;
+  border-radius: 0.25rem;
+  border: 1px solid #e5e7eb;
+}
+
+.form-group {
+  margin-bottom: 1rem;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+  color: #374151;
+}
+
+.form-group textarea,
+.form-group select {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.375rem;
+  font-family: inherit;
+  font-size: inherit;
+}
+
+.form-group textarea {
+  resize: vertical;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+}

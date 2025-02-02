@@ -1,0 +1,15 @@
+.prompt-container,
+.chat-messages {
+  max-width: 980px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 0 1rem; /* Optional: adds some breathing room */
+}
+
+/* Optional: remove padding on larger screens */
+@media (min-width: 1020px) { /* 980px + 40px for padding */
+  .prompt-container,
+  .chat-messages {
+    padding: 0;
+  }
+}

@@ -3,7 +3,16 @@ import path from "path";
 
 export const FILE_WRITER_CONFIG = {
   ALLOWED_BASE_PATH: process.cwd(), // Or another appropriate base path
-  ALLOWED_EXTENSIONS: [".txt", ".md", ".json", ".yaml", ".yml", ".ts", ".css"],
+  ALLOWED_EXTENSIONS: [
+    ".txt",
+    ".md",
+    ".json",
+    ".yaml",
+    ".yml",
+    ".ts",
+    ".css",
+    ".html",
+  ],
   MAX_FILE_SIZE: 1024 * 1024, // 1MB max file size
 };
 

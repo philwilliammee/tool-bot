@@ -1,0 +1,144 @@
+/* Panel Layout System
+ * ------------------
+ * States:
+ * 1. normal: left panel reduced (30%), right panel full
+ * 2. left-expanded: left panel full width, right panel collapsed
+ * 3. right-expanded: left panel collapsed, right panel full width
+ */
+
+/* Base Layout Container */
+.main-content {
+  display: flex;
+  /* height: calc(100vh - var(--header-height)); */
+  overflow: hidden;
+  flex: 1;
+}
+
+/* Left Panel Base Styles */
+.left-column {
+  width: 30%;
+  min-width: 500px;
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid #e5e7eb;
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+/* Left Panel States */
+.left-column.reduced {
+  width: 30%;
+  min-width: 500px;
+}
+
+.left-column.expanded {
+  width: 100%;
+  min-width: none;
+}
+
+.left-column.collapsed {
+  width: 0;
+  min-width: 0;
+  padding: 0;
+  opacity: 0;
+  pointer-events: none; /* Prevent interaction when collapsed */
+}
+
+/* Right Panel Base Styles */
+.right-column {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: white;
+  transition: all 0.3s ease;
+}
+
+/* Right Panel States */
+.right-column.collapsed {
+  width: 0;
+  padding: 0;
+  opacity: 0;
+  flex: 0;
+  pointer-events: none;
+}
+
+/* Toggle Button Styles */
+.toggle-panel-btn {
+  background: none;
+  border: none;
+  padding: 0.5rem;
+  cursor: pointer;
+  color: #6b7280;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.375rem;
+  transition: all 0.2s ease;
+  z-index: 10;
+  position: relative;
+}
+
+/* Toggle Button States */
+.toggle-panel-btn:hover {
+  background-color: #f3f4f6;
+  color: var(--primary);
+}
+
+.toggle-panel-btn:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--primary);
+}
+
+.toggle-panel-btn.active {
+  color: var(--primary);
+  background-color: #f3f4f6;
+}
+
+/* Toggle Button Icon Animations */
+.toggle-panel-btn svg {
+  transition: transform 0.3s ease;
+}
+
+.toggle-panel-btn.active svg {
+  transform: rotate(180deg);
+}
+
+/* Transition Optimizations */
+.left-column,
+.right-column {
+  backface-visibility: hidden; /* Prevent flickering during transitions */
+  will-change: width, opacity; /* Optimize transitions */
+}
+
+/* Content Visibility Management */
+.left-column.collapsed *:not(.toggle-panel-btn) {
+  visibility: hidden; /* Hide content but keep button visible */
+}
+
+.right-column.collapsed * {
+  visibility: hidden;
+}
+
+/* Accessibility Enhancements */
+@media (prefers-reduced-motion: reduce) {
+  .left-column,
+  .right-column,
+  .toggle-panel-btn,
+  .toggle-panel-btn svg {
+    transition: none;
+  }
+}
+
+/* Print Styles */
+@media print {
+  .toggle-panel-btn {
+    display: none;
+  }
+
+  .left-column,
+  .right-column {
+    width: auto !important;
+    opacity: 1 !important;
+  }
+}

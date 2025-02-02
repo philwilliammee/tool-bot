@@ -1,0 +1,25 @@
+/* ============================
+    12) LOADING SPINNERS
+============================ */
+
+/* Execute Button Loading spinner */
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Loading animation for file-button */
+@keyframes button-spin {
+  to {
+    transform: translate(-50%, -50%) rotate(360deg);
+  }
+}

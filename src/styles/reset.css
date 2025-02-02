@@ -1,0 +1,17 @@
+/* ============================
+   2) GLOBAL RESETS & BASICS
+============================ */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: system-ui, -apple-system, sans-serif;
+  /* background-color: var(--bg-color); */
+  color: #1f2937;
+  line-height: 1.5;
+  height: 100vh;
+  overflow: hidden;
+}

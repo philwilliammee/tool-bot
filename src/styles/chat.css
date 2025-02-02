@@ -1,0 +1,135 @@
+/* ============================
+   5) CHAT SECTION
+============================ */
+.chat-section {
+  height: calc(100vh - var(--header-height));
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: white;
+  border: 1px solid #e5e7eb;
+}
+
+.chat-messages {
+  border: solid 1px #e5e7eb;
+  position: relative;
+  flex: 1;
+  overflow-y: auto;
+  gap: 0.1rem;
+  display: flex;
+  flex-direction: column;
+  padding: 0.5rem;
+}
+
+.messages-inner {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  min-height: min-content;
+}
+
+.chat-message {
+  width: 100%;
+  padding: 0.5rem;
+}
+
+/* Message types */
+.chat-message.user {
+  background-color: #f3f4f6;
+}
+
+.chat-message.assistant {
+  background-color: #dbeafe;
+}
+
+.chat-message.tool-message {
+  background-color: #f0f9ff;
+  border-left: 4px solid #3b82f6;
+}
+
+.chat-message.tool-result {
+  background-color: #f0fdf4;
+  border-left: 4px solid #22c55e;
+}
+
+.chat-message.error-message {
+  background-color: #fef2f2;
+  border-left: 4px solid #ef4444;
+}
+
+/* Message content */
+.message-content-wrapper {
+  position: relative;
+}
+
+.message-preview,
+.message-full-content {
+  margin: 0;
+  padding: 0;
+}
+
+.archived-message {
+  opacity: 0.7;
+  background-color: #f8f9fa;
+  border-left: 3px solid #dee2e6;
+}
+
+.archived-message:hover {
+  opacity: 0.9;
+}
+
+.archive-badge-pill {
+  display: inline-block;
+  font-size: 0.75rem;
+  padding: 2px 6px;
+  margin-left: 8px;
+  background-color: #f3f4f6;
+  color: #6b7280;
+  border-radius: 9999px;
+  border: 1px solid #e5e7eb;
+  white-space: nowrap;
+}
+
+/* Make sure the role cell can accommodate the badge */
+.role-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.read-more-btn {
+  margin-top: 0.5rem;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.75rem;
+  color: var(--primary);
+  background: none;
+  border: 1px solid var(--primary);
+  border-radius: 0.25rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.read-more-btn:hover {
+  background-color: var(--primary);
+  color: white;
+}
+
+.tool-disclosure {
+  margin: 0.5rem 0;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.375rem;
+  overflow: hidden;
+}
+
+.tool-disclosure summary {
+  padding: 0.5rem;
+  background-color: #f3f4f6;
+  font-weight: 500;
+  font-size: 0.875rem;
+  cursor: pointer;
+}
+
+.tool-content {
+  padding: 0.5rem;
+  background-color: white;
+}

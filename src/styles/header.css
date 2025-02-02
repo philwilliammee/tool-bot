@@ -1,0 +1,28 @@
+/* ============================
+   4) HEADER
+============================ */
+header {
+  height: var(--header-height);
+  padding: 0 1.5rem;
+  background-color: white;
+  border-bottom: 1px solid #e5e7eb;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.notebook-icon {
+  color: var(--primary);
+}
+
+h1 {
+  font-size: 1.5rem;
+  font-weight: bold;
+}

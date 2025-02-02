@@ -15,7 +15,7 @@
             content="#3b82f6"
         >
         <title>Tool-Bot</title>
-        <link rel="stylesheet" href="/src/styles/styles.css">
+        <link rel="stylesheet" href="/src/styles/index.css">
         <link rel="icon" type="image/svg+xml" href="/fav.png">
     </head>
     <body>
@@ -253,37 +253,66 @@
                             id="work-area-tab"
                             class="tab-content"
                         >
-                            <!-- Replace the empty work_area div with this structure: -->
                             <div id="work_area">
                                 <div class="work-area-header">
-                                    <div class="work-area-title-group">
-                                        <h2 class="work-area-title">Conversation Admin</h2>
-                                        <span class="message-count">0 messages</span>
+                                    <div class="flex gap justify-content-space-between align-items-center p-1">
+                                        <div class="flex-1 flex gap align-items-center">
+                                                <h2 class="work-area-title">Conversation Admin</h2>
+                                                <span class="message-count">0 messages</span>
+                                            <!-- Add Data Context Panel here -->
+                                            <div class="data-context-panel flex-1 flex justify-content-end">
+                                                <button class="data-context-button flex gap align-items-center">
+                                                    <svg
+                                                        xmlns="http://www.w3.org/2000/svg"
+                                                        width="16"
+                                                        height="16"
+                                                        viewBox="0 0 24 24"
+                                                        fill="none"
+                                                        stroke="currentColor"
+                                                        stroke-width="2"
+                                                    >
+                                                        <path d="M12 2H2v10l9.29 9.29c.94.94 2.48.94 3.42 0l6.58-6.58c.94-.94.94-2.48 0-3.42L12 2Z"></path>
+                                                        <path d="M7 7h.01"></path>
+                                                    </svg>
+                                                    Data Context
+                                                </button>
+                                                <div
+                                                    class="data-context-popover"
+                                                    popover
+                                                >
+                                                    <pre class="data-context-text markdown-body"></pre>
+                                                    <div class="data-context-info">
+                                                        Added to first non-tool user message when calling LLM
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
                                     </div>
-                                    <!-- Add this after the work-area-title-group div and before work-area-actions -->
-                                    <div class="work-area-filters">
-                                        <div class="search-container">
+                                    <!-- Updated work-area-filters section with utility classes -->
+                                    <div class="work-area-filters flex gap align-items-end p-1">
+                                        <div>
                                             <input
                                                 type="text"
                                                 id="message-search"
-                                                class="search-input"
+                                                class="search-input form-input"
                                                 placeholder="Search messages..."
                                             >
                                         </div>
-                                        <div class="filter-container">
+                                        <div>
                                             <select
                                                 id="role-filter"
-                                                class="filter-select"
+                                                class="filter-select form-select"
                                             >
                                                 <option value>All Roles</option>
                                                 <option value="user">User</option>
                                                 <option value="assistant">Assistant</option>
                                             </select>
+                                        </div>
+                                        <div>
                                             <select
                                                 id="tool-filter"
-                                                class="filter-select"
+                                                class="filter-select form-select"
                                             >
-                                                <!-- @todo these values should be dynamic from client tool config -->
                                                 <option value>All Messages</option>
                                                 <option value="any">Any Tool Use</option>
                                                 <option value="html">HTML Tool</option>
@@ -297,57 +326,60 @@
                                                 <option value="file_writer">File Writer Tool</option>
                                                 <option value="data_store">Data Store Tool</option>
                                             </select>
-                                            <label class="filter-checkbox-label">
+                                        </div>
+                                        <div>
+                                            <label class="filter-checkbox-label form-checkbox">
                                                 <input
                                                     type="checkbox"
                                                     id="archived-filter"
+                                                    class="form-checkbox-input"
                                                 >
                                                 Include Archived
                                             </label>
                                         </div>
-                                    </div>
-                                    <div class="work-area-actions">
-                                        <button class="btn btn-danger delete-all-btn">
-                                            <svg
-                                                xmlns="http://www.w3.org/2000/svg"
-                                                width="16"
-                                                height="16"
-                                                viewBox="0 0 24 24"
-                                                fill="none"
-                                                stroke="currentColor"
-                                                stroke-width="2"
-                                            >
-                                                <path d="M3 6h18"></path>
-                                                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"></path>
-                                                <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                                            </svg>
-                                            Delete All
-                                        </button>
-                                        <button class="btn btn-blue new-message-btn">
-                                            <svg
-                                                xmlns="http://www.w3.org/2000/svg"
-                                                width="16"
-                                                height="16"
-                                                viewBox="0 0 24 24"
-                                                fill="none"
-                                                stroke="currentColor"
-                                                stroke-width="2"
-                                            >
-                                                <line
-                                                    x1="12"
-                                                    y1="5"
-                                                    x2="12"
-                                                    y2="19"
-                                                ></line>
-                                                <line
-                                                    x1="5"
-                                                    y1="12"
-                                                    x2="19"
-                                                    y2="12"
-                                                ></line>
-                                            </svg>
-                                            New Message
-                                        </button>
+                                        <div class="flex gap flex-1 justify-content-end">
+                                            <button class="btn btn-danger delete-all-btn">
+                                                <svg
+                                                    xmlns="http://www.w3.org/2000/svg"
+                                                    width="16"
+                                                    height="16"
+                                                    viewBox="0 0 24 24"
+                                                    fill="none"
+                                                    stroke="currentColor"
+                                                    stroke-width="2"
+                                                >
+                                                    <path d="M3 6h18"></path>
+                                                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"></path>
+                                                    <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                                                </svg>
+                                                Delete All
+                                            </button>
+                                            <button class="btn btn-blue new-message-btn">
+                                                <svg
+                                                    xmlns="http://www.w3.org/2000/svg"
+                                                    width="16"
+                                                    height="16"
+                                                    viewBox="0 0 24 24"
+                                                    fill="none"
+                                                    stroke="currentColor"
+                                                    stroke-width="2"
+                                                >
+                                                    <line
+                                                        x1="12"
+                                                        y1="5"
+                                                        x2="12"
+                                                        y2="19"
+                                                    ></line>
+                                                    <line
+                                                        x1="5"
+                                                        y1="12"
+                                                        x2="19"
+                                                        y2="12"
+                                                    ></line>
+                                                </svg>
+                                                New Message
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
                                 <table class="chat-admin-table">
@@ -403,7 +435,6 @@
                     </div>
                 </div>
             </div>
-
         </div>
 
         <!-- Toast Message -->
@@ -701,9 +732,9 @@
                 <!-- <td class="rating-cell"></td> -->
                 <td class="timestamp-cell"></td>
                 <td>
-                    <div class="action-buttons">
+                    <div id="action-buttons" class="flex">
                         <button
-                            class="action-btn view-btn"
+                            class="icon-btn action-btn view-btn"
                             title="View Message"
                         >
                             <svg
@@ -731,7 +762,7 @@
                             </svg>
                         </button>
                         <button
-                            class="action-btn edit-btn"
+                            class="icon-btn action-btn edit-btn"
                             title="Edit Message"
                         >
                             <svg
@@ -750,7 +781,7 @@
                             </svg>
                         </button>
                         <button
-                            class="action-btn delete-btn"
+                            class="icon-btn action-btn delete-btn"
                             title="Delete Message"
                         >
                             <svg

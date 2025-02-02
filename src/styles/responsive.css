@@ -1,0 +1,23 @@
+/* ============================
+   8) RESPONSIVE DESIGN
+============================ */
+@media (max-width: 768px) {
+  .left-column {
+    width: 100%;
+    min-width: auto;
+  }
+
+  .right-column {
+    display: none;
+  }
+
+  .prompt-input {
+    font-size: 0.875rem;
+    min-height: 60px;
+  }
+
+  .btn {
+    padding: 0.375rem 0.75rem;
+    font-size: 0.75rem;
+  }
+}
