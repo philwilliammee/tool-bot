@@ -1,7 +1,7 @@
 {
   "name": "tool-bot",
   "private": true,
-  "version": "0.0.1",
+  "version": "0.0.3",
   "type": "module",
   "scripts": {
     "test": "vitest run",

@@ -21,7 +21,7 @@
     <body>
         <div class="container">
             <div class="main-content">
-                <div class="left-column">
+                <div class="column left-column">
                     <header>
                         <div class="header-left">
                             <svg
@@ -95,7 +95,8 @@
                                 stroke="currentColor"
                                 stroke-width="2"
                             >
-                                <path d="M3 12h18M3 6h18M3 18h18"></path>
+                                <polyline points="13 17 18 12 13 7"></polyline>
+                                <polyline points="6 17 11 12 6 7"></polyline>
                             </svg>
                         </button>
                     </header>
@@ -187,27 +188,49 @@
                     </div>
                 </div>
 
-                <div class="right-column">
-                    <div class="tabs">
-                        <button
-                            class="tab-button"
-                            data-tab="work-area"
-                        >
-                            Work Area
-                        </button>
-                        <button
-                            class="tab-button active"
-                            data-tab="preview"
-                        >
-                            Preview
-                        </button>
-                        <button
-                            class="tab-button"
-                            data-tab="data"
-                        >
-                            Data
-                        </button>
-                    </div>
+                <div class="column right-column">
+                    <header>
+                        <div class="flex gap-2">
+                            <!-- Right column button (controls left panel) -->
+                            <button
+                                class="toggle-panel-btn"
+                                title="Toggle Chat Panel"
+                            >
+                                <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    width="24"
+                                    height="24"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    stroke-width="2"
+                                >
+                                    <polyline points="11 17 6 12 11 7"></polyline>
+                                    <polyline points="18 17 13 12 18 7"></polyline>
+                                </svg>
+                            </button>
+                            <div class="tabs tab-buttons">
+                                <button
+                                    class="tab-button"
+                                    data-tab="work-area"
+                                >
+                                    Work Area
+                                </button>
+                                <button
+                                    class="tab-button active"
+                                    data-tab="preview"
+                                >
+                                    Preview
+                                </button>
+                                <button
+                                    class="tab-button"
+                                    data-tab="data"
+                                >
+                                    Data
+                                </button>
+                            </div>
+                        </div>
+                    </header>
 
                     <div class="tab-container">
                         <div
@@ -344,13 +367,30 @@
                             </div>
                         </div>
 
-                        <div id="data-tab" class="tab-content">  <!-- Add id and tab-content class -->
+                        <div
+                            id="data-tab"
+                            class="tab-content"
+                        >
+                            <!-- Add id and tab-content class -->
                             <div class="data-area">
                                 <div class="data-area-header">
                                     <h2 class="data-area-title">Data Objects</h2>
                                     <div class="data-count">No Data</div>
-                                    <button class="btn action-btn delete-btn" title="Clear Data">
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <button
+                                        class="btn action-btn delete-btn"
+                                        title="Clear Data"
+                                    >
+                                        <svg
+                                            xmlns="http://www.w3.org/2000/svg"
+                                            width="16"
+                                            height="16"
+                                            viewBox="0 0 24 24"
+                                            fill="none"
+                                            stroke="currentColor"
+                                            stroke-width="2"
+                                            stroke-linecap="round"
+                                            stroke-linejoin="round"
+                                        >
                                             <path d="M3 6h18"></path>
                                             <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
                                             <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
@@ -618,8 +658,7 @@
         <template id="user-message-template">
             <div class="chat-message user">
                 <div class="message-content-wrapper"></div>
-                <div class="message-actions">
-                </div>
+                <div class="message-actions"></div>
             </div>
         </template>
 
@@ -629,8 +668,7 @@
                 <div class="message-content-wrapper">
                     <!-- message content goes here -->
                 </div>
-                <div class="message-actions">
-                </div>
+                <div class="message-actions"></div>
             </div>
         </template>
 
