@@ -1,0 +1,42 @@
+/* scroll to bottom button */
+.chat-section {
+  container-type: inline-size;
+  /* this is needed to make the container query with the scroll to bottom work */
+  position: relative;
+}
+
+.scroll-bottom-btn {
+  position: absolute;
+  right: 1.5rem; /* default position */
+  bottom: 8.5rem;
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.2s ease-in-out, transform 0.2s ease-in-out;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+  z-index: 10;
+}
+
+@container (min-width: 1020px) {
+  .scroll-bottom-btn {
+    right: calc(50% - 490px + 1.5rem); /* aligned with chat max-width */
+  }
+}
+
+.scroll-bottom-btn:hover {
+  background: #f9fafb;
+  transform: translateY(-2px);
+   /* Slight lift effect */
+  box-shadow: 0 4px 8px rgba(0,0,0,0.15); /* Enhanced shadow */
+}
+
+.scroll-bottom-btn.visible {
+  opacity: 1;
+}

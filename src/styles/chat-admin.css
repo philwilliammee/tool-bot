@@ -1,0 +1,88 @@
+/* ============================
+   9) CHAT ADMIN TABLE
+============================ */
+.chat-admin-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: white;
+  table-layout: fixed;
+}
+
+.chat-admin-table th,
+.chat-admin-table td {
+  padding: 0.75rem;
+  text-align: left;
+  border-bottom: 1px solid #e5e7eb;
+  overflow: hidden;
+}
+
+/* Fixed column widths */
+.chat-admin-table th:nth-child(1),
+.chat-admin-table td:nth-child(1) {
+  width: 100px; /* Role column */
+}
+
+.chat-admin-table th:nth-child(3),
+.chat-admin-table td:nth-child(3) {
+  width: 120px; /* Timestamp column */
+}
+
+.chat-admin-table th:nth-child(4),
+.chat-admin-table td:nth-child(4) {
+  width: 140px; /* Actions column */
+}
+
+/* Message content */
+.message-content-container {
+  max-height: 100px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.message-text {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tool-code {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  background-color: #f3f4f6;
+  padding: 0.25rem;
+  margin: 0.25rem 0;
+  font-size: 0.875rem;
+}
+
+.action-btn:hover {
+  opacity: 0.9;
+}
+
+#work-area-tab {
+  flex: 1;
+  overflow: auto;
+}
+
+.role-badge {
+  display: inline-block;
+  padding: 0.25rem 0.5rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.role-user {
+  background-color: #e0e7ff;
+  color: #4338ca;
+}
+
+.role-assistant {
+  background-color: #dcfce7;
+  color: #15803d;
+}
+
+.role-badge.role-unknown {
+  background-color: #e5e7eb;
+  color: #6b7280;
+}

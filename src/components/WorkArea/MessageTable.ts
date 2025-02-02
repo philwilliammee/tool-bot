@@ -365,7 +365,7 @@ export class MessageTable {
     cell.appendChild(contentContainer);
   }
   private setupActionButtons(row: Element, message: MessageExtended): void {
-    const actionButtons = row.querySelector(".action-buttons");
+    const actionButtons = row.querySelector("#action-buttons");
     if (!actionButtons) return;
 
     const buttonCleanups: Array<() => void> = [];

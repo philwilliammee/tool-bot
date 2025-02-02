@@ -1,0 +1,43 @@
+/* ============================
+   11) WORK AREA HEADER
+============================ */
+.work-area-header {
+  /* display: flex; */
+  /* justify-content: space-between; */
+  /* align-items: center; */
+  margin-bottom: 1rem;
+}
+
+.work-area-title-group {
+  display: flex;
+  align-items: baseline;
+  gap: 1rem;
+}
+
+.message-count {
+  color: #6b7280;
+  font-size: 0.875rem;
+}
+
+.work-area-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.new-message-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.delete-all-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background-color: var(--danger);
+  color: white;
+}
+
+.delete-all-btn:hover {
+  background-color: #dc2626;
+}

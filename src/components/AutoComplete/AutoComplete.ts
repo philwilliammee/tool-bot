@@ -61,6 +61,9 @@ Generate the final output in html format using a chart to show the height of the
     output: [
       "the complete file this is a production environment, make sure to test the file and include all content in the output.",
     ],
+    when: [
+      "generating the new files make sure to test before and after that no changes are missed also make sure to output the complete file this is a production environment and the entire file must be generated without errors.",
+    ],
   };
 
   constructor(private textarea: HTMLTextAreaElement) {

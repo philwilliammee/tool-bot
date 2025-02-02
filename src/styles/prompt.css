@@ -1,0 +1,52 @@
+/* Prompt / Input styling */
+.prompt-container {
+  display: flex;
+  flex-direction: column;
+  justify-content: end;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  border-top: 1px solid #e5e7eb;
+  padding-top: 2px !important;
+}
+
+.prompt-input {
+  padding: 0.75rem 1rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.5rem;
+  font-size: 1rem;
+  font-family: inherit;
+  background-color: #ffffff;
+  resize: none;
+  min-height: 68px;
+  transition: border-color 0.2s, box-shadow 0.2s, background-color 0.2s;
+}
+
+.prompt-input:disabled {
+  background-color: #f9fafb;
+  border-color: #e5e7eb;
+  cursor: not-allowed;
+  color: #9ca3af;
+}
+
+.prompt-input:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3);
+  background-color: #f9fafe;
+}
+
+.prompt-actions {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: flex-end;
+  align-items: center;
+}
+
+.prompt-actions .btn {
+  padding: 0.5rem;
+  line-height: 0;
+}
+
+.prompt-actions .btn svg {
+  vertical-align: middle;
+}
