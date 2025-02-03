@@ -46,8 +46,8 @@ export class OpenAIService {
       );
       const { key, expiresAt } = JSON.parse(keyFile);
 
-      // Check if key is expired (5 minutes buffer)
-      if (new Date(expiresAt).getTime() - Date.now() > 5 * 60 * 1000) {
+      // Check if key is expired (10 minutes buffer)
+      if (new Date(expiresAt).getTime() - Date.now() > 10 * 60 * 1000) {
         return key;
       }
 

@@ -12,6 +12,9 @@ export const FILE_WRITER_CONFIG = {
     ".ts",
     ".css",
     ".html",
+    ".dockerignore",
+    ".gitignore",
+    "", // Allow no extension
   ],
   MAX_FILE_SIZE: 1024 * 1024, // 1MB max file size
 };
