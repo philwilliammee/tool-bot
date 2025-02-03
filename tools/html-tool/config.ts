@@ -51,6 +51,7 @@ If additional data is provided:
                     "https://unpkg.com/react-dom@18/umd/react-dom.production.min.js",
                     "https://cdn.jsdelivr.net/npm/vue@3.2.37/dist/vue.global.prod.js",
                     "https://cdn.jsdelivr.net/npm/three@0.150.1/build/three.min.js",
+                    "https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/MathJax.js?config=TeX-MML-AM_CHTML",
                   ],
                 },
                 default: [],

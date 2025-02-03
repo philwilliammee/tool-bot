@@ -21,11 +21,13 @@ tools/
 ## Tool Categories
 
 ### Client-Only Tools
+
 - HTML Tool: Renders HTML content directly in browser with support for React, Vue, and vanilla JavaScript
 - Math Tool: Performs calculations using mathjs library
 - Code Executor: Executes JavaScript in sandboxed environment
 
 ### Server-Required Tools
+
 - LDAP Tool: Directory searches requiring server access
 - File Writer: File system operations
 - Project Reader: File content access
@@ -61,6 +63,7 @@ export const toolConfig: ToolConfiguration = {
 ### Actual Implementation Examples
 
 #### HTML Tool Configuration with React Support
+
 ```typescript
 export const htmlToolConfig: ToolConfiguration = {
     tools: [{
@@ -94,7 +97,10 @@ export const htmlToolConfig: ToolConfiguration = {
                                     "https://cdn.jsdelivr.net/npm/vue@3.2.37/dist/vue.global.prod.js",
                                     "https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js",
                                     "https://cdn.jsdelivr.net/npm/d3@7.8.5/dist/d3.min.js",
-                                    "https://cdn.jsdelivr.net/npm/three@0.150.1/build/three.min.js"
+                                    "https://cdn.jsdelivr.net/npm/three@0.150.1/build/three.min.js",
+                                    "https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/MathJax.js?config=TeX-MML-AM_CHTML"
+
+
                                 ]
                             },
                             default: []
@@ -109,6 +115,7 @@ export const htmlToolConfig: ToolConfiguration = {
 ```
 
 #### Code Executor Configuration
+
 ```typescript
 export const codeExecutorConfig: ToolConfiguration = {
     tools: [{
@@ -153,6 +160,7 @@ export const codeExecutorConfig: ToolConfiguration = {
 ```
 
 #### Math Tool Configuration
+
 ```typescript
 export const mathToolConfig: ToolConfiguration = {
     tools: [{
@@ -192,6 +200,7 @@ export const mathToolConfig: ToolConfiguration = {
 ## Implementation Guidelines
 
 ### Client Tool Implementation
+
 ```typescript
 import { ClientTool } from '../../client/tool.interface';
 
@@ -205,10 +214,10 @@ export const yourTool: ClientTool = {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(input)
             });
-            
+
             // For client-only tools:
             // Implement direct browser-side logic
-            
+
             return result;
         } catch (error: any) {
             return {
@@ -221,6 +230,7 @@ export const yourTool: ClientTool = {
 ```
 
 ### Server Tool Implementation (if needed)
+
 ```typescript
 import { ServerTool } from '../../server/tool.interface';
 import { Request, Response } from 'express';
@@ -248,6 +258,7 @@ export const yourTool: ServerTool = {
 To use React in the HTML tool, you need to:
 
 1. Include the React libraries in your request:
+
 ```javascript
 {
     "libraries": [
@@ -258,6 +269,7 @@ To use React in the HTML tool, you need to:
 ```
 
 2. Write your React components in the JavaScript section:
+
 ```javascript
 {
     "html": "<div id='root'></div>",
