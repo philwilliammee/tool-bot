@@ -82,9 +82,9 @@ export function createEditModal() {
 
     const tagsInput = (form.querySelector("#messageTags") as HTMLInputElement)
       .value;
-    const rating = parseInt(
-      (form.querySelector("#messageRating") as HTMLInputElement).value
-    );
+    // const rating = parseInt(
+    //   (form.querySelector("#messageRating") as HTMLInputElement)?.value
+    // );
 
     const tags = tagsInput
       .split(",")
@@ -97,7 +97,7 @@ export function createEditModal() {
       metadata: {
         ...currentMessage.metadata,
         tags,
-        userRating: rating,
+        // userRating: rating,
         updatedAt: Date.now(),
       },
     };

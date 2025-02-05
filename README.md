@@ -108,5 +108,6 @@ docker run -p 3000:3000 --env-file .env tool-bot
 - Performance optimization
 - Documentation updates
 - Testing coverage
+- Chat streaming
 
 For more detailed information about specific tools and their capabilities, refer to the `tools/README.md` file.

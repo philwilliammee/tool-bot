@@ -41,6 +41,7 @@ function createHtmlDocument({
           .map((lib: string) => `<script src="${lib}"></script>`)
           .join("\n")
       : `
+      <script src="https://docs.opencv.org/4.8.0/opencv.js"></script>
       <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
       <script src="https://d3js.org/d3.v7.min.js"></script>
       <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>

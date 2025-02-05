@@ -272,7 +272,7 @@ export class ConverseStore {
     if (this.projectId) {
       const messages = this.messageManager.getMessages();
       console.log(
-        `Saving ${messages.length} messages to project:`,
+        `ConverseStore Saving ${messages.length} messages to project:`,
         this.projectId
       );
       projectStore.saveProjectMessages(this.projectId, messages);

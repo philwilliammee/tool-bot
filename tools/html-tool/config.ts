@@ -12,6 +12,7 @@ Render HTML content in an isolated iframe environment. The iframe:
   - Does not preserve state across render calls.
 
 Requirements:
+  - If loading images make sure to use : crossOrigin = "anonymous"
   - Escape special characters.
   - Use HTML5, CSS3, and modern ES6+ JavaScript.
   - Keep responses concise and inline.
@@ -45,6 +46,7 @@ If additional data is provided:
                 items: {
                   type: "string",
                   enum: [
+                    "https://docs.opencv.org/4.8.0/opencv.js",
                     "https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js",
                     "https://cdn.jsdelivr.net/npm/d3@7.8.5/dist/d3.min.js",
                     "https://unpkg.com/react@18/umd/react.production.min.js",

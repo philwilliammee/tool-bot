@@ -189,7 +189,7 @@ export class ProjectStore {
     }
 
     const key = this.getProjectKey(id);
-    console.log(`Saving ${messages.length} messages to ${key}`);
+    console.log(`Project Store Saving ${messages.length} messages to ${key}`);
 
     try {
       localStorage.setItem(key, JSON.stringify(messages));

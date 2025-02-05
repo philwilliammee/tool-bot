@@ -57,7 +57,7 @@ export function createDataStore() {
       dataMap.value.set(id, dataObject);
       currentData.value = dataObject;
 
-      // Make data available for iframe/tools
+      // @todo store this Make data available for iframe/tools
       window.availableData = dataObject.data;
 
       return id;
@@ -181,21 +181,6 @@ export function createDataStore() {
         name,
         type,
       }));
-    },
-
-    setActiveData(id: string): boolean {
-      const dataObject = dataMap.value.get(id);
-      if (!dataObject) return false;
-
-      currentData.value = dataObject;
-      window.availableData = dataObject.data;
-      return true;
-    },
-
-    clear(): void {
-      dataMap.value.clear();
-      currentData.value = null;
-      window.availableData = undefined;
     },
   };
 }
