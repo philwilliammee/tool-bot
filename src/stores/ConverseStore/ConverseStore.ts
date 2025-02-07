@@ -120,17 +120,15 @@ export class ConverseStore {
         this.messageManager.threshold
       );
 
-      // Add data context if available
       const messagesForLLM = [...activeMessages];
       const dataContext = dataStore.getDataContextText();
       if (dataContext) {
-        // Find first non-tool user message
+        // Insert dataContext into the first user message
         const userIndex = messagesForLLM.findIndex(
           (m) =>
             m.role === "user" &&
             !m.content?.some((block) => block.toolUse || block.toolResult)
         );
-
         if (userIndex !== -1) {
           messagesForLLM[userIndex] = {
             ...messagesForLLM[userIndex],
@@ -142,85 +140,107 @@ export class ConverseStore {
         }
       }
 
-      console.log("Sending to LLM:", {
-        totalMessages: messagesForLLM.length,
-        dataContextAdded: !!dataContext,
-        messages: messagesForLLM,
-      });
+      console.log("callBedrockLLM -> Sending to LLM:", messagesForLLM);
+
       let currentToolUse: Partial<ToolUse> | null = null;
       let accumulatedToolInput = "";
       let accumulatedText = "";
 
+      // Create a temporary streaming assistant message
       const tempMessage = this.messageManager.addMessage({
         role: "assistant",
         content: [{ text: "" }],
       });
+      console.log("callBedrockLLM -> tempMessage created:", tempMessage.id);
 
       await this.llmHandler.callLLMStream(messagesForLLM, {
         onChunk: async (chunk) => {
-          // Handle text chunks
+          console.log("callBedrockLLM -> onChunk, chunk =", chunk);
+
+          // 1) If there's a contentBlockDelta with text, accumulate that
           if (chunk.contentBlockDelta?.delta?.text) {
-            accumulatedText += chunk.contentBlockDelta.delta.text;
+            const newText = chunk.contentBlockDelta.delta.text;
+            console.log("callBedrockLLM -> text chunk:", newText);
+            accumulatedText += newText;
+
+            // Update the temporary assistant message with the new text so the UI sees it
             this.messageManager.updateMessage(tempMessage.id, {
               content: [{ text: accumulatedText }],
             });
             this.notifyMessageChange();
           }
-          // Handle tool use start
+
+          // 2) If there's a contentBlockStart with toolUse, that means the model is
+          //    starting a tool call. This is where we set up currentToolUse.
           else if (chunk.contentBlockStart?.start?.toolUse) {
-            console.log(
-              "Tool use started:",
-              chunk.contentBlockStart.start.toolUse
-            );
+            const { name, toolUseId } = chunk.contentBlockStart.start.toolUse;
+            console.log("callBedrockLLM -> tool use started:", {
+              name,
+              toolUseId,
+            });
+
             currentToolUse = {
-              name: chunk.contentBlockStart.start.toolUse.name,
-              toolUseId: chunk.contentBlockStart.start.toolUse.toolUseId,
+              name,
+              toolUseId,
               input: {},
             };
           }
-          // Handle tool use input chunks
+
+          // 3) If there's a contentBlockDelta with toolUse, that’s partial JSON input
+          //    for the tool. We accumulate it until the model signals stop (tool_use).
           else if (chunk.contentBlockDelta?.delta?.toolUse) {
             if (currentToolUse) {
-              accumulatedToolInput +=
-                chunk.contentBlockDelta.delta.toolUse.input || "";
+              const partialInput =
+                chunk.contentBlockDelta.delta.toolUse.input ?? "";
+              console.log(
+                "callBedrockLLM -> partial toolUse input:",
+                partialInput
+              );
+              accumulatedToolInput += partialInput;
             }
           }
-          // Handle message stop with tool use
+
+          // 4) If the model signals a 'tool_use' stop, we parse the JSON input and actually execute the tool.
           else if (
             chunk.messageStop?.stopReason === "tool_use" &&
             currentToolUse &&
             accumulatedToolInput
           ) {
+            console.log(
+              "callBedrockLLM -> tool_use stop, final tool input:",
+              accumulatedToolInput
+            );
+
             try {
               const parsedInput = JSON.parse(accumulatedToolInput);
-              const toolUse: ToolUse = {
+              const toolUse = {
                 name: currentToolUse.name!,
                 toolUseId: currentToolUse.toolUseId!,
                 input: parsedInput,
               };
 
-              console.log("Executing tool:", toolUse);
+              console.log("callBedrockLLM -> About to execute tool:", toolUse);
 
-              // Update assistant message with both text and tool use
+              // Update the assistant message to include both text and the final toolUse block
               this.messageManager.updateMessage(tempMessage.id, {
                 content: [{ text: accumulatedText }, { toolUse }],
-                metadata: {
-                  ...tempMessage.metadata,
-                  hasToolUse: true,
-                },
+                metadata: { ...tempMessage.metadata, hasToolUse: true },
               });
               this.notifyMessageChange();
 
-              // Execute tool and add response
+              // Execute the tool, then add the result as a new message
               const result = await this.toolHandler.executeTool(toolUse);
-              console.log("Tool execution result:", result);
+              console.log("callBedrockLLM -> Tool execution result:", result);
               this.addMessage(result);
 
-              // Reset tool state
+              // Reset the tool state, so we’re ready for future tool calls
               currentToolUse = null;
               accumulatedToolInput = "";
             } catch (error) {
-              console.error("Failed to process tool use:", error);
+              console.error(
+                "callBedrockLLM -> Failed to parse/execute tool:",
+                error
+              );
               this.addMessage({
                 role: "user",
                 content: [{ text: `Tool execution failed: ${error}` }],
@@ -228,21 +248,23 @@ export class ConverseStore {
             }
           }
         },
+
         onComplete: (finalMessage) => {
-          const currentMessage = this.messageManager.getMessage(tempMessage.id);
-          if (currentMessage) {
+          console.log(
+            "callBedrockLLM -> onComplete with finalMessage:",
+            finalMessage
+          );
+          const current = this.messageManager.getMessage(tempMessage.id);
+          if (current) {
             this.messageManager.updateMessage(tempMessage.id, {
-              content: currentMessage.content,
-              metadata: {
-                ...currentMessage.metadata,
-                isStreaming: false,
-              },
+              content: current.content,
+              metadata: { ...current.metadata, isStreaming: false },
             });
             this.notifyMessageChange();
           }
         },
         onError: (error) => {
-          console.error("Stream error:", error);
+          console.error("callBedrockLLM -> onError:", error);
           this.messageManager.updateMessage(tempMessage.id, {
             content: [{ text: "Error: Failed to generate response" }],
             metadata: {
@@ -254,8 +276,8 @@ export class ConverseStore {
           this.notifyMessageChange();
         },
       });
-    } catch (error: any) {
-      console.error("LLM call failed:", error);
+    } catch (error) {
+      console.error("callBedrockLLM -> LLM call failed:", error);
       throw error;
     } finally {
       store.setGenerating(false);

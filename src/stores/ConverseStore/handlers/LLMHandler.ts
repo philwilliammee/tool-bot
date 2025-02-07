@@ -12,16 +12,14 @@ export class LLMHandler {
   private baseSystemPrompt = "You are a helpful assistant with tools.";
   private modelId = import.meta.env.VITE_BEDROCK_MODEL_ID;
 
-  async callLLMStream(
+  public async callLLMStream(
     messages: MessageExtended[],
     callbacks: StreamCallbacks
   ): Promise<Message> {
     try {
       const response = await fetch("/api/ai", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           modelId: this.modelId,
           messages,
@@ -34,94 +32,102 @@ export class LLMHandler {
       }
 
       const reader = response.body?.getReader();
-      if (!reader) throw new Error("No response body");
+      if (!reader) {
+        throw new Error("No response body from /api/ai");
+      }
 
-      let accumulatedContent: any[] = [];
-      let decoder = new TextDecoder();
+      const decoder = new TextDecoder();
       let buffer = "";
+      const accumulatedContent: any[] = [];
 
       while (true) {
         const { done, value } = await reader.read();
+        if (done) {
+          // Stream ended
+          return {
+            role: "assistant",
+            content: accumulatedContent,
+          };
+        }
 
-        if (done) break;
-
-        // Append new data to buffer and split by newlines
+        // Decode partial chunk
         buffer += decoder.decode(value, { stream: true });
         const lines = buffer.split("\n");
 
-        // Process all complete lines
+        // Process all complete lines except the last partial
         for (let i = 0; i < lines.length - 1; i++) {
           const line = lines[i].trim();
-          if (line) {
-            try {
-              const chunk = JSON.parse(line) as ConverseStreamOutput;
+          if (!line) continue;
 
-              // Handle different types of chunks
-              if (chunk.messageStart) {
-                callbacks.onStart?.();
-              }
+          let chunk: ConverseStreamOutput;
+          try {
+            chunk = JSON.parse(line);
+          } catch (e) {
+            callbacks.onError?.(e);
+            continue;
+          }
 
-              if (chunk.contentBlockDelta?.delta?.text) {
-                accumulatedContent.push({
-                  text: chunk.contentBlockDelta.delta.text,
-                });
-                callbacks.onChunk?.(chunk);
-              }
+          // Always pass chunk up (so the caller sees contentBlockStart, etc.)
+          callbacks.onChunk?.(chunk);
 
-              if (chunk.contentBlockDelta?.delta?.toolUse) {
-                accumulatedContent.push({
-                  toolUse: chunk.contentBlockDelta.delta.toolUse,
-                });
-                callbacks.onChunk?.(chunk);
-              }
+          // Check for text deltas
+          if (chunk.contentBlockDelta?.delta?.text) {
+            accumulatedContent.push({
+              text: chunk.contentBlockDelta.delta.text,
+            });
+          }
 
-              // Handle any errors in the stream
-              if (
-                chunk.internalServerException ||
-                chunk.modelStreamErrorException ||
-                chunk.validationException ||
-                chunk.throttlingException ||
-                chunk.serviceUnavailableException
-              ) {
-                const error =
-                  chunk.internalServerException ||
-                  chunk.modelStreamErrorException ||
-                  chunk.validationException ||
-                  chunk.throttlingException ||
-                  chunk.serviceUnavailableException;
-                callbacks.onError?.(error);
-                throw new Error(error.message);
-              }
+          // Check for toolUse partial
+          if (chunk.contentBlockDelta?.delta?.toolUse) {
+            accumulatedContent.push({
+              toolUse: chunk.contentBlockDelta.delta.toolUse,
+            });
+          }
 
-              if (chunk.messageStop) {
-                const finalMessage: Message = {
-                  role: "assistant",
-                  content: accumulatedContent,
-                };
-                callbacks.onComplete?.(finalMessage);
-                return finalMessage;
-              }
-            } catch (e) {
-              console.error("Error parsing chunk:", e, line);
-              callbacks.onError?.(e);
+          // Check for any error objects
+          if (
+            chunk.internalServerException ||
+            chunk.modelStreamErrorException ||
+            chunk.validationException ||
+            chunk.throttlingException ||
+            chunk.serviceUnavailableException
+          ) {
+            const error =
+              chunk.internalServerException ||
+              chunk.modelStreamErrorException ||
+              chunk.validationException ||
+              chunk.throttlingException ||
+              chunk.serviceUnavailableException;
+            callbacks.onError?.(error);
+            throw new Error(error.message);
+          }
+
+          // If there's a messageStop
+          if (chunk.messageStop) {
+            // If it's tool_use, do NOT finalize (the caller handles it).
+            if (chunk.messageStop.stopReason !== "tool_use") {
+              // For other stops: finalize.
+              const finalMessage: Message = {
+                role: "assistant",
+                content: accumulatedContent,
+              };
+              callbacks.onComplete?.(finalMessage);
+              return finalMessage;
             }
           }
         }
-        // Keep the last partial line in the buffer
+
+        // Keep trailing partial line
         buffer = lines[lines.length - 1];
       }
-
-      // If we get here without a messageStop, something went wrong
-      throw new Error("Stream ended without messageStop");
     } catch (error) {
-      console.error("LLM stream call failed:", error);
       callbacks.onError?.(error);
       throw error;
     }
   }
 
-  // Keep the old method for backwards compatibility
-  async callLLM(messages: MessageExtended[]): Promise<Message> {
+  // Old method for backward compat
+  public async callLLM(messages: MessageExtended[]): Promise<Message> {
     return this.callLLMStream(messages, {});
   }
 }
