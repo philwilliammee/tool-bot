@@ -91,15 +91,6 @@ export class ConverseStore {
     console.log("Adding message:", message);
     const newMessage = this.messageManager.addMessage(message);
 
-    // Handle tool use
-    if (newMessage.role === "assistant") {
-      const toolUseBlock = newMessage.content?.find((b: any) => b.toolUse)
-        ?.toolUse as ToolUse;
-      if (toolUseBlock) {
-        this.handleToolUse(toolUseBlock);
-      }
-    }
-
     // Handle LLM call for user messages
     if (newMessage.role === "user" && !store.isGenerating.value) {
       this.callBedrockLLM();
@@ -132,7 +123,6 @@ export class ConverseStore {
       // Add data context if available
       const messagesForLLM = [...activeMessages];
       const dataContext = dataStore.getDataContextText();
-
       if (dataContext) {
         // Find first non-tool user message
         const userIndex = messagesForLLM.findIndex(
@@ -152,15 +142,118 @@ export class ConverseStore {
         }
       }
 
-      // Debug log what's being sent
       console.log("Sending to LLM:", {
         totalMessages: messagesForLLM.length,
         dataContextAdded: !!dataContext,
         messages: messagesForLLM,
       });
+      let currentToolUse: Partial<ToolUse> | null = null;
+      let accumulatedToolInput = "";
+      let accumulatedText = "";
 
-      const result = await this.llmHandler.callLLM(messagesForLLM);
-      this.addMessage(result);
+      const tempMessage = this.messageManager.addMessage({
+        role: "assistant",
+        content: [{ text: "" }],
+      });
+
+      await this.llmHandler.callLLMStream(messagesForLLM, {
+        onChunk: async (chunk) => {
+          // Handle text chunks
+          if (chunk.contentBlockDelta?.delta?.text) {
+            accumulatedText += chunk.contentBlockDelta.delta.text;
+            this.messageManager.updateMessage(tempMessage.id, {
+              content: [{ text: accumulatedText }],
+            });
+            this.notifyMessageChange();
+          }
+          // Handle tool use start
+          else if (chunk.contentBlockStart?.start?.toolUse) {
+            console.log(
+              "Tool use started:",
+              chunk.contentBlockStart.start.toolUse
+            );
+            currentToolUse = {
+              name: chunk.contentBlockStart.start.toolUse.name,
+              toolUseId: chunk.contentBlockStart.start.toolUse.toolUseId,
+              input: {},
+            };
+          }
+          // Handle tool use input chunks
+          else if (chunk.contentBlockDelta?.delta?.toolUse) {
+            if (currentToolUse) {
+              accumulatedToolInput +=
+                chunk.contentBlockDelta.delta.toolUse.input || "";
+            }
+          }
+          // Handle message stop with tool use
+          else if (
+            chunk.messageStop?.stopReason === "tool_use" &&
+            currentToolUse &&
+            accumulatedToolInput
+          ) {
+            try {
+              const parsedInput = JSON.parse(accumulatedToolInput);
+              const toolUse: ToolUse = {
+                name: currentToolUse.name!,
+                toolUseId: currentToolUse.toolUseId!,
+                input: parsedInput,
+              };
+
+              console.log("Executing tool:", toolUse);
+
+              // Update assistant message with both text and tool use
+              this.messageManager.updateMessage(tempMessage.id, {
+                content: [{ text: accumulatedText }, { toolUse }],
+                metadata: {
+                  ...tempMessage.metadata,
+                  hasToolUse: true,
+                },
+              });
+              this.notifyMessageChange();
+
+              // Execute tool and add response
+              const result = await this.toolHandler.executeTool(toolUse);
+              console.log("Tool execution result:", result);
+              this.addMessage(result);
+
+              // Reset tool state
+              currentToolUse = null;
+              accumulatedToolInput = "";
+            } catch (error) {
+              console.error("Failed to process tool use:", error);
+              this.addMessage({
+                role: "user",
+                content: [{ text: `Tool execution failed: ${error}` }],
+              });
+            }
+          }
+        },
+        onComplete: (finalMessage) => {
+          const currentMessage = this.messageManager.getMessage(tempMessage.id);
+          if (currentMessage) {
+            this.messageManager.updateMessage(tempMessage.id, {
+              content: currentMessage.content,
+              metadata: {
+                ...currentMessage.metadata,
+                isStreaming: false,
+              },
+            });
+            this.notifyMessageChange();
+          }
+        },
+        onError: (error) => {
+          console.error("Stream error:", error);
+          this.messageManager.updateMessage(tempMessage.id, {
+            content: [{ text: "Error: Failed to generate response" }],
+            metadata: {
+              ...tempMessage.metadata,
+              isStreaming: false,
+              error: true,
+            },
+          });
+          this.notifyMessageChange();
+        },
+      });
     } catch (error: any) {
       console.error("LLM call failed:", error);
       throw error;

@@ -8,6 +8,7 @@ import { MessageExtended } from "../../app.types";
 import { marked } from "marked";
 import { dataStore } from "../../stores/DataStore/DataStore";
 import { ReExecuteButton } from "../../ReExecuteButton/ReExecuteButton";
+import { wrap } from "module";
 
 declare global {
   interface Window {
@@ -390,22 +391,39 @@ export class Chat {
     // Process messages
     const processed = await Promise.all(
       sortedMessages.map(async (message) => {
-        const contentBlocks = message.content
-          ?.map((block) => {
-            if (block.text) return block.text;
-            if (block.toolResult || block.toolUse) {
-              const type = block.toolResult ? "Tool Result" : "Tool Use";
-              const c = block.toolResult || block.toolUse;
-              return {
-                type,
-                content: `\`\`\`json\n${JSON.stringify(c, null, 2)}\n\`\`\``,
-              };
-            }
-            return "";
-          })
-          .filter(Boolean);
+        // Combine consecutive text blocks
+        const contentBlocks = [];
+        let accumulatedText = "";
 
-        if (!contentBlocks) return null;
+        for (const block of message.content || []) {
+          if (block.text !== undefined) {
+            // Accumulate text blocks
+            accumulatedText += block.text;
+          } else if (block.toolResult || block.toolUse) {
+            // If we have accumulated text, push it first
+            if (accumulatedText) {
+              contentBlocks.push(accumulatedText);
+              accumulatedText = "";
+            }
+            // Push tool block
+            const type = block.toolResult ? "Tool Result" : "Tool Use";
+            contentBlocks.push({
+              type,
+              content: `\`\`\`json\n${JSON.stringify(
+                block.toolResult || block.toolUse,
+                null,
+                2
+              )}\n\`\`\``,
+            });
+          }
+        }
+
+        // Push any remaining accumulated text
+        if (accumulatedText) {
+          contentBlocks.push(accumulatedText);
+        }
+
+        if (!contentBlocks.length) return null;
 
         const templateId = `${message.role}-message-template`;
         const template = document.getElementById(
@@ -428,52 +446,56 @@ export class Chat {
         // Insert content
         for (const content of contentBlocks) {
           if (typeof content === "string") {
-            if (content.length > 300) {
-              // show partial
-              const preview = document.createElement("div");
-              preview.className = "message-preview markdown-body";
-              preview.innerHTML = await marked(content.slice(0, 300) + "...");
-
-              const full = document.createElement("div");
-              full.className = "message-full-content markdown-body";
-              full.innerHTML = await marked(content);
-
-              wrapper.appendChild(preview);
-              wrapper.appendChild(full);
-
-              // Get or create actions div
-              let actionsDiv = msgElem.querySelector(".message-actions");
-              if (!actionsDiv) {
-                actionsDiv = document.createElement("div");
-                actionsDiv.className = "message-actions";
-                msgElem.appendChild(actionsDiv);
-              }
-
-              const toggleBtn = document.createElement("button");
-              toggleBtn.className = "read-more-btn";
-              toggleBtn.textContent = isLatestAI ? "Show less" : "Read more";
-
-              toggleBtn.addEventListener("click", () => {
-                full.classList.toggle("hidden");
-                preview.classList.toggle("hidden");
-                toggleBtn.textContent = full.classList.contains("hidden")
-                  ? "Read more"
-                  : "Show less";
-              });
-
-              actionsDiv.appendChild(toggleBtn);
-
-              if (isLatestAI) {
-                full.classList.remove("hidden");
-                preview.classList.add("hidden");
-              } else {
-                full.classList.add("hidden");
-                preview.classList.remove("hidden");
-              }
+            if (message.metadata.isStreaming) {
+              wrapper.innerHTML = content;
             } else {
-              // short text
+              // if (content.length > 300) {
+              //   // Long content with preview
+              //   // const preview = document.createElement("div");
+              //   // preview.className = "message-preview markdown-body";
+              //   // preview.innerHTML = await marked(content.slice(0, 300) + "...");
+
+              //   const full = document.createElement("div");
+              //   full.className = "message-full-content markdown-body";
+              //   full.innerHTML = await marked(content);
+
+              //   // wrapper.appendChild(preview);
+              //   wrapper.appendChild(full);
+
+              //   // Get or create actions div
+              //   let actionsDiv = msgElem.querySelector(".message-actions");
+              //   if (!actionsDiv) {
+              //     actionsDiv = document.createElement("div");
+              //     actionsDiv.className = "message-actions";
+              //     msgElem.appendChild(actionsDiv);
+              //   }
+
+              //   const toggleBtn = document.createElement("button");
+              //   toggleBtn.className = "read-more-btn";
+              //   toggleBtn.textContent = isLatestAI ? "Show less" : "Read more";
+
+              //   toggleBtn.addEventListener("click", () => {
+              //     full.classList.toggle("hidden");
+              //     // preview.classList.toggle("hidden");
+              //     toggleBtn.textContent = full.classList.contains("hidden")
+              //       ? "Read more"
+              //       : "Show less";
+              //   });
+
+              //   actionsDiv.appendChild(toggleBtn);
+
+              //   // if (isLatestAI) {
+              //   //   full.classList.remove("hidden");
+              //   //   preview.classList.add("hidden");
+              //   // } else {
+              //   //   full.classList.add("hidden");
+              //   //   preview.classList.remove("hidden");
+              //   // }
+              // } else {
+              // Short text
               wrapper.classList.add("markdown-body");
               wrapper.innerHTML = await marked(content);
+              // wrapper.innerHTML = content;
             }
           } else {
             // Tool content
@@ -535,6 +557,7 @@ export class Chat {
     // Scroll down
     requestAnimationFrame(() => this.scrollToBottom());
   }
+
   private findLastAssistant(
     messages: MessageExtended[]
   ): MessageExtended | undefined {

@@ -8,6 +8,7 @@ export class ViewModal extends BaseModal {
   }
 
   public show(message: MessageExtended): void {
+    console.log("Showing message:", message);
     const roleElement = this.dialog.querySelector(".role-value");
     const contentElement = this.dialog.querySelector(".content-value");
     const tagsElement = this.dialog.querySelector(".tags-value");
