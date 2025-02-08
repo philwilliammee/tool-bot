@@ -1,6 +1,6 @@
 import express from "express";
 import { BedrockService } from "./bedrock/bedrock.service.js";
-import { OpenAIService } from "./openai/openai.service.js"; // <-- Import your OpenAI service
+import { OpenAIService } from "./openai/openai.service.js";
 
 const router = express.Router();
 
