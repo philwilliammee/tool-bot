@@ -1,11 +1,11 @@
-import { HybridAutocomplete } from "./../AutoComplete/AutoComplete";
-import { ButtonSpinner } from "../ButtonSpinner/ButtonSpinner";
-import { store } from "../../stores/AppStore";
+import { HybridAutocomplete } from "./../AutoComplete/AutoComplete.js";
+import { ButtonSpinner } from "../ButtonSpinner/ButtonSpinner.js";
+import { store } from "../../stores/AppStore.js";
 import { effect, signal } from "@preact/signals-core";
-import { WorkArea } from "../WorkArea/WorkArea";
-import { converseStore } from "../../stores/ConverseStore/ConverseStore";
+import { WorkArea } from "../WorkArea/WorkArea.js";
+import { converseStore } from "../../stores/ConverseStore/ConverseStore.js";
 import { MessageExtended } from "../../app.types";
-import { dataStore } from "../../stores/DataStore/DataStore";
+import { dataStore } from "../../stores/DataStore/DataStore.js";
 import { ChatMessage } from "./ChatMessage.js";
 
 interface ChatDependencies {
@@ -19,7 +19,6 @@ export class Chat {
   private generateButton!: HTMLButtonElement;
   private workArea: HTMLElement;
   private cleanupFns: Array<() => void> = [];
-  private initialized = false;
   private autocomplete: HybridAutocomplete | null = null;
   private inputValue = signal("");
 
@@ -181,7 +180,16 @@ export class Chat {
     console.log("Rendering Chat component");
 
     // Grab fresh messages from the store, sorted by timestamp
-    const messages = converseStore.getMessages(); // Why don't we just subscribe to the store?
+    const messages = converseStore.getMessages();
+
+    // If there are no messages, clear everything
+    if (!messages.length) {
+      this.messageComponents.forEach((component) => component.destroy());
+      this.messageComponents.clear();
+      this.chatMessages.innerHTML = "";
+      return;
+    }
+
     const sortedMessages = [...messages].sort(
       (a, b) => a.metadata.createdAt - b.metadata.createdAt
     );
