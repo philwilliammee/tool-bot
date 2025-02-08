@@ -181,7 +181,7 @@ export class Chat {
     console.log("Rendering Chat component");
 
     // Grab fresh messages from the store, sorted by timestamp
-    const messages = converseStore.getMessages();
+    const messages = converseStore.getMessages(); // Why don't we just subscribe to the store?
     const sortedMessages = [...messages].sort(
       (a, b) => a.metadata.createdAt - b.metadata.createdAt
     );

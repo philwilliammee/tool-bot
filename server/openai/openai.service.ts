@@ -18,6 +18,7 @@ import {
 import fs from "fs/promises";
 import path from "path";
 
+// info https://platform.openai.com/docs/api-reference/streaming
 // @todo support retries
 export class OpenAIService {
   private static MAX_RETRIES = 2;
@@ -159,7 +160,6 @@ export class OpenAIService {
     }
     // console.log("openAIMessages", openAIMessages);
 
-    // Convert your server's tool config into "functions"
     const toolConfig = serverRegistry.getToolConfig();
     const tools = transformToolsToOpenAIFormat(toolConfig);
 

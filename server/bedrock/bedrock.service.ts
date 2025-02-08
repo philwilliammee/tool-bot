@@ -17,6 +17,7 @@ export interface BedrockServiceConfig {
   };
 }
 
+// info https://docs.aws.amazon.com/AWSJavaScriptSDK/v3/latest/client/bedrock-runtime/command/ConverseStreamCommand/
 // @todo add retry logic
 export class BedrockService {
   private client: BedrockRuntimeClient;
