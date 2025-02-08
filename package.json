@@ -8,18 +8,14 @@
     "dev:client": "vite",
     "dev:server": "nodemon --watch server --watch server.ts --ext ts --exec \"NODE_ENV=development vite-node --env-file=.env server.ts\"",
     "dev": "concurrently \"npm run dev:client\" \"npm run dev:server\"",
-
     "build:client": "vite build",
     "build:server": "tsc -p tsconfig.server.json && node scripts/fix-imports.js",
     "build": "npm run build:client && npm run build:server",
-
     "start:dev": "node dist-server/server.js",
     "start:prod": "NODE_ENV=production node --env-file=.env dist-server/server.js",
     "start": "node dist-server/server.js",
-
     "clean": "rm -rf dist dist-server",
     "preview": "vite preview",
-
     "deploy": "npm run clean && npm run build && npm run start:prod"
   },
   "devDependencies": {
@@ -41,7 +37,8 @@
     "marked": "^15.0.6",
     "mathjs": "^14.0.1",
     "octokit": "^4.1.0",
-    "openai": "^4.80.1"
+    "openai": "^4.80.1",
+    "zod": "^3.24.1"
   },
   "engines": {
     "node": ">=20.6.0"

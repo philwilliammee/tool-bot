@@ -1,0 +1,300 @@
+{
+    "id": "chatcmpl-4c05560d-04d7-45c4-9f05-f3a0da0947d0",
+    "created": 1738979384,
+    "model": "us.anthropic.claude-3-5-sonnet-20241022-v2:0",
+    "object": "chat.completion.chunk",
+    "choices": [
+        {
+            "index": 0,
+            "delta": {
+                "content": "I",
+                "role": "assistant"
+            }
+        }
+    ]
+}{
+    "id": "chatcmpl-4c05560d-04d7-45c4-9f05-f3a0da0947d0",
+    "created": 1738979384,
+    "model": "us.anthropic.claude-3-5-sonnet-20241022-v2:0",
+    "object": "chat.completion.chunk",
+    "choices": [
+        {
+            "index": 0,
+            "delta": {
+                "content": " can"
+            }
+        }
+    ]
+}{
+    "id": "chatcmpl-4c05560d-04d7-45c4-9f05-f3a0da0947d0",
+    "created": 1738979384,
+    "model": "us.anthropic.claude-3-5-sonnet-20241022-v2:0",
+    "object": "chat.completion.chunk",
+    "choices": [
+        {
+            "index": 0,
+            "delta": {
+                "content": " help"
+            }
+        }
+    ]
+}{
+    "id": "chatcmpl-4c05560d-04d7-45c4-9f05-f3a0da0947d0",
+    "created": 1738979384,
+    "model": "us.anthropic.claude-3-5-sonnet-20241022-v2:0",
+    "object": "chat.completion.chunk",
+    "choices": [
+        {
+            "index": 0,
+            "delta": {
+                "content": " you calculate the square"
+            }
+        }
+    ]
+}{
+    "id": "chatcmpl-4c05560d-04d7-45c4-9f05-f3a0da0947d0",
+    "created": 1738979385,
+    "model": "us.anthropic.claude-3-5-sonnet-20241022-v2:0",
+    "object": "chat.completion.chunk",
+    "choices": [
+        {
+            "index": 0,
+            "delta": {
+                "content": " root of 2"
+            }
+        }
+    ]
+}{
+    "id": "chatcmpl-4c05560d-04d7-45c4-9f05-f3a0da0947d0",
+    "created": 1738979385,
+    "model": "us.anthropic.claude-3-5-sonnet-20241022-v2:0",
+    "object": "chat.completion.chunk",
+    "choices": [
+        {
+            "index": 0,
+            "delta": {
+                "content": "777 "
+            }
+        }
+    ]
+}{
+    "id": "chatcmpl-4c05560d-04d7-45c4-9f05-f3a0da0947d0",
+    "created": 1738979385,
+    "model": "us.anthropic.claude-3-5-sonnet-20241022-v2:0",
+    "object": "chat.completion.chunk",
+    "choices": [
+        {
+            "index": 0,
+            "delta": {
+                "content": "using"
+            }
+        }
+    ]
+}{
+    "id": "chatcmpl-4c05560d-04d7-45c4-9f05-f3a0da0947d0",
+    "created": 1738979385,
+    "model": "us.anthropic.claude-3-5-sonnet-20241022-v2:0",
+    "object": "chat.completion.chunk",
+    "choices": [
+        {
+            "index": 0,
+            "delta": {
+                "content": " the math"
+            }
+        }
+    ]
+}{
+    "id": "chatcmpl-4c05560d-04d7-45c4-9f05-f3a0da0947d0",
+    "created": 1738979385,
+    "model": "us.anthropic.claude-3-5-sonnet-20241022-v2:0",
+    "object": "chat.completion.chunk",
+    "choices": [
+        {
+            "index": 0,
+            "delta": {
+                "content": " tool"
+            }
+        }
+    ]
+}{
+    "id": "chatcmpl-4c05560d-04d7-45c4-9f05-f3a0da0947d0",
+    "created": 1738979385,
+    "model": "us.anthropic.claude-3-5-sonnet-20241022-v2:0",
+    "object": "chat.completion.chunk",
+    "choices": [
+        {
+            "index": 0,
+            "delta": {
+                "content": "."
+            }
+        }
+    ]
+}{
+    "id": "chatcmpl-4c05560d-04d7-45c4-9f05-f3a0da0947d0",
+    "created": 1738979385,
+    "model": "us.anthropic.claude-3-5-sonnet-20241022-v2:0",
+    "object": "chat.completion.chunk",
+    "choices": [
+        {
+            "index": 0,
+            "delta": {
+                "content": "",
+                "tool_calls": [
+                    {
+                        "id": "tooluse_0u0MvmlmQXCeO1XVMycPwQ",
+                        "function": {
+                            "arguments": "",
+                            "name": "math"
+                        },
+                        "type": "function",
+                        "index": 1
+                    }
+                ]
+            }
+        }
+    ]
+}{
+    "id": "chatcmpl-4c05560d-04d7-45c4-9f05-f3a0da0947d0",
+    "created": 1738979385,
+    "model": "us.anthropic.claude-3-5-sonnet-20241022-v2:0",
+    "object": "chat.completion.chunk",
+    "choices": [
+        {
+            "index": 0,
+            "delta": {
+                "content": "",
+                "tool_calls": [
+                    {
+                        "function": {
+                            "arguments": ""
+                        },
+                        "type": "function",
+                        "index": 1
+                    }
+                ]
+            }
+        }
+    ]
+}{
+    "id": "chatcmpl-4c05560d-04d7-45c4-9f05-f3a0da0947d0",
+    "created": 1738979385,
+    "model": "us.anthropic.claude-3-5-sonnet-20241022-v2:0",
+    "object": "chat.completion.chunk",
+    "choices": [
+        {
+            "index": 0,
+            "delta": {
+                "content": "",
+                "tool_calls": [
+                    {
+                        "function": {
+                            "arguments": "{\"ex"
+                        },
+                        "type": "function",
+                        "index": 1
+                    }
+                ]
+            }
+        }
+    ]
+}{
+    "id": "chatcmpl-4c05560d-04d7-45c4-9f05-f3a0da0947d0",
+    "created": 1738979385,
+    "model": "us.anthropic.claude-3-5-sonnet-20241022-v2:0",
+    "object": "chat.completion.chunk",
+    "choices": [
+        {
+            "index": 0,
+            "delta": {
+                "content": "",
+                "tool_calls": [
+                    {
+                        "function": {
+                            "arguments": "pression\": "
+                        },
+                        "type": "function",
+                        "index": 1
+                    }
+                ]
+            }
+        }
+    ]
+}{
+    "id": "chatcmpl-4c05560d-04d7-45c4-9f05-f3a0da0947d0",
+    "created": 1738979385,
+    "model": "us.anthropic.claude-3-5-sonnet-20241022-v2:0",
+    "object": "chat.completion.chunk",
+    "choices": [
+        {
+            "index": 0,
+            "delta": {
+                "content": "",
+                "tool_calls": [
+                    {
+                        "function": {
+                            "arguments": "\"sqrt(277"
+                        },
+                        "type": "function",
+                        "index": 1
+                    }
+                ]
+            }
+        }
+    ]
+}{
+    "id": "chatcmpl-4c05560d-04d7-45c4-9f05-f3a0da0947d0",
+    "created": 1738979385,
+    "model": "us.anthropic.claude-3-5-sonnet-20241022-v2:0",
+    "object": "chat.completion.chunk",
+    "choices": [
+        {
+            "index": 0,
+            "delta": {
+                "content": "",
+                "tool_calls": [
+                    {
+                        "function": {
+                            "arguments": "7)"
+                        },
+                        "type": "function",
+                        "index": 1
+                    }
+                ]
+            }
+        }
+    ]
+}{
+    "id": "chatcmpl-4c05560d-04d7-45c4-9f05-f3a0da0947d0",
+    "created": 1738979385,
+    "model": "us.anthropic.claude-3-5-sonnet-20241022-v2:0",
+    "object": "chat.completion.chunk",
+    "choices": [
+        {
+            "index": 0,
+            "delta": {
+                "content": "",
+                "tool_calls": [
+                    {
+                        "function": {
+                            "arguments": "\"}"
+                        },
+                        "type": "function",
+                        "index": 1
+                    }
+                ]
+            }
+        }
+    ]
+}{
+    "id": "chatcmpl-4c05560d-04d7-45c4-9f05-f3a0da0947d0",
+    "created": 1738979385,
+    "model": "us.anthropic.claude-3-5-sonnet-20241022-v2:0",
+    "object": "chat.completion.chunk",
+    "choices": [
+        {
+            "finish_reason": "tool_calls",
+            "index": 0,
+            "delta": {}
+        }
+    ]
+}

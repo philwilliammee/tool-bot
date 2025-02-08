@@ -6,8 +6,21 @@ import type {
   ChatCompletionToolMessageParam,
   ChatCompletionTool,
 } from "openai/resources/chat/completions";
-import { Message, ToolConfiguration } from "@aws-sdk/client-bedrock-runtime";
+import {
+  ConverseStreamResponse,
+  Message,
+  ToolConfiguration,
+} from "@aws-sdk/client-bedrock-runtime";
 import { FunctionParameters } from "openai/src/resources/shared.js";
+import OpenAI from "openai";
+import { Stream } from "openai/streaming.mjs";
+
+export type BedrockStreamResponse = AsyncIterable<any> & ConverseStreamResponse;
+
+export type OpenaiStream =
+  Stream<OpenAI.Chat.Completions.ChatCompletionChunk> & {
+    _request_id?: string | null;
+  };
 
 export function transformToOpenAIMessage(
   msg: Message
@@ -83,4 +96,106 @@ export function transformToolsToOpenAIFormat(
       },
     };
   });
+}
+
+export async function transformToBedrockStream(
+  openaiStream: OpenaiStream
+): Promise<ConverseStreamResponse> {
+  let isFirstChunk = true;
+  let lastToolCallId: string | undefined;
+
+  return {
+    stream: {
+      async *[Symbol.asyncIterator]() {
+        try {
+          for await (const chunk of openaiStream) {
+            const delta = chunk.choices[0].delta;
+            const finishReason = chunk.choices[0].finish_reason;
+
+            // Handle message start on the very first assistant chunk
+            if (isFirstChunk && delta.role === "assistant") {
+              isFirstChunk = false;
+              yield {
+                messageStart: {
+                  role: "assistant",
+                },
+              };
+            }
+
+            // Handle content
+            if (delta.content) {
+              yield {
+                contentBlockDelta: {
+                  contentBlockIndex: 0,
+                  delta: {
+                    text: delta.content,
+                  },
+                },
+              };
+            }
+
+            // Handle tool calls
+            if (delta.tool_calls) {
+              const toolCall = delta.tool_calls[0];
+
+              // If it's a new tool call ID, start a new content block
+              if (toolCall.id && toolCall.id !== lastToolCallId) {
+                lastToolCallId = toolCall.id;
+                yield {
+                  contentBlockStart: {
+                    contentBlockIndex: 1,
+                    start: {
+                      toolUse: {
+                        name: toolCall.function?.name,
+                        toolUseId: toolCall.id,
+                      },
+                    },
+                  },
+                };
+              }
+
+              // Stream out partial arguments if any
+              if (toolCall.function?.arguments) {
+                yield {
+                  contentBlockDelta: {
+                    contentBlockIndex: 1,
+                    delta: {
+                      toolUse: {
+                        input: toolCall.function.arguments,
+                      },
+                    },
+                  },
+                };
+              }
+            }
+
+            // Handle any finish reason
+            if (finishReason) {
+              // If a tool call was in progress, close it
+              if (lastToolCallId) {
+                yield {
+                  contentBlockStop: {
+                    contentBlockIndex: 1,
+                  },
+                };
+              }
+
+              // Map finish_reason to the appropriate stopReason
+              yield {
+                messageStop: {
+                  stopReason:
+                    finishReason === "function_call" ||
+                    finishReason === "tool_calls"
+                      ? "tool_use"
+                      : "end_turn",
+                },
+              };
+            }
+          }
+        } catch (error) {
+          console.error("Error in stream transformation:", error);
+        }
+      },
+    },
+  } as ConverseStreamResponse;
 }

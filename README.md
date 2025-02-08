@@ -111,3 +111,9 @@ docker run -p 3000:3000 --env-file .env tool-bot
 - Chat streaming
 
 For more detailed information about specific tools and their capabilities, refer to the `tools/README.md` file.
+
+
+
+## Streaming
+
+https://community.openai.com/t/parsing-json-stream-response-in-nodejs/325366/7

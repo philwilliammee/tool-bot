@@ -1,21 +1,17 @@
 import express from "express";
 import { BedrockService } from "./bedrock/bedrock.service.js";
+import { OpenAIService } from "./openai/openai.service.js"; // <-- Import your OpenAI service
 
 const router = express.Router();
 
 const AI_CLIENT = process.env.AI_CLIENT || "bedrock";
 
-let aiService;
+let aiService: BedrockService | OpenAIService;
 
 if (AI_CLIENT === "bedrock") {
-  aiService = new BedrockService({
-    region: process.env.AWS_REGION || "us-east-1",
-    credentials: {
-      accessKeyId: process.env.AWS_ACCESS_KEY || "",
-      secretAccessKey: process.env.AWS_SECRET_KEY || "",
-      sessionToken: process.env.AWS_SESSION_TOKEN || "",
-    },
-  });
+  aiService = new BedrockService();
+} else if (AI_CLIENT === "openai") {
+  aiService = new OpenAIService(); // No config needed if you read from ENV, etc.
 } else {
   throw new Error(`Unsupported AI client: ${AI_CLIENT}`);
 }
@@ -27,6 +23,7 @@ router.post("/", async (req, res) => {
       `[ROUTER] POST request with messages count: ${messages.length} using ${AI_CLIENT}`
     );
 
+    // Call the streaming method on whichever service we're using
     const response = await aiService.converseStream(
       modelId,
       messages,
@@ -43,10 +40,10 @@ router.post("/", async (req, res) => {
 
     // Process the stream and pass through each chunk
     for await (const chunk of response.stream) {
-      // Pass through the raw chunk from AWS
+      // Pass through the raw chunk
       res.write(JSON.stringify(chunk) + "\n");
 
-      // If we encounter any exceptions, throw them
+      // If we encounter any "exception" fields, throw them
       if (
         chunk.internalServerException ||
         chunk.modelStreamErrorException ||

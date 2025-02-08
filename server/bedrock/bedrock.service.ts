@@ -20,7 +20,15 @@ export interface BedrockServiceConfig {
 export class BedrockService {
   private client: BedrockRuntimeClient;
 
-  constructor(config: BedrockServiceConfig) {
+  constructor() {
+    const config = {
+      region: process.env.AWS_REGION || "us-east-1",
+      credentials: {
+        accessKeyId: process.env.AWS_ACCESS_KEY || "",
+        secretAccessKey: process.env.AWS_SECRET_KEY || "",
+        sessionToken: process.env.AWS_SESSION_TOKEN || "",
+      },
+    };
     this.client = new BedrockRuntimeClient(config);
   }
 

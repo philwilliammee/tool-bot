@@ -39,7 +39,7 @@
   text-overflow: ellipsis;
 }
 
-.message-text {
+.chat-admin-table .message-text {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
