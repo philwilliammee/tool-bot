@@ -1,27 +1,39 @@
-// server/openai/openai.service.ts
 import OpenAI from "openai";
-import { ConverseResponse, Message } from "@aws-sdk/client-bedrock-runtime";
+import type {
+  ChatCompletionMessageParam,
+  ChatCompletionCreateParamsStreaming,
+} from "openai/resources/chat/completions";
 import { serverRegistry } from "../../tools/server/registry.js";
-import type { ChatCompletionMessageParam } from "openai/resources/chat/completions";
 import {
-  transformToolsToOpenAIFormat,
+  ConverseStreamResponse,
+  ConverseStreamOutput,
+  Message,
+} from "@aws-sdk/client-bedrock-runtime";
+import {
   transformToOpenAIMessage,
+  transformToolsToOpenAIFormat,
+  transformToBedrockStream,
+  OpenaiStream,
 } from "./openai.utils.js";
 import fs from "fs/promises";
 import path from "path";
 
+// info https://platform.openai.com/docs/api-reference/streaming
+// @todo support retries
 export class OpenAIService {
   private static MAX_RETRIES = 2;
   private client!: OpenAI;
+
   private static SESSION_KEY_PATH = path.join(
     process.cwd(),
     "private",
     "openai_session_key"
   );
+
   private static CONFIG = {
     API_KEY: process.env.OPENAI_API_KEY || "",
     API_BASE: process.env.OPENAI_API_BASE || "",
-    API_MODEL: process.env.OPENAI_API_MODEL || "",
+    API_MODEL: process.env.OPENAI_API_MODEL || "", // e.g. "gpt-4"
   };
 
   constructor() {
@@ -30,7 +42,6 @@ export class OpenAIService {
 
   private async initialize() {
     const sessionKey = await this.getOrGenerateSessionKey();
-
     this.client = new OpenAI({
       apiKey: sessionKey,
       baseURL: OpenAIService.CONFIG.API_BASE,
@@ -46,12 +57,11 @@ export class OpenAIService {
       );
       const { key, expiresAt } = JSON.parse(keyFile);
 
-      // Check if key is expired (10 minutes buffer)
+      // Check if key is expired (within 10 min buffer)
       if (new Date(expiresAt).getTime() - Date.now() > 10 * 60 * 1000) {
         return key;
       }
-
-      // If key is expired or about to expire, generate new one
+      // Otherwise generate new
       return await this.generateNewSessionKey();
     } catch (error) {
       // If file doesn't exist or is invalid, generate new key
@@ -84,7 +94,7 @@ export class OpenAIService {
 
       const data = await response.json();
       const sessionKey = data.key;
-      const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours from now
+      const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hrs
 
       // Ensure private directory exists
       await fs.mkdir(path.dirname(OpenAIService.SESSION_KEY_PATH), {
@@ -94,10 +104,7 @@ export class OpenAIService {
       // Save session key and expiration
       await fs.writeFile(
         OpenAIService.SESSION_KEY_PATH,
-        JSON.stringify({
-          key: sessionKey,
-          expiresAt: expiresAt.toISOString(),
-        })
+        JSON.stringify({ key: sessionKey, expiresAt: expiresAt.toISOString() })
       );
 
       return sessionKey;
@@ -107,124 +114,71 @@ export class OpenAIService {
     }
   }
 
+  /**
+   * Optional non-streaming method that just consumes the stream fully.
+   */
   async converse(
     modelId: string,
     messages: Message[],
     systemPrompt: string
-  ): Promise<ConverseResponse> {
-    // Use configured model ID instead of passed parameter
-    return this.executeWithRetry(
-      OpenAIService.CONFIG.API_MODEL,
-      messages,
-      systemPrompt
-    );
+  ): Promise<any> {
+    const response = await this.converseStream(modelId, messages, systemPrompt);
+    const chunks: ConverseStreamOutput[] = [];
+    const stream = response.stream as AsyncIterable<ConverseStreamOutput>;
+    for await (const chunk of stream) {
+      chunks.push(chunk);
+    }
+    return { chunks };
   }
 
-  private async executeWithRetry(
+  /**
+   * Main streaming method. Returns a Bedrock-like { stream: AsyncIterable<ConverseStreamOutput> }.
+   */
+  public async converseStream(
     modelId: string,
     messages: Message[],
-    systemPrompt: string,
-    retryCount = OpenAIService.MAX_RETRIES
-  ): Promise<ConverseResponse> {
-    try {
-      const startTime = Date.now();
-
-      // Get tools from registry and transform them
-      const toolConfig = serverRegistry.getToolConfig();
-      const tools = transformToolsToOpenAIFormat(toolConfig);
-
-      // Transform messages to OpenAI format
-      const openAIMessages: ChatCompletionMessageParam[] = messages.map(
-        transformToOpenAIMessage
-      );
-
-      // Add system message to the beginning
-      if (systemPrompt) {
-        openAIMessages.unshift({
-          role: "system",
-          content: systemPrompt,
-        });
-      }
-
-      const completion = await this.client.chat.completions.create({
-        messages: openAIMessages,
-        model: modelId,
-        temperature: 0.7,
-        max_tokens: 8000,
-        tools: tools,
-        tool_choice: "auto",
-      });
-
-      const assistantMessage = completion.choices[0].message;
-
-      // If the assistant wants to use a tool
-      if (assistantMessage.tool_calls?.length) {
-        const toolCall = assistantMessage.tool_calls[0];
-        return {
-          output: {
-            message: {
-              role: "assistant",
-              content: [
-                {
-                  toolUse: {
-                    toolUseId: toolCall.id,
-                    name: toolCall.function.name,
-                    input: JSON.parse(toolCall.function.arguments),
-                  },
-                },
-              ],
-            },
-          },
-          stopReason: "tool_use",
-          usage: {
-            inputTokens: completion.usage?.prompt_tokens || 0,
-            outputTokens: completion.usage?.completion_tokens || 0,
-            totalTokens: completion.usage?.total_tokens || 0,
-          },
-          metrics: {
-            latencyMs: Date.now() - startTime,
-          },
-        };
-      }
-
-      // If no tool calls, return normal response
-      return {
-        output: {
-          message: {
-            role: "assistant",
-            content: [{ text: assistantMessage.content || "" }],
-          },
-        },
-        stopReason: completion.choices[0].finish_reason as any,
-        usage: {
-          inputTokens: completion.usage?.prompt_tokens || 0,
-          outputTokens: completion.usage?.completion_tokens || 0,
-          totalTokens: completion.usage?.total_tokens || 0,
-        },
-        metrics: {
-          latencyMs: Date.now() - startTime,
-        },
-      };
-    } catch (error: any) {
-      console.error("Execute error:", {
-        error: error.message,
-        retryCount,
-        modelId,
-        stack: error.stack,
-      });
-
-      if (retryCount > 0) {
-        console.warn(
-          `Retry attempt ${OpenAIService.MAX_RETRIES - retryCount + 1}`
-        );
-        return this.executeWithRetry(
-          modelId,
-          messages,
-          systemPrompt,
-          retryCount - 1
-        );
-      }
-      throw error;
+    systemPrompt: string
+  ): Promise<ConverseStreamResponse> {
+    if (!messages.length) {
+      throw new Error("Messages array cannot be empty");
     }
+    if (messages[0].role !== "user") {
+      throw new Error("First message must be from user");
+    }
+
+    // console.log("incomingMessages", JSON.stringify(messages, null, 2));
+
+    // Convert to OpenAI format
+    const openAIMessages: ChatCompletionMessageParam[] = messages.map(
+      transformToOpenAIMessage
+    );
+    if (systemPrompt) {
+      openAIMessages.unshift({
+        role: "system",
+        content: systemPrompt,
+      });
+    }
+    // console.log("openAIMessages", openAIMessages);
+
+    const toolConfig = serverRegistry.getToolConfig();
+    const tools = transformToolsToOpenAIFormat(toolConfig);
+
+    // Build a streaming request
+    const request: ChatCompletionCreateParamsStreaming = {
+      model: OpenAIService.CONFIG.API_MODEL || modelId,
+      messages: openAIMessages,
+      temperature: 0.7,
+      max_tokens: 8000,
+      tools,
+      function_call: "auto",
+      stream: true as true,
+    };
+
+    // Call OpenAI streaming
+    const openAIStream: OpenaiStream =
+      await this.client.chat.completions.create(request);
+
+    // Transform the stream using our utility function
+    return await transformToBedrockStream(openAIStream);
   }
 }

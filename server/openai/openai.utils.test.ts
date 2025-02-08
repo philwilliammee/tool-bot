@@ -1,8 +1,14 @@
-// src/utils/__tests__/openai.utils.test.ts
+// server/openai/openai.utils.test.ts
 import { describe, it, expect } from "vitest";
 
-import { Message, ToolConfiguration } from "@aws-sdk/client-bedrock-runtime";
 import {
+  ConverseStreamOutput,
+  Message,
+  ToolConfiguration,
+} from "@aws-sdk/client-bedrock-runtime";
+import {
+  OpenaiStream,
+  transformToBedrockStream,
   transformToOpenAIMessage,
   transformToolsToOpenAIFormat,
 } from "./openai.utils";
@@ -161,6 +167,159 @@ describe("openai.utils", () => {
       const result = transformToolsToOpenAIFormat(toolConfig);
       expect(result).toHaveLength(1);
       expect(result[0].function.name).toBe("valid");
+    });
+  });
+
+  describe("transformToBedrockStream", () => {
+    it("should transform basic content stream", async () => {
+      const mockChunks = [
+        {
+          id: "test-id",
+          choices: [
+            { index: 0, delta: { role: "assistant", content: "Hello" } },
+          ],
+        },
+        {
+          id: "test-id",
+          choices: [{ index: 0, delta: { content: " world" } }],
+        },
+        {
+          id: "test-id",
+          choices: [{ index: 0, finish_reason: "stop", delta: {} }],
+        },
+      ];
+
+      const openAIStream = {
+        [Symbol.asyncIterator]() {
+          let index = 0;
+          return {
+            async next() {
+              if (index < mockChunks.length) {
+                return { value: mockChunks[index++], done: false };
+              }
+              return { value: undefined, done: true };
+            },
+          };
+        },
+      } as OpenaiStream;
+
+      const bedrockStream = await transformToBedrockStream(openAIStream);
+      const chunks: ConverseStreamOutput[] = [];
+      const stream =
+        bedrockStream.stream as AsyncIterable<ConverseStreamOutput>;
+      for await (const chunk of stream) {
+        chunks.push(chunk);
+      }
+
+      expect(chunks.length).toBeGreaterThan(0);
+      expect(chunks[0]).toHaveProperty("messageStart");
+      expect(chunks[chunks.length - 1]).toHaveProperty("messageStop");
+    });
+
+    it("should handle tool usage properly", async () => {
+      const mockChunks = [
+        {
+          id: "test-id",
+          choices: [
+            {
+              index: 0,
+              delta: {
+                role: "assistant",
+                content: "Let's use the tool",
+              },
+            },
+          ],
+        },
+        {
+          id: "test-id",
+          choices: [
+            {
+              index: 0,
+              delta: {
+                tool_calls: [
+                  {
+                    id: "tooluse_123",
+                    function: {
+                      name: "someTool",
+                      arguments: '{"foo":"bar"}',
+                    },
+                  },
+                ],
+              },
+            },
+          ],
+        },
+        {
+          id: "test-id",
+          choices: [
+            {
+              index: 0,
+              finish_reason: "function_call",
+              delta: {},
+            },
+          ],
+        },
+      ];
+
+      const openAIStream = {
+        [Symbol.asyncIterator]() {
+          let index = 0;
+          return {
+            async next() {
+              if (index < mockChunks.length) {
+                return { value: mockChunks[index++], done: false };
+              }
+              return { value: undefined, done: true };
+            },
+          };
+        },
+      } as OpenaiStream;
+
+      const bedrockStream = await transformToBedrockStream(openAIStream);
+      const chunks: ConverseStreamOutput[] = [];
+      const stream =
+        bedrockStream.stream as AsyncIterable<ConverseStreamOutput>;
+      for await (const chunk of stream) {
+        chunks.push(chunk);
+      }
+
+      // Validate the structure
+      expect(chunks[0]).toMatchObject({
+        messageStart: { role: "assistant" },
+      });
+      expect(chunks[1]).toMatchObject({
+        contentBlockDelta: {
+          contentBlockIndex: 0,
+          delta: { text: "Let's use the tool" },
+        },
+      });
+      expect(chunks[2]).toMatchObject({
+        contentBlockStart: {
+          contentBlockIndex: 1,
+          start: {
+            toolUse: {
+              name: "someTool",
+              toolUseId: "tooluse_123",
+            },
+          },
+        },
+      });
+      expect(chunks[3]).toMatchObject({
+        contentBlockDelta: {
+          contentBlockIndex: 1,
+          delta: {
+            toolUse: {
+              input: '{"foo":"bar"}',
+            },
+          },
+        },
+      });
+      expect(chunks[4]).toMatchObject({
+        contentBlockStop: { contentBlockIndex: 1 },
+      });
+      expect(chunks[5]).toMatchObject({
+        messageStop: { stopReason: "tool_use" },
+      });
     });
   });
 });

@@ -4,6 +4,15 @@ import { ToolUse } from "../../../app.types";
 
 // src/stores/handlers/ToolHandler.ts
 export class ToolHandler {
+  // Helper function to clean CDATA wrapper
+  private cleanCDATA(content: string): string {
+    if (content.includes("CDATA[")) {
+      return content.replace(/<!\[CDATA\[(.*?)\]\]>/s, "$1");
+    }
+    return content;
+  }
+
+  // In ToolHandler.ts
   async executeTool(toolUse: ToolUse): Promise<Message> {
     const tool = clientRegistry.getTool(toolUse.name);
     if (!tool) {
@@ -12,8 +21,14 @@ export class ToolHandler {
 
     try {
       const result = await tool.execute(toolUse.input);
+
+      // Clean up CDATA if present in the result
+      if (typeof result === "object" && result.html) {
+        result.html = this.cleanCDATA(result.html);
+      }
+
       return {
-        role: "user", // should this be "tool"?
+        role: "user",
         content: [
           {
             toolResult: {

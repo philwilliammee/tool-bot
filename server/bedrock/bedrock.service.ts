@@ -1,8 +1,8 @@
 import {
   BedrockRuntimeClient,
-  ConverseCommand,
-  ConverseCommandInput,
-  ConverseResponse,
+  ConverseStreamCommand,
+  ConverseStreamCommandInput,
+  ConverseStreamResponse,
   Message,
   SystemContentBlock,
 } from "@aws-sdk/client-bedrock-runtime";
@@ -17,83 +17,71 @@ export interface BedrockServiceConfig {
   };
 }
 
+// info https://docs.aws.amazon.com/AWSJavaScriptSDK/v3/latest/client/bedrock-runtime/command/ConverseStreamCommand/
+// @todo add retry logic
 export class BedrockService {
-  private static MAX_RETRIES = 2;
   private client: BedrockRuntimeClient;
 
-  constructor(config: BedrockServiceConfig) {
+  constructor() {
+    const config = {
+      region: process.env.AWS_REGION || "us-east-1",
+      credentials: {
+        accessKeyId: process.env.AWS_ACCESS_KEY || "",
+        secretAccessKey: process.env.AWS_SECRET_KEY || "",
+        sessionToken: process.env.AWS_SESSION_TOKEN || "",
+      },
+    };
     this.client = new BedrockRuntimeClient(config);
   }
 
+  async converseStream(
+    modelId: string,
+    messages: Message[],
+    systemPrompt: string
+  ): Promise<ConverseStreamResponse> {
+    // Validation
+    if (messages.length === 0) {
+      throw new Error("Messages array cannot be empty");
+    }
+
+    if (messages[0].role !== "user") {
+      throw new Error("First message must be from user");
+    }
+
+    const system: SystemContentBlock[] = [{ text: systemPrompt }];
+
+    const input: ConverseStreamCommandInput = {
+      modelId,
+      system,
+      messages,
+      toolConfig: serverRegistry.getToolConfig(),
+      inferenceConfig: {
+        temperature: 0.7,
+        maxTokens: 8000, // 128000 openai max tokens
+      },
+    };
+
+    try {
+      const command = new ConverseStreamCommand(input);
+      const response = await this.client.send(command);
+      // console.log("Stream execution response:", response);
+      return response;
+    } catch (error: any) {
+      console.error("Stream execution error:", {
+        error: error.message,
+        modelId,
+        stack: error.stack,
+      });
+      throw error;
+    }
+  }
+
+  // Keep the original non-streaming method if needed
   async converse(
     modelId: string,
     messages: Message[],
     systemPrompt: string
-  ): Promise<ConverseResponse> {
-    return this.executeWithRetry(modelId, messages, systemPrompt);
-  }
-
-  private async executeWithRetry(
-    modelId: string,
-    messages: Message[],
-    systemPrompt: string,
-    retryCount = BedrockService.MAX_RETRIES
-  ): Promise<ConverseResponse> {
-    try {
-      const system: SystemContentBlock[] = [{ text: systemPrompt }];
-
-      // Ensure messages array starts with a user message
-      if (messages.length === 0) {
-        throw new Error("Messages array cannot be empty");
-      }
-
-      if (messages[0].role !== "user") {
-        throw new Error("First message must be from user");
-      }
-
-      const input: ConverseCommandInput = {
-        modelId,
-        system,
-        messages,
-        toolConfig: serverRegistry.getToolConfig(),
-        inferenceConfig: {
-          temperature: 0.7,
-          maxTokens: 8000, // 128000 openai max tokens
-        },
-      };
-
-      const command = new ConverseCommand(input);
-      const response: ConverseResponse = await this.client.send(command);
-      return response;
-    } catch (error: any) {
-      console.error("Execute error:", {
-        error: error.message,
-        retryCount,
-        modelId,
-        stack: error.stack,
-      });
-
-      if (retryCount > 0) {
-        // Only retry certain types of errors
-        if (
-          error.name === "ValidationException" &&
-          error.message.includes("alternating")
-        ) {
-          console.warn("Message sequence error detected, skipping retry");
-          throw error;
-        }
-
-        console.warn(
-          `Retry attempt ${BedrockService.MAX_RETRIES - retryCount + 1}`
-        );
-        return this.executeWithRetry(
-          modelId,
-          messages,
-          systemPrompt,
-          retryCount - 1
-        );
-      }
-      throw error;
-    }
+  ): Promise<ConverseStreamResponse> {
+    return this.converseStream(modelId, messages, systemPrompt);
   }
 }

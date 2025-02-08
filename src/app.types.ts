@@ -25,6 +25,8 @@ export interface MessageMetadata {
   sequenceNumber?: number;
   tags?: string[];
   userRating?: number;
+  isStreaming?: boolean;
+  error?: boolean;
 }
 
 export interface MessageExtended extends Message {
