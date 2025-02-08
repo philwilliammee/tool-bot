@@ -93,6 +93,7 @@ export class ConverseStore {
 
     // Handle LLM call for user messages. There is an issue if it is a fast toolcall and its generating.
     // if (newMessage.role === "user" && !store.isGenerating.value) {
+    // should this be and if is not streaming?
     if (newMessage.role === "user") {
       this.callBedrockLLM();
     }
@@ -104,7 +105,6 @@ export class ConverseStore {
     try {
       const result = await this.toolHandler.executeTool(toolUse);
       this.addMessage(result);
-      // @todo send to LLM here? directly after tool result.
     } catch (error: any) {
       this.addMessage({
         role: "user",

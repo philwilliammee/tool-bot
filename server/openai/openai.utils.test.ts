@@ -1,4 +1,4 @@
-// src/utils/__tests__/openai.utils.test.ts
+// server/openai/openai.utils.test.ts
 import { describe, it, expect } from "vitest";
 
 import {

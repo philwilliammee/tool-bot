@@ -26,7 +26,6 @@ export interface MessageMetadata {
   tags?: string[];
   userRating?: number;
   isStreaming?: boolean;
-  streamProgress?: number; // optional, if we want to track progress
   error?: boolean;
 }
 
