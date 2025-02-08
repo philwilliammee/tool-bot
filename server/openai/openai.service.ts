@@ -146,6 +146,8 @@ export class OpenAIService {
       throw new Error("First message must be from user");
     }
 
+    console.log("incomingMessages", JSON.stringify(messages, null, 2));
+
     // Convert to OpenAI format
     const openAIMessages: ChatCompletionMessageParam[] = messages.map(
       transformToOpenAIMessage
@@ -156,6 +158,7 @@ export class OpenAIService {
         content: systemPrompt,
       });
     }
+    console.log("openAIMessages", openAIMessages);
 
     // Convert your server's tool config into "functions"
     const toolConfig = serverRegistry.getToolConfig();

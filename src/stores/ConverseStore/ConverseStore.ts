@@ -91,8 +91,9 @@ export class ConverseStore {
     console.log("Adding message:", message);
     const newMessage = this.messageManager.addMessage(message);
 
-    // Handle LLM call for user messages
-    if (newMessage.role === "user" && !store.isGenerating.value) {
+    // Handle LLM call for user messages. There is an issue if it is a fast toolcall and its generating.
+    // if (newMessage.role === "user" && !store.isGenerating.value) {
+    if (newMessage.role === "user") {
       this.callBedrockLLM();
     }
 
@@ -103,6 +104,7 @@ export class ConverseStore {
     try {
       const result = await this.toolHandler.executeTool(toolUse);
       this.addMessage(result);
+      // @todo send to LLM here? directly after tool result.
     } catch (error: any) {
       this.addMessage({
         role: "user",
@@ -311,6 +313,7 @@ export class ConverseStore {
       }
     }
 
+    // There is an issue with the tool result not calling the llm.
     if (message.role === "user" && !store.isGenerating.value) {
       this.callBedrockLLM();
     }

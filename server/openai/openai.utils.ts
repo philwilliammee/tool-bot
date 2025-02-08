@@ -22,54 +22,71 @@ export type OpenaiStream =
     _request_id?: string | null;
   };
 
+/**
+ * Transforms a generic Bedrock Message object into a shape that OpenAI
+ * (via litellm or similar) will accept. For the tool calls:
+ */
 export function transformToOpenAIMessage(
   msg: Message
 ): ChatCompletionMessageParam {
-  // Handle tool results
-  if (msg.content?.[0]?.toolResult) {
-    const toolResult = msg.content[0].toolResult as any;
+  // Concatenate all text segments (if any)
+  const allText = (msg.content ?? [])
+    .filter((segment) => !!segment.text)
+    .map((segment) => segment.text)
+    .join(" ");
+
+  // Check if the first segment is a toolResult
+  const firstSegment = msg.content?.[0];
+  if (firstSegment?.toolResult) {
+    const { content, toolUseId } = firstSegment.toolResult;
+    const text = content?.[0]?.text ?? "";
     return {
       role: "tool",
-      content: toolResult.content[0].text,
-      tool_call_id: toolResult.toolUseId,
-    } as ChatCompletionToolMessageParam;
+      tool_call_id: toolUseId ?? "",
+      content: text,
+    };
   }
 
-  const content = msg.content?.[0]?.text || "";
+  // If the message is an assistant calling a tool, also include any text
+  const toolUseSegment = msg.content?.find((segment) => segment.toolUse);
+  if (toolUseSegment && msg.role === "assistant") {
+    const { name, toolUseId, input } = toolUseSegment.toolUse;
+    // If there's no text at all, return null per the test expectation
+    const finalContent = allText.trim().length > 0 ? allText : null;
+    return {
+      role: "assistant",
+      content: finalContent,
+      tool_calls: [
+        {
+          id: toolUseId ?? "",
+          type: "function",
+          function: {
+            name: name ?? "",
+            arguments: JSON.stringify(input),
+          },
+        },
+      ],
+    };
+  }
 
+  // Otherwise, it's a normal text-based message (assistant or user).
   switch (msg.role) {
+    case "assistant":
+      return {
+        role: "assistant",
+        content: allText,
+      };
     case "user":
       return {
         role: "user",
-        content,
-      } as ChatCompletionUserMessageParam;
-    case "assistant":
-      if (msg.content?.[0]?.toolUse) {
-        const toolUse = msg.content[0].toolUse;
-        return {
-          role: "assistant",
-          content: null,
-          tool_calls: [
-            {
-              id: toolUse.toolUseId,
-              type: "function",
-              function: {
-                name: toolUse.name,
-                arguments: JSON.stringify(toolUse.input),
-              },
-            },
-          ],
-        } as ChatCompletionAssistantMessageParam;
-      }
-      return {
-        role: "assistant",
-        content,
-      } as ChatCompletionAssistantMessageParam;
+        content: allText,
+      };
     default:
+      // If needed, handle system or other roles here
       return {
         role: "user",
-        content,
-      } as ChatCompletionUserMessageParam;
+        content: allText,
+      };
   }
 }
 
