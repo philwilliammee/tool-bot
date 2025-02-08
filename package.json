@@ -3,6 +3,7 @@
   "private": true,
   "version": "0.0.3",
   "type": "module",
+  "license": "Copyleft",
   "scripts": {
     "test": "vitest run",
     "dev:client": "vite",

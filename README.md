@@ -1,22 +1,33 @@
 # Tool-Bot
 
-REQUIRED: Node 20.6.0 or higher
-
 An AI-powered chat bot that can help with various tasks through natural language conversation. Engage in meaningful dialogue, get help with questions, and explore different topics through an intuitive chat interface.
 
 > **Note**: This is a development tool and proof-of-concept. Not intended for production use.
 
+## Requirements
+
+- Node.js 20.6.0 or higher
+- OpenAI API key and/or AWS Bedrock credentials
+- LDAP server (optional, for directory services)
+
 ## Features
 
-- AI-powered conversational interface
-- Real-time chat interactions
-- Context-aware responses
+### Core Features
+- AI-powered conversational interface with streaming support
+- Real-time chat interactions with context awareness
+- Project management system
+- File system operations and management
 - Comprehensive tool integration system
-- Directory services integration
-- Advanced visualization capabilities
-- File system operations
-- Mathematical computations
-- Data visualization with CSV support
+
+### Available Tools
+- **LDAP Tool**: Directory services integration and user search
+- **Math Tool**: Mathematical computations and expressions
+- **HTML Tool**: Advanced HTML rendering and visualization
+- **Fetch Tool**: HTTP request handling
+- **File Tools**: File system operations (read/write/tree)
+- **Code Executor**: Secure code execution environment
+- **Data Store**: Data persistence and management
+- **GitHub Integration**: Repository management and API access
 
 ## Quick Start
 
@@ -27,63 +38,98 @@ An AI-powered chat bot that can help with various tasks through natural language
     cp example.env .env
     ```
 
-2. **Install and run**:
+2. **Configure environment variables**:
+    ```env
+    # Required
+    OPENAI_API_KEY=your_openai_key
+    # Optional
+    AWS_ACCESS_KEY_ID=your_aws_key
+    AWS_SECRET_ACCESS_KEY=your_aws_secret
+    LDAP_URL=your_ldap_url
+    LDAP_BASE_DN=your_base_dn
+    ```
+
+3. **Install and run**:
     ```bash
     npm install
     npm run dev
     ```
 
-3. **Open** `http://localhost:5173` in your browser
+4. **Open** `http://localhost:5173` in your browser
 
 ## Development Environment
 
 ### Build & Run Scripts
 
-| Script         | Description                                                                  |
-| -------------- | ---------------------------------------------------------------------------- |
-| **`dev`**      | Starts both the client (Vite) and server (Nodemon) in development mode        |
-| **`build`**    | Builds client (`vite build`) and then compiles server to `dist-server/`       |
-| **`start:dev`**| Runs the compiled server from `dist-server/server.js` in development mode     |
-| **`start:prod`**| Same as above but sets `NODE_ENV=production` and uses `.env` at runtime       |
-| **`clean`**    | Deletes the `dist` and `dist-server` folders                                  |
-| **`preview`**  | Serves the production-built client at `http://localhost:4173`                 |
+| Script          | Description                                                   |
+|----------------|---------------------------------------------------------------|
+| **`dev`**      | Starts both client (Vite) and server (Nodemon) in dev mode   |
+| **`build`**    | Builds client and compiles server to `dist-server/`          |
+| **`start:dev`**| Runs compiled server in development mode                      |
+| **`start:prod`**| Runs server in production mode with .env                     |
+| **`clean`**    | Deletes dist folders                                         |
+| **`preview`**  | Serves production build at http://localhost:4173             |
 
 ### Docker Setup
 
-1. **Build the Docker image**:
-```bash
-docker build -t tool-bot .
-```
+1. **Build**:
+    ```bash
+    docker build -t tool-bot .
+    ```
 
-2. **Run in development mode**:
-```bash
-docker run -p 3000:3000 \
-  -v $(pwd):/usr/src/app \
-  -v /usr/src/app/node_modules \
-  --env-file .env \
-  tool-bot
-```
+2. **Development mode**:
+    ```bash
+    docker run -p 3000:3000 \
+      -v $(pwd):/usr/src/app \
+      -v /usr/src/app/node_modules \
+      --env-file .env \
+      tool-bot
+    ```
 
-3. **Run in production mode**:
-```bash
-docker run -p 3000:3000 --env-file .env tool-bot
-```
+3. **Production mode**:
+    ```bash
+    docker run -p 3000:3000 --env-file .env tool-bot
+    ```
 
 ## Technical Architecture
 
-- Built with TypeScript and Vite
-- AWS Bedrock and OpenAI integration
-- Signal-based state management
-- Integrated tool system with type safety
-- Enhanced data visualization capabilities
-
 ### Key Components
-
 - **Chat Context**: Manages conversation state and tool execution
-- **Chat Interface**: User interaction and message rendering
-- **Tool System**: Comprehensive tool integration framework
-- **Data Store**: Manages uploaded CSV/JSON data for visualizations
+- **Project System**: Handles project data and settings
+- **Tool Registry**: Manages tool registration and execution
+- **Data Store**: Persistent storage for projects and data
 - **Error Handling**: Robust error recovery system
+
+### Security Considerations
+- Keep API keys secure and never commit them to version control
+- LDAP connections should use appropriate authentication
+- Code execution is sandboxed but should be used cautiously
+- Review tool permissions before deployment
+
+## Creating Custom Tools
+
+Tools are modular and can be added to the `tools/` directory. Each tool should:
+1. Implement the tool interface
+2. Register with the tool registry
+3. Provide both client and server components (if needed)
+4. Include proper type definitions
+
+Example tool structure:
+```typescript
+// tools/my-tool/config.ts
+export const config = {
+  name: "my-tool",
+  description: "Tool description",
+  parameters: {
+    // parameter definitions
+  }
+};
+
+// tools/my-tool/client/my-tool.client.ts
+export class MyToolClient implements ToolClient {
+  // implementation
+}
+```
 
 ## Contributing
 
@@ -93,27 +139,70 @@ docker run -p 3000:3000 --env-file .env tool-bot
 4. Push to the branch
 5. Create a Pull Request
 
+### Code Style
+- Use TypeScript for type safety
+- Follow existing patterns for tool implementation
+- Include tests for new features
+- Update documentation as needed
+
 ## Development Status
 
 ### Recent Updates ✅
 - Enhanced data visualization system
 - Improved tool configuration system
 - Advanced HTML rendering capabilities
-- Type-safe tool implementations
-- Added GitHub API integration
+- GitHub API integration
+- Chat streaming implementation
 
 ### Current Focus 🚧
-- Data store implementation
 - Tool integration refinements
 - Performance optimization
-- Documentation updates
+- Documentation improvements
 - Testing coverage
-- Chat streaming
+- Security enhancements
 
-For more detailed information about specific tools and their capabilities, refer to the `tools/README.md` file.
+## Roadmap: Development Journey
 
+### Phase 1: Foundation (January 2025) 🏗️
+- Initial project setup with TypeScript and Vite
+- Basic chat interface implementation
+- Core tool system architecture
+- LDAP integration for directory services
+- Basic file operations support
 
+### Phase 2: Enhanced Tools & UI (Early February 2025) 🛠️
+- ✅ Advanced HTML tool with React support
+- ✅ MathJax integration for mathematical expressions
+- ✅ Improved file system operations
+- ✅ Enhanced UI with responsive design
+- ✅ Panel state management and layout improvements
 
-## Streaming
+### Phase 3: Performance & Integration (Mid February 2025) 🚀
+- ✅ Docker containerization support
+- ✅ Token limit management and optimization
+- ✅ Chat streaming capabilities
+- ✅ Enhanced error handling
+- ✅ OpenCV integration for image processing
 
-https://community.openai.com/t/parsing-json-stream-response-in-nodejs/325366/7
+### Phase 4: Data & Security (Current) 🔒
+- Data persistence layer
+- Project management features
+- Enhanced security measures
+- Comprehensive testing suite
+- Documentation improvements
+
+### Future Plans 🔮
+- WebAssembly tool integration
+- Multi-model AI support
+- Real-time collaboration features
+- Custom tool marketplace
+- Advanced visualization capabilities
+
+## Support
+
+For issues and feature requests, please use the GitHub issue tracker.
+
+## License
+
+🄯 Copyleft 2025 Tool-Bot Open Source Project
+

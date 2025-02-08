@@ -1,15 +1,13 @@
 // src/utils/openai.utils.ts
 import type {
   ChatCompletionMessageParam,
-  ChatCompletionUserMessageParam,
-  ChatCompletionAssistantMessageParam,
-  ChatCompletionToolMessageParam,
   ChatCompletionTool,
 } from "openai/resources/chat/completions";
 import {
   ConverseStreamResponse,
   Message,
   ToolConfiguration,
+  ToolUseBlock,
 } from "@aws-sdk/client-bedrock-runtime";
 import { FunctionParameters } from "openai/src/resources/shared.js";
 import OpenAI from "openai";
@@ -50,7 +48,7 @@ export function transformToOpenAIMessage(
   // If the message is an assistant calling a tool, also include any text
   const toolUseSegment = msg.content?.find((segment) => segment.toolUse);
   if (toolUseSegment && msg.role === "assistant") {
-    const { name, toolUseId, input } = toolUseSegment.toolUse;
+    const { name, toolUseId, input } = toolUseSegment.toolUse as ToolUseBlock;
     // If there's no text at all, return null per the test expectation
     const finalContent = allText.trim().length > 0 ? allText : null;
     return {

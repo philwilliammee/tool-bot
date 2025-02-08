@@ -62,7 +62,7 @@ export class BedrockService {
     try {
       const command = new ConverseStreamCommand(input);
       const response = await this.client.send(command);
-      console.log("Stream execution response:", response);
+      // console.log("Stream execution response:", response);
       return response;
     } catch (error: any) {
       console.error("Stream execution error:", {

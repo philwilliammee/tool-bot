@@ -3,23 +3,22 @@ import type {
   ChatCompletionMessageParam,
   ChatCompletionCreateParamsStreaming,
 } from "openai/resources/chat/completions";
-
-import fs from "fs/promises";
-import path from "path";
 import { serverRegistry } from "../../tools/server/registry.js";
-
 import {
   ConverseStreamResponse,
   ConverseStreamOutput,
   Message,
 } from "@aws-sdk/client-bedrock-runtime";
 import {
-  OpenaiStream,
   transformToOpenAIMessage,
   transformToolsToOpenAIFormat,
   transformToBedrockStream,
+  OpenaiStream,
 } from "./openai.utils.js";
+import fs from "fs/promises";
+import path from "path";
 
+// @todo support retries
 export class OpenAIService {
   private static MAX_RETRIES = 2;
   private client!: OpenAI;
@@ -146,7 +145,7 @@ export class OpenAIService {
       throw new Error("First message must be from user");
     }
 
-    console.log("incomingMessages", JSON.stringify(messages, null, 2));
+    // console.log("incomingMessages", JSON.stringify(messages, null, 2));
 
     // Convert to OpenAI format
     const openAIMessages: ChatCompletionMessageParam[] = messages.map(
@@ -158,7 +157,7 @@ export class OpenAIService {
         content: systemPrompt,
       });
     }
-    console.log("openAIMessages", openAIMessages);
+    // console.log("openAIMessages", openAIMessages);
 
     // Convert your server's tool config into "functions"
     const toolConfig = serverRegistry.getToolConfig();
@@ -176,7 +175,8 @@ export class OpenAIService {
     };
 
     // Call OpenAI streaming
-    const openAIStream = await this.client.chat.completions.create(request);
+    const openAIStream: OpenaiStream =
+      await this.client.chat.completions.create(request);
 
     // Transform the stream using our utility function
     return await transformToBedrockStream(openAIStream);
