@@ -10,6 +10,7 @@ read/* Prompt / Input styling */
 }
 
 .prompt-input {
+  width: 100%;
   padding: 0.75rem 1rem;
   border: 1px solid #d1d5db;
   border-radius: 0.5rem;
@@ -19,6 +20,7 @@ read/* Prompt / Input styling */
   resize: none;
   min-height: 68px;
   transition: border-color 0.2s, box-shadow 0.2s, background-color 0.2s;
+  margin-top: 4px;
 }
 
 .prompt-input:disabled {
