@@ -320,8 +320,6 @@ export class Chat {
 
       this.autocomplete?.destroy();
       this.buttonSpinner?.destroy();
-
-      this.initialized = false;
     } catch (error) {
       console.error("Error during Chat cleanup:", error);
     }

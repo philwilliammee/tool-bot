@@ -258,8 +258,8 @@
                                 <div class="work-area-header">
                                     <div class="flex gap justify-content-space-between align-items-center p-1">
                                         <div class="flex-1 flex gap align-items-center">
-                                                <h2 class="work-area-title">Conversation Admin</h2>
-                                                <span class="message-count">0 messages</span>
+                                            <h2 class="work-area-title">Conversation Admin</h2>
+                                            <span class="message-count">0 messages</span>
                                             <!-- Add Data Context Panel here -->
                                             <div class="data-context-panel flex-1 flex justify-content-end">
                                                 <button class="data-context-button flex gap align-items-center">
@@ -686,9 +686,27 @@
             </div>
         </template>
 
+        <!-- Tool message Template -->
+        <template id="tool-message-template">
+            <div class="chat-message tool-message">
+                <div class="message-header">
+                  <div class="avatar tool-avatar">🛠️</div>
+                </div>
+                <div class="message-content-wrapper">
+                </div>
+              </div>
+        </template>
+
         <!-- User message template -->
         <template id="user-message-template">
             <div class="chat-message user">
+                <div class="message-header">
+                    <img
+                        src="/fav.png"
+                        alt="User avatar"
+                        class="avatar user-avatar"
+                    >
+                </div>
                 <div class="message-content-wrapper"></div>
                 <div class="message-actions"></div>
             </div>
@@ -696,12 +714,15 @@
 
         <!-- Assistant message template -->
         <template id="assistant-message-template">
+
             <div class="chat-message assistant">
-                <div class="message-content-wrapper">
-                    <!-- message content goes here -->
+                <div class="message-header">
+                  <div class="avatar assistant-avatar">AI</div>
                 </div>
-                <div class="message-actions"></div>
-            </div>
+                <div class="message-content-wrapper">
+                </div>
+              </div>
+
         </template>
 
         <!-- Tool message template -->
@@ -733,7 +754,10 @@
                 <!-- <td class="rating-cell"></td> -->
                 <td class="timestamp-cell"></td>
                 <td>
-                    <div id="action-buttons" class="flex">
+                    <div
+                        id="action-buttons"
+                        class="flex"
+                    >
                         <button
                             class="icon-btn action-btn view-btn"
                             title="View Message"

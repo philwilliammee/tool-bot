@@ -22,7 +22,11 @@ export class ChatMessage {
    * Creates the main DOM element for this message by cloning a template.
    */
   public async render(): Promise<HTMLElement | null> {
-    const templateId = `${this.message.role}-message-template`;
+    if (this.message.metadata.hasToolResult) {
+    }
+    const templateId = this.message.metadata.hasToolResult
+      ? "tool-message-template"
+      : `${this.message.role}-message-template`;
     const template = document.getElementById(templateId) as HTMLTemplateElement;
     if (!template) return null;
 

@@ -186,6 +186,10 @@ export class MyToolClient implements ToolClient {
 
 ### Phase 4: Data & Security (Current) 🔒
 - Data persistence layer
+- sql tool
+- archive summarization
+- workflows
+- tool configuration simplification and configuration
 - Project management features
 - Enhanced security measures
 - Comprehensive testing suite
@@ -197,6 +201,10 @@ export class MyToolClient implements ToolClient {
 - Real-time collaboration features
 - Custom tool marketplace
 - Advanced visualization capabilities
+
+### bug fixes 🐞
+
+scroll to bottom is missing
 
 ## Support
 
