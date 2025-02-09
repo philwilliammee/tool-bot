@@ -1,4 +1,6 @@
-import { clientRegistry } from "./../../../../tools/client/registry";
+// @todo this should probably all get moved to tools
+
+import { clientRegistry } from "../../../../tools/registry.client";
 import { Message } from "@aws-sdk/client-bedrock-runtime";
 import { ToolUse } from "../../../app.types";
 
