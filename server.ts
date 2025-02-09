@@ -1,5 +1,5 @@
 import express from "express";
-import { serverRegistry } from "./tools/server/registry.js";
+import { serverRegistry } from "./tools/registry.server.js";
 import aiRouter from "./server/ai.controller.js";
 import path from "path";
 import { fileURLToPath } from "url";

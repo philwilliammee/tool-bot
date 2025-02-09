@@ -3,7 +3,7 @@ import type {
   ChatCompletionMessageParam,
   ChatCompletionCreateParamsStreaming,
 } from "openai/resources/chat/completions";
-import { serverRegistry } from "../../tools/server/registry.js";
+import { serverRegistry } from "../../tools/registry.server.js";
 import {
   ConverseStreamResponse,
   ConverseStreamOutput,
