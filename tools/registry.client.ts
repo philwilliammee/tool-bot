@@ -1,3 +1,4 @@
+import { xTool } from "./x-tool/client/x.client";
 import { bashTool } from "./bash-tool/client/bash.client";
 import { dataStoreTool } from "./data-store-tool/client/data-store.client";
 import { codeExecutorTool } from "./code-executor/client/code-executor.client";
@@ -33,6 +34,7 @@ class ToolRegistry {
     this.registerTool(octokitTool);
     this.registerTool(dataStoreTool);
     this.registerTool(bashTool);
+    this.registerTool(xTool);
   }
 
   private registerTool(tool: ClientTool): void {
