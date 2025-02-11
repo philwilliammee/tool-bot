@@ -1,5 +1,6 @@
-import { bashToolConfig } from "./bash-tool/config";
-import { bashTool } from "./bash-tool/server/bash.service";
+import { xTool } from "./x-tool/server/x.service.js";
+import { bashToolConfig } from "./bash-tool/config.js";
+import { bashTool } from "./bash-tool/server/bash.service.js";
 import { dataStoreConfig } from "./data-store-tool/config.js";
 import { octokitConfig } from "./octokit-tool/config.js";
 import { ToolConfiguration } from "@aws-sdk/client-bedrock-runtime";
@@ -23,6 +24,7 @@ import { fileTreeConfig } from "./file-tree-tool/config.js";
 import { fileWriterConfig } from "./file-writer/config.js";
 import { projectReaderConfig } from "./project-reader-tool/config.js";
 import { codeExecutorConfig } from "./code-executor/config.js";
+import { xToolConfig } from "./x-tool/config.js";
 
 class ToolRegistry {
   private tools: ServerToolRegistry = {};
@@ -38,6 +40,7 @@ class ToolRegistry {
     this.registerTool(fileWriterTool);
     this.registerTool(octokitTool);
     this.registerTool(bashTool);
+    this.registerTool(xTool);
 
     // end of register
 
@@ -58,6 +61,7 @@ class ToolRegistry {
         ...(octokitConfig.tools || []),
         ...(dataStoreConfig.tools || []),
         ...(bashToolConfig.tools || []),
+        ...(xToolConfig.tools || []),
       ],
     };
   }

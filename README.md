@@ -27,7 +27,9 @@ An AI-powered chat bot that can help with various tasks through natural language
 - **File Tools**: File system operations (read/write/tree)
 - **Code Executor**: Secure code execution environment
 - **Data Store**: Data persistence and management
-- **GitHub Integration**: Repository management and API access
+- **Octokit Tool**: GitHub API integration and repository management
+- **Bash Tool**: Secure shell command execution
+- **X Tool**: X (Twitter) integration for posts and feeds
 
 ## Quick Start
 
@@ -47,6 +49,8 @@ An AI-powered chat bot that can help with various tasks through natural language
     AWS_SECRET_ACCESS_KEY=your_aws_secret
     LDAP_URL=your_ldap_url
     LDAP_BASE_DN=your_base_dn
+    GITHUB_TOKEN=your_github_token
+    X_API_KEY=your_x_api_key
     ```
 
 3. **Install and run**:
@@ -105,31 +109,11 @@ An AI-powered chat bot that can help with various tasks through natural language
 - LDAP connections should use appropriate authentication
 - Code execution is sandboxed but should be used cautiously
 - Review tool permissions before deployment
+- Validate all inputs in server-side tools
 
 ## Creating Custom Tools
 
-Tools are modular and can be added to the `tools/` directory. Each tool should:
-1. Implement the tool interface
-2. Register with the tool registry
-3. Provide both client and server components (if needed)
-4. Include proper type definitions
-
-Example tool structure:
-```typescript
-// tools/my-tool/config.ts
-export const config = {
-  name: "my-tool",
-  description: "Tool description",
-  parameters: {
-    // parameter definitions
-  }
-};
-
-// tools/my-tool/client/my-tool.client.ts
-export class MyToolClient implements ToolClient {
-  // implementation
-}
-```
+For detailed instructions on creating custom tools, please refer to the [tools/README.md](tools/README.md) file.
 
 ## Contributing
 
@@ -148,63 +132,54 @@ export class MyToolClient implements ToolClient {
 ## Development Status
 
 ### Recent Updates ✅
-- Enhanced data visualization system
-- Improved tool configuration system
-- Advanced HTML rendering capabilities
-- GitHub API integration
-- Chat streaming implementation
+- X Tool integration for social media interaction
+- Enhanced GitHub integration via Octokit
+- Secure bash command execution
+- Data Store implementation
+- Chat streaming optimization
 
 ### Current Focus 🚧
-- Tool integration refinements
-- Performance optimization
-- Documentation improvements
-- Testing coverage
-- Security enhancements
+- SQL tool implementation
+- Archive summarization capabilities
+- Workflow system development
+- Tool configuration UI
+- Testing coverage expansion
 
-## Roadmap: Development Journey
+### Known Issues 🐞
+1. Chat scroll behavior needs improvement
+2. Tool response formatting inconsistencies
+3. Error handling refinements needed
 
-### Phase 1: Foundation (January 2025) 🏗️
-- Initial project setup with TypeScript and Vite
-- Basic chat interface implementation
-- Core tool system architecture
-- LDAP integration for directory services
-- Basic file operations support
+## Roadmap
 
-### Phase 2: Enhanced Tools & UI (Early February 2025) 🛠️
-- ✅ Advanced HTML tool with React support
-- ✅ MathJax integration for mathematical expressions
-- ✅ Improved file system operations
-- ✅ Enhanced UI with responsive design
-- ✅ Panel state management and layout improvements
+### Phase 1: Core Features ✅
+- Initial project setup and architecture
+- Basic tool system implementation
+- Chat interface with streaming
+- File system operations
+- Directory services integration
 
-### Phase 3: Performance & Integration (Mid February 2025) 🚀
-- ✅ Docker containerization support
-- ✅ Token limit management and optimization
-- ✅ Chat streaming capabilities
-- ✅ Enhanced error handling
-- ✅ OpenCV integration for image processing
-
-### Phase 4: Data & Security (Current) 🔒
+### Phase 2: Enhanced Features ✅
+- Advanced HTML rendering
+- Mathematical computation support
 - Data persistence layer
-- sql tool
-- archive summarization
-- workflows
-- tool configuration simplification and configuration
-- Project management features
-- Enhanced security measures
-- Comprehensive testing suite
-- Documentation improvements
+- GitHub integration
+- Social media integration
+
+### Phase 3: Current Development 🚀
+- SQL integration
+- Archive management
+- Workflow automation
+- Tool configuration UI
+- Enhanced security features
 
 ### Future Plans 🔮
 - WebAssembly tool integration
 - Multi-model AI support
-- Real-time collaboration features
+- Real-time collaboration
 - Custom tool marketplace
 - Advanced visualization capabilities
-
-### bug fixes 🐞
-
-scroll to bottom is missing
+- AI-powered workflow automation
 
 ## Support
 
@@ -213,4 +188,3 @@ For issues and feature requests, please use the GitHub issue tracker.
 ## License
 
 🄯 Copyleft 2025 Tool-Bot Open Source Project
-
