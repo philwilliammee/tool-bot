@@ -6,17 +6,18 @@ export interface XInput {
   limit?: number;
 }
 
-export interface Post {
-  id: string;
-  content: string;
-  created_at: string;
-}
-
 export interface XOutput {
   success: boolean;
   data?: {
-    posts?: Post[];
-    created_post?: Post;
+    posts?: Array<{
+      id: string;
+      content: string;
+      created_at: string;
+    }>;
+    created_post?: {
+      id: string;
+      content: string;
+    };
   };
   error?: string;
 }

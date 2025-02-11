@@ -1,58 +1,56 @@
+// tools/x-tool/server/x.service.ts
 import { ServerTool } from "../../server/tool.interface";
 import { Request, Response } from "express";
 import { XInput, XOutput } from "../types";
-import { X_CONFIG } from "../config";
+import { TwitterApi } from "twitter-api-v2";
 
-class XService {
-  private async makeRequest(
-    endpoint: string,
-    method: "GET" | "POST",
-    body?: object
-  ) {
-    const response = await fetch(`${X_CONFIG.API_BASE_URL}${endpoint}`, {
-      method,
-      headers: {
-        Authorization: `Bearer ${process.env.X_BEARER_TOKEN}`,
-        "Content-Type": "application/json",
-      },
-      body: body ? JSON.stringify(body) : undefined,
-    });
+// Check required credentials
+if (
+  !process.env.X_CONSUMER_KEY ||
+  !process.env.X_CONSUMER_SECRET ||
+  !process.env.X_ACCESS_TOKEN ||
+  !process.env.X_ACCESS_SECRET ||
+  !process.env.X_BEARER_TOKEN
+) {
+  throw new Error("X API credentials are required");
+}
 
-    if (!response.ok) {
-      throw new Error(`X API error: ${await response.text()}`);
-    }
+// Client for write operations (posting)
+const writeClient = new TwitterApi({
+  appKey: process.env.X_CONSUMER_KEY,
+  appSecret: process.env.X_CONSUMER_SECRET,
+  accessToken: process.env.X_ACCESS_TOKEN,
+  accessSecret: process.env.X_ACCESS_SECRET,
+});
 
-    return response.json();
-  }
+// Read-only client using Bearer token
+const readOnlyClient = new TwitterApi(process.env.X_BEARER_TOKEN);
 
-  async execute(input: XInput): Promise<XOutput> {
+export const xTool: ServerTool = {
+  name: "x",
+  route: "/x",
+  handler: async (req: Request, res: Response) => {
     try {
+      const input: XInput = req.body;
+
       switch (input.operation) {
         case "create_post": {
           if (!input.content) {
             throw new Error("Post content is required");
           }
 
-          if (input.content.length > X_CONFIG.MAX_POST_LENGTH) {
-            throw new Error(
-              `Post exceeds maximum length of ${X_CONFIG.MAX_POST_LENGTH} characters`
-            );
-          }
+          const tweet = await writeClient.v2.tweet(input.content);
 
-          const result = await this.makeRequest("/tweets", "POST", {
-            text: input.content,
-          });
-
-          return {
+          res.json({
             success: true,
             data: {
               created_post: {
-                id: result.data.id,
-                content: result.data.text,
-                created_at: result.data.created_at,
+                id: tweet.data.id,
+                content: tweet.data.text,
               },
             },
-          };
+          });
+          break;
         }
 
         case "get_posts": {
@@ -60,53 +58,29 @@ class XService {
             throw new Error("Username is required to fetch posts");
           }
 
-          const userResponse = await this.makeRequest(
-            `/users/by/username/${input.username}`,
-            "GET"
-          );
+          const user = await readOnlyClient.v2.userByUsername(input.username);
+          const tweets = await readOnlyClient.v2.userTimeline(user.data.id, {
+            max_results: input.limit || 10,
+          });
 
-          const userId = userResponse.data.id;
-          const limit = input.limit || X_CONFIG.DEFAULT_POST_LIMIT;
-
-          const postsResponse = await this.makeRequest(
-            `/users/${userId}/tweets?max_results=${limit}&tweet.fields=created_at`,
-            "GET"
-          );
-
-          return {
+          res.json({
             success: true,
             data: {
-              posts: postsResponse.data.map((post: any) => ({
-                id: post.id,
-                content: post.text,
-                created_at: post.created_at,
+              posts: tweets.data.data.map((tweet) => ({
+                id: tweet.id,
+                content: tweet.text,
+                created_at: tweet.created_at || new Date().toISOString(),
               })),
             },
-          };
+          });
+          break;
         }
 
         default:
           throw new Error(`Unsupported operation: ${input.operation}`);
       }
     } catch (error: any) {
-      return {
-        success: false,
-        error: error.message,
-      };
-    }
-  }
-}
-
-const xService = new XService();
-
-export const xTool: ServerTool = {
-  name: "x",
-  route: "/x",
-  handler: async (req: Request, res: Response) => {
-    try {
-      const result = await xService.execute(req.body);
-      res.json(result);
-    } catch (error: any) {
+      console.error("X Service Error:", error);
       res.status(500).json({
         success: false,
         error: error.message,

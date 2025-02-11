@@ -1,13 +1,30 @@
+// tools/x-tool/config.ts
 import { ToolConfiguration } from "@aws-sdk/client-bedrock-runtime";
 
-if (!process.env.X_BEARER_TOKEN) {
-  throw new Error("X_BEARER_TOKEN is required");
-}
+// Check for required OAuth credentials
+// const requiredEnvVars = [
+//   "X_API_KEY",
+//   "X_API_SECRET",
+//   "X_ACCESS_TOKEN",
+//   "X_ACCESS_SECRET",
+// ] as const;
+
+// requiredEnvVars.forEach((envVar) => {
+//   if (!process.env[envVar]) {
+//     throw new Error(`${envVar} is required for X tool`);
+//   }
+// });
 
 export const X_CONFIG = {
   API_BASE_URL: "https://api.twitter.com/2",
   MAX_POST_LENGTH: 280,
   DEFAULT_POST_LIMIT: 10,
+  OAUTH_CREDENTIALS: {
+    apiKey: process.env.X_API_KEY!,
+    apiSecretKey: process.env.X_API_SECRET!,
+    accessToken: process.env.X_ACCESS_TOKEN!,
+    accessTokenSecret: process.env.X_ACCESS_SECRET!,
+  },
 } as const;
 
 export const xToolConfig: ToolConfiguration = {

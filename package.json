@@ -38,7 +38,8 @@
     "marked": "^15.0.6",
     "mathjs": "^14.0.1",
     "octokit": "^4.1.0",
-    "openai": "^4.80.1"
+    "openai": "^4.80.1",
+    "twitter-api-v2": "^1.19.1"
   },
   "engines": {
     "node": ">=20.6.0"
