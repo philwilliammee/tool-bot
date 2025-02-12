@@ -7,7 +7,7 @@
 
 .scroll-bottom-btn {
   position: absolute;
-  right: 1.5rem; /* default position */
+  right: 50%;
   bottom: 8.5rem;
   background: white;
   border: 1px solid #e5e7eb;
@@ -24,11 +24,11 @@
   z-index: 10;
 }
 
-@container (min-width: 1020px) {
+/* @container (min-width: 1020px) {
   .scroll-bottom-btn {
-    right: calc(50% - 490px + 1.5rem); /* aligned with chat max-width */
+    right:50%;
   }
-}
+} */
 
 .scroll-bottom-btn:hover {
   background: #f9fafb;

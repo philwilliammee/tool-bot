@@ -188,3 +188,8 @@ For issues and feature requests, please use the GitHub issue tracker.
 ## License
 
 🄯 Copyleft 2025 Tool-Bot Open Source Project
+
+
+The main one is: ### Known Issues 🐞
+1. Chat scroll behavior needs improvement.
+we used to have a scroll to bottom button. Also the auto scroll to bootomo should only work if the scroll possition is at the botom of the page if it is up a little the autoscroll should stop and the user should control the scrolling. Also if there are no messages we should say something like: "How can I help you today?" Also the ai avatar should be a nice svg of "The AI named Kit (derived from toolkit) a helphul assistant.

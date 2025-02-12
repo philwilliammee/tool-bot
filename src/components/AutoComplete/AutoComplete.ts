@@ -18,6 +18,7 @@ export class HybridAutocomplete {
       "file tree tool",
       "file writer",
       "project reader",
+      "Write a long-form story about a mysterious character in a modern setting",
     ],
     lookup: [
       "user in ldap with a search term of",

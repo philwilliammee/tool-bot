@@ -82,9 +82,12 @@
   background-color: #fff;
 }
 
-.assistant-avatar {
-  background: #dbeafe;
-  color: #1e40af;
+.avatar.assistant-avatar {
+  background-color: #4F46E5;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .tool-avatar {
@@ -240,4 +243,42 @@
 .markdown-body pre code {
   padding: 0;
   background: transparent;
+}
+
+.chat-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  gap: 1.5rem;
+  color: #6B7280;
+  padding: 2rem;
+}
+
+.chat-empty-state p {
+  font-size: 1.25rem;
+  font-weight: 500;
+  margin: 0;
+}
+
+.kit-avatar-circle {
+  background-color: #4F46E5; /* Your brand color */
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  filter: drop-shadow(0 4px 6px rgba(79, 70, 229, 0.1));
+  transition: all 0.2s ease;
+}
+
+.kit-avatar-circle svg {
+  color: white; /* SVG stroke color */
+}
+
+.chat-empty-state:hover .kit-avatar-circle {
+  transform: scale(1.05);
+  background-color: #4338CA; /* Slightly darker on hover */
 }

@@ -690,11 +690,10 @@
         <template id="tool-message-template">
             <div class="chat-message tool-message">
                 <div class="message-header">
-                  <div class="avatar tool-avatar">🛠️</div>
+                    <div class="avatar tool-avatar">🛠️</div>
                 </div>
-                <div class="message-content-wrapper">
-                </div>
-              </div>
+                <div class="message-content-wrapper"></div>
+            </div>
         </template>
 
         <!-- User message template -->
@@ -712,17 +711,64 @@
             </div>
         </template>
 
+        <!-- Empty state template -->
+        <template id="chat-empty-state-template">
+            <div class="chat-empty-state">
+                <div class="kit-avatar-circle">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="48"
+                    height="48"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <path d="M12 8V4H8"/>
+                    <rect width="16" height="12" x="4" y="8" rx="2"/>
+                    <path d="M2 14h2"/>
+                    <path d="M20 14h2"/>
+                    <path d="M15 13v2"/>
+                    <path d="M9 13v2"/>
+                  </svg>
+                </div>
+                  <p>How can I help you today?</p>
+                </div>
+        </template>
+
         <!-- Assistant message template -->
         <template id="assistant-message-template">
-
             <div class="chat-message assistant">
                 <div class="message-header">
-                  <div class="avatar assistant-avatar">AI</div>
+                    <div class="avatar assistant-avatar">
+                        <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            width="24"
+                            height="24"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                        >
+                            <path d="M12 8V4H8"></path>
+                            <rect
+                                width="16"
+                                height="12"
+                                x="4"
+                                y="8"
+                                rx="2"
+                            ></rect>
+                            <path d="M2 14h2"></path>
+                            <path d="M20 14h2"></path>
+                            <path d="M15 13v2"></path>
+                            <path d="M9 13v2"></path>
+                        </svg>
+                    </div>
                 </div>
-                <div class="message-content-wrapper">
-                </div>
-              </div>
-
+                <div class="message-content-wrapper"></div>
+            </div>
         </template>
 
         <!-- Tool message template -->

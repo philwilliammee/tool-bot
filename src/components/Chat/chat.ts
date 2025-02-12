@@ -21,6 +21,8 @@ export class Chat {
   private cleanupFns: Array<() => void> = [];
   private autocomplete: HybridAutocomplete | null = null;
   private inputValue = signal("");
+  private scrollButton!: HTMLButtonElement;
+  private isNearBottom = true; // Track if we're at the bottom
 
   // We removed currentUpdateId and lastMessages
   private messageComponents = new Map<string, ChatMessage>();
@@ -63,12 +65,48 @@ export class Chat {
       ".prompt-input"
     ) as HTMLTextAreaElement;
     this.chatMessages = document.querySelector(".chat-messages") as HTMLElement;
+    this.scrollButton = document.querySelector(
+      ".scroll-bottom-btn"
+    ) as HTMLButtonElement;
 
-    if (!this.promptInput || !this.chatMessages) {
+    if (!this.promptInput || !this.chatMessages || !this.scrollButton) {
       throw new Error("Required DOM elements not found");
     }
 
     this.autocomplete = new HybridAutocomplete(this.promptInput);
+
+    // Setup scroll handling
+    this.chatMessages.addEventListener("scroll", this.handleScroll.bind(this));
+    this.scrollButton.addEventListener("click", () => this.scrollToBottom());
+
+    // Initial check
+    this.checkScrollPosition();
+  }
+
+  // Add these new methods
+  private handleScroll(): void {
+    this.checkScrollPosition();
+  }
+
+  private checkScrollPosition(): void {
+    const { scrollTop, scrollHeight, clientHeight } = this.chatMessages;
+    const scrollFromBottom = scrollHeight - scrollTop - clientHeight;
+
+    // Consider "near bottom" if within 100px of bottom
+    this.isNearBottom = scrollFromBottom < 100;
+
+    // Show/hide scroll button based on position
+    if (this.isNearBottom) {
+      this.scrollButton.classList.remove("visible");
+    } else {
+      this.scrollButton.classList.add("visible");
+    }
+  }
+
+  // Update scrollToBottom method
+  private scrollToBottom(): void {
+    this.chatMessages.scrollTop = this.chatMessages.scrollHeight;
+    this.checkScrollPosition(); // Update button visibility
   }
 
   private setupPromptListeners(): void {
@@ -186,8 +224,25 @@ export class Chat {
     if (!messages.length) {
       this.messageComponents.forEach((component) => component.destroy());
       this.messageComponents.clear();
+
+      // Get and clone the empty state template
+      const emptyStateTemplate = document.getElementById(
+        "chat-empty-state-template"
+      ) as HTMLTemplateElement;
+      if (!emptyStateTemplate) {
+        throw new Error("Empty state template not found");
+      }
+
+      const emptyState = emptyStateTemplate.content.cloneNode(true);
       this.chatMessages.innerHTML = "";
+      this.chatMessages.appendChild(emptyState);
       return;
+    }
+
+    // Clear any existing empty state if there are messages
+    const emptyState = this.chatMessages.querySelector(".chat-empty-state");
+    if (emptyState) {
+      this.chatMessages.innerHTML = "";
     }
 
     const sortedMessages = [...messages].sort(
@@ -228,15 +283,20 @@ export class Chat {
     });
 
     // After we finish adding/updating messages, scroll to bottom
+    // After rendering messages, only auto-scroll if we were at bottom
     requestAnimationFrame(() => {
-      this.scrollToBottom();
+      if (this.isNearBottom) {
+        this.scrollToBottom();
+      } else {
+        this.checkScrollPosition(); // Just update button visibility
+      }
     });
   }
 
-  private scrollToBottom(): void {
-    // A simple approach to always scroll to bottom
-    this.chatMessages.scrollTop = this.chatMessages.scrollHeight;
-  }
+  // private scrollToBottom(): void {
+  //   // A simple approach to always scroll to bottom
+  //   this.chatMessages.scrollTop = this.chatMessages.scrollHeight;
+  // }
 
   private findLastAssistant(
     messages: MessageExtended[]
@@ -320,6 +380,10 @@ export class Chat {
 
       this.autocomplete?.destroy();
       this.buttonSpinner?.destroy();
+      this.chatMessages.removeEventListener("scroll", this.handleScroll);
+      this.scrollButton.removeEventListener("click", () =>
+        this.scrollToBottom()
+      );
     } catch (error) {
       console.error("Error during Chat cleanup:", error);
     }
