@@ -188,7 +188,7 @@ export class ConverseStore {
             };
           }
 
-          // 3) If there's a contentBlockDelta with toolUse, that's partial JSON input
+          // 3) If there's a contentBlockDelta with toolUse, that’s partial JSON input
           //    for the tool. We accumulate it until the model signals stop (tool_use).
           else if (chunk.contentBlockDelta?.delta?.toolUse) {
             if (currentToolUse) {
@@ -228,13 +228,14 @@ export class ConverseStore {
                 content: [{ text: accumulatedText }, { toolUse }],
                 metadata: { ...tempMessage.metadata, hasToolUse: true },
               });
+              this.notifyMessageChange();
 
               // Execute the tool, then add the result as a new message
               const result = await this.toolHandler.executeTool(toolUse);
               console.log("callBedrockLLM -> Tool execution result:", result);
               this.addMessage(result);
-              this.notifyMessageChange();
-              // Reset the tool state, so we're ready for future tool calls
+
+              // Reset the tool state, so we’re ready for future tool calls
               currentToolUse = null;
               accumulatedToolInput = "";
             } catch (error) {
@@ -314,6 +315,7 @@ export class ConverseStore {
       }
     }
 
+    // There is an issue with the tool result not calling the llm.
     if (message.role === "user" && !store.isGenerating.value) {
       this.callLLM();
     }
