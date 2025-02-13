@@ -162,7 +162,7 @@ export class ConverseStore {
           // 1) If there's a contentBlockDelta with text, accumulate that
           if (chunk.contentBlockDelta?.delta?.text) {
             const newText = chunk.contentBlockDelta.delta.text;
-            console.log("callBedrockLLM -> text chunk:", newText);
+            // console.log("callBedrockLLM -> text chunk:", newText);
             accumulatedText += newText;
 
             // Update the temporary assistant message with the new text so the UI sees it
@@ -176,10 +176,10 @@ export class ConverseStore {
           //    starting a tool call. This is where we set up currentToolUse.
           else if (chunk.contentBlockStart?.start?.toolUse) {
             const { name, toolUseId } = chunk.contentBlockStart.start.toolUse;
-            console.log("callBedrockLLM -> tool use started:", {
-              name,
-              toolUseId,
-            });
+            // console.log("callBedrockLLM -> tool use started:", {
+            //   name,
+            //   toolUseId,
+            // });
 
             currentToolUse = {
               name,
@@ -194,10 +194,10 @@ export class ConverseStore {
             if (currentToolUse) {
               const partialInput =
                 chunk.contentBlockDelta.delta.toolUse.input ?? "";
-              console.log(
-                "callBedrockLLM -> partial toolUse input:",
-                partialInput
-              );
+              // console.log(
+              //   "callBedrockLLM -> partial toolUse input:",
+              //   partialInput
+              // );
               accumulatedToolInput += partialInput;
             }
           }
@@ -208,10 +208,10 @@ export class ConverseStore {
             currentToolUse &&
             accumulatedToolInput
           ) {
-            console.log(
-              "callBedrockLLM -> tool_use stop, final tool input:",
-              accumulatedToolInput
-            );
+            // console.log(
+            //   "callBedrockLLM -> tool_use stop, final tool input:",
+            //   accumulatedToolInput
+            // );
 
             try {
               const parsedInput = JSON.parse(accumulatedToolInput);
@@ -221,7 +221,7 @@ export class ConverseStore {
                 input: parsedInput,
               };
 
-              console.log("callBedrockLLM -> About to execute tool:", toolUse);
+              // console.log("callBedrockLLM -> About to execute tool:", toolUse);
 
               // Update the assistant message to include both text and the final toolUse block
               this.messageManager.updateMessage(tempMessage.id, {
@@ -232,7 +232,7 @@ export class ConverseStore {
 
               // Execute the tool, then add the result as a new message
               const result = await this.toolHandler.executeTool(toolUse);
-              console.log("callBedrockLLM -> Tool execution result:", result);
+              // console.log("callBedrockLLM -> Tool execution result:", result);
               this.addMessage(result);
 
               // Reset the tool state, so we’re ready for future tool calls
