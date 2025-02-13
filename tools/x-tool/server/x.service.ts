@@ -1,7 +1,7 @@
 // tools/x-tool/server/x.service.ts
-import { ServerTool } from "../../server/tool.interface";
+import { ServerTool } from "../../server/tool.interface.js";
 import { Request, Response } from "express";
-import { XInput, XOutput } from "../types";
+import { XInput, XOutput } from "../types.js";
 import { TwitterApi } from "twitter-api-v2";
 
 // Check required credentials

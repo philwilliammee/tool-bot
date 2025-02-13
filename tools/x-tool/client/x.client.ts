@@ -1,6 +1,6 @@
 // tools/x-tool/client/x.client.ts
-import { ClientTool } from "../../client/tool.interface";
-import { XInput, XOutput } from "../types";
+import { ClientTool } from "../../client/tool.interface.js";
+import { XInput, XOutput } from "../types.js";
 
 export const xTool: ClientTool = {
   name: "x",

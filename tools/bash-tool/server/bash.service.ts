@@ -1,9 +1,9 @@
 // tools/bash_tool/server/bash.service.ts
-import { ServerTool } from "../../server/tool.interface";
+import { ServerTool } from "../../server/tool.interface.js";
 import { Request, Response } from "express";
-import { BashInput, BashOutput, CommandType } from "../types";
-import { BASH_CONFIG } from "../bash.config";
-import { WORKING_DIRECTORY, gitHelpers, npmHelpers } from "./bash.types";
+import { BashInput, BashOutput, CommandType } from "../types.js";
+import { BASH_CONFIG } from "../bash.config.js";
+import { WORKING_DIRECTORY, gitHelpers, npmHelpers } from "./bash.types.js";
 import { exec } from "child_process";
 import { promisify } from "util";
 
