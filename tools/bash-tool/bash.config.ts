@@ -54,8 +54,9 @@ export const BASH_CONFIG = {
       "npm outdated",
       "npm init",
       "npm", // Allow raw npm command for additional arguments
+      "ng",
     ] as string[],
-    general: ["pwd", "node", "npx", "tsc"] as string[],
+    general: ["pwd", "node", "npx", "tsc", "ng"] as string[],
   },
   MAX_TIMEOUT: 300000, // 5 minutes
   DEFAULT_TIMEOUT: 30000, // 30 seconds

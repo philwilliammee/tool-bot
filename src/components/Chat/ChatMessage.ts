@@ -149,7 +149,7 @@ export class ChatMessage {
 
     const details = document.createElement("details");
     details.className = "tool-disclosure";
-    details.open = this.isLastAssistant; // open by default if it's the last assistant msg?
+    // details.open = this.isLastAssistant; // open by default if it's the last assistant msg?
 
     const summary = document.createElement("summary");
     summary.className = "tool-header";
