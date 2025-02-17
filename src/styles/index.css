@@ -23,4 +23,74 @@
 @import 'layout-utils.css';
 @import 'project-manager.css';
 @import 'content-blocks.css';
+/* Add to your existing CSS */
+.archive-summary-panel {
+    position: relative;
+}
 
+.archive-summary-button {
+    padding: 0.5rem;
+    border: 1px solid var(--border-color);
+    border-radius: 0.375rem;
+    background: var(--button-bg);
+    color: var(--text-color);
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.archive-summary-button:hover {
+    background: var(--button-hover-bg);
+}
+
+.archive-summary-popover {
+    min-width: 300px;
+    max-width: 600px;
+    padding: 1rem;
+    border: 1px solid var(--border-color);
+    border-radius: 0.375rem;
+    background: var(--popover-bg);
+    box-shadow: var(--shadow-lg);
+    max-height: 100vh;
+    overflow: auto;
+}
+
+.archive-summary-text {
+    margin: 0;
+    padding: 0.5rem;
+    background: var(--code-bg);
+    border-radius: 0.25rem;
+    white-space: pre-wrap;
+    color: white;
+}
+
+.archive-summary-info {
+    margin-top: 0.5rem;
+    font-size: 0.875rem;
+    /* color: var(--text-muted); */
+    color: white;
+}
+
+.archive-summary-button.is-summarizing {
+    opacity: 0.7;
+    cursor: wait;
+  }
+  
+  .archive-summary-button.has-summary {
+    color: var(--primary);
+  }
+  
+  .archive-summary-button .spinner {
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    border: 2px solid currentColor;
+    border-right-color: transparent;
+    border-radius: 50%;
+    animation: spin 0.75s linear infinite;
+  }
+  
+  @keyframes spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }

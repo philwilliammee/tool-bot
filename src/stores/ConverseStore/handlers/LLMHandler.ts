@@ -131,4 +131,42 @@ export class LLMHandler {
   public async callLLM(messages: MessageExtended[]): Promise<Message> {
     return this.callLLMStream(messages, {});
   }
+  
+  // Add to LLMHandler class
+
+public async invoke(
+  messages: Partial<MessageExtended[]> | Message[],
+  systemPrompt?: string
+): Promise<Message> {
+  try {
+    const response = await fetch("/api/ai/invoke", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        modelId: this.modelId,
+        messages,
+        systemPrompt: systemPrompt || this.baseSystemPrompt,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(
+        errorData.message || `HTTP error! status: ${response.status}`
+      );
+    }
+
+    const result = await response.json();
+
+    // Extract the message from the ConverseResponse structure
+    if (result.output?.message) {
+      return result.output.message;
+    }
+
+    throw new Error("Invalid response format from /api/ai/invoke");
+  } catch (error) {
+    console.error("Invoke API error:", error);
+    throw error;
+  }
+}
 }

@@ -1,515 +1,327 @@
 <!DOCTYPE html>
 <html lang="en">
-    <head>
-        <meta charset="UTF-8">
-        <meta
-            name="viewport"
-            content="width=device-width, initial-scale=1.0"
-        >
-        <meta
-            name="description"
-            content="Tool-Bot AI assistant with various tools"
-        >
-        <meta
-            name="theme-color"
-            content="#3b82f6"
-        >
-        <title>Tool-Bot</title>
-        <link rel="stylesheet" href="/src/styles/index.css">
-        <link rel="icon" type="image/svg+xml" href="/fav.png">
-    </head>
-    <body>
-        <div class="container">
-            <div class="main-content">
-                <div class="column left-column">
-                    <header>
-                        <div class="header-left">
-                            <svg
-                                class="notebook-icon"
-                                xmlns="http://www.w3.org/2000/svg"
-                                width="24"
-                                height="24"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="currentColor"
-                                stroke-width="2"
-                                stroke-linecap="round"
-                                stroke-linejoin="round"
-                            >
-                                <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"></path>
-                            </svg>
 
-                            <div class="project-controls">
-                                <select
-                                    id="project-selector"
-                                    class="project-selector"
-                                >
-                                    <option value>Select Project</option>
-                                </select>
-                                <button
-                                    class="btn btn-blue new-project-btn"
-                                    title="New Project"
-                                >
-                                    <svg
-                                        xmlns="http://www.w3.org/2000/svg"
-                                        width="16"
-                                        height="16"
-                                        viewBox="0 0 24 24"
-                                    >
-                                        <path
-                                            d="M12 5v14M5 12h14"
-                                            stroke="currentColor"
-                                            stroke-width="2"
-                                        ></path>
-                                    </svg>
-                                </button>
-                                <button
-                                    class="btn btn-blue manage-projects-btn"
-                                    title="Manage Projects"
-                                >
-                                    <svg
-                                        xmlns="http://www.w3.org/2000/svg"
-                                        width="16"
-                                        height="16"
-                                        viewBox="0 0 24 24"
-                                    >
-                                        <path
-                                            d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"
-                                            stroke="currentColor"
-                                            stroke-width="2"
-                                        ></path>
-                                    </svg>
-                                </button>
-                            </div>
-                        </div>
-                        <button
-                            class="toggle-panel-btn"
-                            title="Toggle Chat Panel"
-                        >
-                            <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                width="24"
-                                height="24"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="currentColor"
-                                stroke-width="2"
-                            >
-                                <polyline points="13 17 18 12 13 7"></polyline>
-                                <polyline points="6 17 11 12 6 7"></polyline>
-                            </svg>
-                        </button>
-                    </header>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Tool-Bot AI assistant with various tools">
+    <meta name="theme-color" content="#3b82f6">
+    <title>Tool-Bot</title>
+    <link rel="stylesheet" href="/src/styles/index.css">
+    <link rel="icon" type="image/svg+xml" href="/fav.png">
+</head>
 
-                    <div
-                        id="chat"
-                        class="chat-container"
-                    >
-                        <div class="chat-section">
-                            <div class="chat-messages"></div>
-                            <button
-                                class="scroll-bottom-btn"
-                                title="Scroll to bottom"
-                            >
-                                <svg
-                                    xmlns="http://www.w3.org/2000/svg"
-                                    width="24"
-                                    height="24"
-                                    viewBox="0 0 24 24"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    stroke-width="2"
-                                    stroke-linecap="round"
-                                    stroke-linejoin="round"
-                                >
-                                    <polyline points="6 9 12 15 18 9"></polyline>
+<body>
+    <div class="container">
+        <div class="main-content">
+            <div class="column left-column">
+                <header>
+                    <div class="header-left">
+                        <svg class="notebook-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+                            viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                            stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"></path>
+                        </svg>
+
+                        <div class="project-controls">
+                            <select id="project-selector" class="project-selector">
+                                <option value>Select Project</option>
+                            </select>
+                            <button class="btn btn-blue new-project-btn" title="New Project">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24">
+                                    <path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2"></path>
                                 </svg>
                             </button>
-                            <div class="prompt-container">
-                                <textarea
-                                    class="prompt-input"
-                                    placeholder="Enter your message..."
-                                    rows="5"
-                                    cols="33"
-                                ></textarea>
-                                <div class="prompt-actions">
-                                    <input
-                                        type="file"
-                                        id="data-upload"
-                                        class="file-input"
-                                        accept=".csv,.json"
-                                        style="display: none;"
-                                    >
-                                    <button
-                                        type="button"
-                                        class="btn btn-blue data-upload-btn"
-                                        title="Upload Data"
-                                    >
-                                        <svg
-                                            xmlns="http://www.w3.org/2000/svg"
-                                            width="20"
-                                            height="20"
-                                            viewBox="0 0 24 24"
-                                            fill="none"
-                                            stroke="currentColor"
-                                            stroke-width="2"
-                                        >
-                                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                                            <polyline points="17 8 12 3 7 8"></polyline>
-                                            <line
-                                                x1="12"
-                                                y1="3"
-                                                x2="12"
-                                                y2="15"
-                                            ></line>
-                                        </svg>
-                                    </button>
-                                    <button
-                                        class="btn btn-green generate-btn"
-                                        type="button"
-                                    >
-                                        <svg
-                                            xmlns="http://www.w3.org/2000/svg"
-                                            width="20"
-                                            height="20"
-                                            viewBox="0 0 24 24"
-                                            fill="none"
-                                            stroke="currentColor"
-                                            stroke-width="2"
-                                            stroke-linecap="round"
-                                            stroke-linejoin="round"
-                                        >
-                                            <polygon points="21 12 9 18 9 6 21 12"></polygon>
-                                        </svg>
-                                    </button>
-                                </div>
+                            <button class="btn btn-blue manage-projects-btn" title="Manage Projects">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24">
+                                    <path
+                                        d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"
+                                        stroke="currentColor" stroke-width="2"></path>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                    <button class="toggle-panel-btn" title="Toggle Chat Panel">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2">
+                            <polyline points="13 17 18 12 13 7"></polyline>
+                            <polyline points="6 17 11 12 6 7"></polyline>
+                        </svg>
+                    </button>
+                </header>
+
+                <div id="chat" class="chat-container">
+                    <div class="chat-section">
+                        <div class="chat-messages"></div>
+                        <button class="scroll-bottom-btn" title="Scroll to bottom">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
+                                fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                stroke-linejoin="round">
+                                <polyline points="6 9 12 15 18 9"></polyline>
+                            </svg>
+                        </button>
+                        <div class="prompt-container">
+                            <textarea class="prompt-input" placeholder="Enter your message..." rows="5"
+                                cols="33"></textarea>
+                            <div class="prompt-actions">
+                                <input type="file" id="data-upload" class="file-input" accept=".csv,.json"
+                                    style="display: none;">
+                                <button type="button" class="btn btn-blue data-upload-btn" title="Upload Data">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
+                                        fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                        <polyline points="17 8 12 3 7 8"></polyline>
+                                        <line x1="12" y1="3" x2="12" y2="15"></line>
+                                    </svg>
+                                </button>
+                                <button class="btn btn-green generate-btn" type="button">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
+                                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                        stroke-linejoin="round">
+                                        <polygon points="21 12 9 18 9 6 21 12"></polygon>
+                                    </svg>
+                                </button>
                             </div>
                         </div>
                     </div>
                 </div>
+            </div>
 
-                <div class="column right-column">
-                    <header>
-                        <div class="flex gap-2">
-                            <!-- Right column button (controls left panel) -->
-                            <button
-                                class="toggle-panel-btn"
-                                title="Toggle Chat Panel"
-                            >
-                                <svg
-                                    xmlns="http://www.w3.org/2000/svg"
-                                    width="24"
-                                    height="24"
-                                    viewBox="0 0 24 24"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    stroke-width="2"
-                                >
-                                    <polyline points="11 17 6 12 11 7"></polyline>
-                                    <polyline points="18 17 13 12 18 7"></polyline>
-                                </svg>
+            <div class="column right-column">
+                <header>
+                    <div class="flex gap-2">
+                        <!-- Right column button (controls left panel) -->
+                        <button class="toggle-panel-btn" title="Toggle Chat Panel">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
+                                fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="11 17 6 12 11 7"></polyline>
+                                <polyline points="18 17 13 12 18 7"></polyline>
+                            </svg>
+                        </button>
+                        <div class="tabs tab-buttons">
+                            <button class="tab-button" data-tab="work-area">
+                                Work Area
                             </button>
-                            <div class="tabs tab-buttons">
-                                <button
-                                    class="tab-button"
-                                    data-tab="work-area"
-                                >
-                                    Work Area
-                                </button>
-                                <button
-                                    class="tab-button active"
-                                    data-tab="preview"
-                                >
-                                    Preview
-                                </button>
-                                <button
-                                    class="tab-button"
-                                    data-tab="data"
-                                >
-                                    Data
-                                </button>
-                            </div>
+                            <button class="tab-button active" data-tab="preview">
+                                Preview
+                            </button>
+                            <button class="tab-button" data-tab="data">
+                                Data
+                            </button>
                         </div>
-                    </header>
+                    </div>
+                </header>
 
-                    <div class="tab-container">
-                        <div
-                            id="preview-tab"
-                            class="tab-content active"
-                        >
-                            <div
-                                id="iframe-container"
-                                class="iframe-container"
-                            >
-                                <iframe
-                                    id="html-tool-frame"
-                                    sandbox="allow-scripts allow-same-origin allow-modals allow-forms allow-popups allow-downloads allow-presentation"
-                                    allow="camera; microphone; fullscreen"
-                                    style="width: 100%; height: 100%; border: none;"
-                                ></iframe>
-                            </div>
+                <div class="tab-container">
+                    <div id="preview-tab" class="tab-content active">
+                        <div id="iframe-container" class="iframe-container">
+                            <iframe id="html-tool-frame"
+                                sandbox="allow-scripts allow-same-origin allow-modals allow-forms allow-popups allow-downloads allow-presentation"
+                                allow="camera; microphone; fullscreen"
+                                style="width: 100%; height: 100%; border: none;"></iframe>
                         </div>
+                    </div>
 
-                        <div
-                            id="work-area-tab"
-                            class="tab-content"
-                        >
-                            <div id="work_area">
-                                <div class="work-area-header">
-                                    <div class="flex gap justify-content-space-between align-items-center p-1">
-                                        <div class="flex-1 flex gap align-items-center">
-                                            <h2 class="work-area-title">Conversation Admin</h2>
-                                            <span class="message-count">0 messages</span>
-                                            <!-- Add Data Context Panel here -->
-                                            <div class="data-context-panel flex-1 flex justify-content-end">
-                                                <button class="data-context-button flex gap align-items-center">
-                                                    <svg
-                                                        xmlns="http://www.w3.org/2000/svg"
-                                                        width="16"
-                                                        height="16"
-                                                        viewBox="0 0 24 24"
-                                                        fill="none"
-                                                        stroke="currentColor"
-                                                        stroke-width="2"
-                                                    >
-                                                        <path d="M12 2H2v10l9.29 9.29c.94.94 2.48.94 3.42 0l6.58-6.58c.94-.94.94-2.48 0-3.42L12 2Z"></path>
-                                                        <path d="M7 7h.01"></path>
-                                                    </svg>
-                                                    Data Context
-                                                </button>
-                                                <div
-                                                    class="data-context-popover"
-                                                    popover
-                                                >
-                                                    <pre class="data-context-text markdown-body"></pre>
-                                                    <div class="data-context-info">
-                                                        Added to first non-tool user message when calling LLM
-                                                    </div>
+                    <div id="work-area-tab" class="tab-content">
+                        <div id="work_area">
+                            <div class="work-area-header">
+                                <div class="flex gap justify-content-space-between align-items-center p-1">
+                                    <div class="flex-1 flex gap align-items-center">
+                                        <h2 class="work-area-title">Conversation Admin</h2>
+                                        <span class="message-count">0 messages</span>
+                                        <!-- Add Data Context Panel here -->
+                                        <div class="data-context-panel flex-1 flex justify-content-end">
+                                            <button class="data-context-button flex gap align-items-center">
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16"
+                                                    viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                                    stroke-width="2">
+                                                    <path
+                                                        d="M12 2H2v10l9.29 9.29c.94.94 2.48.94 3.42 0l6.58-6.58c.94-.94.94-2.48 0-3.42L12 2Z">
+                                                    </path>
+                                                    <path d="M7 7h.01"></path>
+                                                </svg>
+                                                Data Context
+                                            </button>
+                                            <div class="data-context-popover" popover>
+                                                <pre class="data-context-text markdown-body"></pre>
+                                                <div class="data-context-info">
+                                                    Added to first non-tool user message when calling LLM
                                                 </div>
                                             </div>
                                         </div>
-                                    </div>
-                                    <!-- Updated work-area-filters section with utility classes -->
-                                    <div class="work-area-filters flex gap align-items-end p-1">
-                                        <div>
-                                            <input
-                                                type="text"
-                                                id="message-search"
-                                                class="search-input form-input"
-                                                placeholder="Search messages..."
-                                            >
-                                        </div>
-                                        <div>
-                                            <select
-                                                id="role-filter"
-                                                class="filter-select form-select"
-                                            >
-                                                <option value>All Roles</option>
-                                                <option value="user">User</option>
-                                                <option value="assistant">Assistant</option>
-                                            </select>
-                                        </div>
-                                        <div>
-                                            <select
-                                                id="tool-filter"
-                                                class="filter-select form-select"
-                                            >
-                                                <option value>All Messages</option>
-                                                <option value="any">Any Tool Use</option>
-                                                <option value="html">HTML Tool</option>
-                                                <option value="fetch_url">Fetch Tool</option>
-                                                <option value="math">Math Tool</option>
-                                                <option value="ldap_search">LDAP Tool</option>
-                                                <option value="octokit">GitHub Integration Tool</option>
-                                                <option value="code_executor">Code Executor Tool</option>
-                                                <option value="file_tree">File Tree Tool</option>
-                                                <option value="project_reader">Project Reader Tool</option>
-                                                <option value="file_writer">File Writer Tool</option>
-                                                <option value="data_store">Data Store Tool</option>
-                                            </select>
-                                        </div>
-                                        <div>
-                                            <label class="filter-checkbox-label form-checkbox">
-                                                <input
-                                                    type="checkbox"
-                                                    id="archived-filter"
-                                                    class="form-checkbox-input"
-                                                >
-                                                Include Archived
-                                            </label>
-                                        </div>
-                                        <div class="flex gap flex-1 justify-content-end">
-                                            <button class="btn btn-danger delete-all-btn">
-                                                <svg
-                                                    xmlns="http://www.w3.org/2000/svg"
-                                                    width="16"
-                                                    height="16"
-                                                    viewBox="0 0 24 24"
-                                                    fill="none"
-                                                    stroke="currentColor"
-                                                    stroke-width="2"
-                                                >
-                                                    <path d="M3 6h18"></path>
-                                                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"></path>
-                                                    <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                                        <!-- New Archive Summary Panel -->
+                                        <div class="archive-summary-panel">
+                                            <button class="archive-summary-button flex gap align-items-center">
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16"
+                                                    viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                                    stroke-width="2">
+                                                    <path d="M21 8v13H3V8"></path>
+                                                    <path d="M1 3h22v5H1z"></path>
+                                                    <path d="M10 12h4"></path>
                                                 </svg>
-                                                Delete All
+                                                Archive Summary
                                             </button>
-                                            <button class="btn btn-blue new-message-btn">
-                                                <svg
-                                                    xmlns="http://www.w3.org/2000/svg"
-                                                    width="16"
-                                                    height="16"
-                                                    viewBox="0 0 24 24"
-                                                    fill="none"
-                                                    stroke="currentColor"
-                                                    stroke-width="2"
-                                                >
-                                                    <line
-                                                        x1="12"
-                                                        y1="5"
-                                                        x2="12"
-                                                        y2="19"
-                                                    ></line>
-                                                    <line
-                                                        x1="5"
-                                                        y1="12"
-                                                        x2="19"
-                                                        y2="12"
-                                                    ></line>
-                                                </svg>
-                                                New Message
-                                            </button>
+                                            <div class="archive-summary-popover" popover>
+                                                <pre
+                                                    class="archive-summary-text markdown-body">No archived messages</pre>
+                                                <div class="archive-summary-info">
+                                                    Summary of archived messages outside context window
+                                                </div>
+                                            </div>
                                         </div>
-                                    </div>
-                                </div>
-                                <table class="chat-admin-table">
-                                    <thead>
-                                        <tr>
-                                            <th>Role</th>
-                                            <th>Content</th>
-                                            <!-- <th>Rating</th> -->
-                                            <th>Timestamp</th>
-                                            <th>Actions</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="message-table-body">
-                                        <!-- Dynamic content will go here -->
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
 
-                        <div
-                            id="data-tab"
-                            class="tab-content"
-                        >
-                            <!-- Add id and tab-content class -->
-                            <div class="data-area">
-                                <div class="data-area-header">
-                                    <h2 class="data-area-title">Data Objects</h2>
-                                    <div class="data-count">No Data</div>
-                                    <button
-                                        class="btn action-btn delete-btn"
-                                        title="Clear Data"
-                                    >
-                                        <svg
-                                            xmlns="http://www.w3.org/2000/svg"
-                                            width="16"
-                                            height="16"
-                                            viewBox="0 0 24 24"
-                                            fill="none"
-                                            stroke="currentColor"
-                                            stroke-width="2"
-                                            stroke-linecap="round"
-                                            stroke-linejoin="round"
-                                        >
-                                            <path d="M3 6h18"></path>
-                                            <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
-                                            <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
-                                        </svg>
-                                    </button>
+                                    </div>
                                 </div>
-                                <div class="data-list"></div>
+                                <!-- Updated work-area-filters section with utility classes -->
+                                <div class="work-area-filters flex gap align-items-end p-1">
+                                    <div>
+                                        <input type="text" id="message-search" class="search-input form-input"
+                                            placeholder="Search messages...">
+                                    </div>
+                                    <div>
+                                        <select id="role-filter" class="filter-select form-select">
+                                            <option value>All Roles</option>
+                                            <option value="user">User</option>
+                                            <option value="assistant">Assistant</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <select id="tool-filter" class="filter-select form-select">
+                                            <option value>All Messages</option>
+                                            <option value="any">Any Tool Use</option>
+                                            <option value="html">HTML Tool</option>
+                                            <option value="fetch_url">Fetch Tool</option>
+                                            <option value="math">Math Tool</option>
+                                            <option value="ldap_search">LDAP Tool</option>
+                                            <option value="octokit">GitHub Integration Tool</option>
+                                            <option value="code_executor">Code Executor Tool</option>
+                                            <option value="file_tree">File Tree Tool</option>
+                                            <option value="project_reader">Project Reader Tool</option>
+                                            <option value="file_writer">File Writer Tool</option>
+                                            <option value="data_store">Data Store Tool</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label class="filter-checkbox-label form-checkbox">
+                                            <input type="checkbox" id="archived-filter" class="form-checkbox-input">
+                                            Include Archived
+                                        </label>
+                                    </div>
+                                    <div class="flex gap flex-1 justify-content-end">
+                                        <button class="btn btn-danger delete-all-btn">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16"
+                                                viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                <path d="M3 6h18"></path>
+                                                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"></path>
+                                                <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                                            </svg>
+                                            Delete All
+                                        </button>
+                                        <button class="btn btn-blue new-message-btn">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16"
+                                                viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                <line x1="12" y1="5" x2="12" y2="19"></line>
+                                                <line x1="5" y1="12" x2="19" y2="12"></line>
+                                            </svg>
+                                            New Message
+                                        </button>
+                                    </div>
+                                </div>
                             </div>
+                            <table class="chat-admin-table">
+                                <thead>
+                                    <tr>
+                                        <th>Role</th>
+                                        <th>Content</th>
+                                        <!-- <th>Rating</th> -->
+                                        <th>Timestamp</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="message-table-body">
+                                    <!-- Dynamic content will go here -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div id="data-tab" class="tab-content">
+                        <!-- Add id and tab-content class -->
+                        <div class="data-area">
+                            <div class="data-area-header">
+                                <h2 class="data-area-title">Data Objects</h2>
+                                <div class="data-count">No Data</div>
+                                <button class="btn action-btn delete-btn" title="Clear Data">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
+                                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                        stroke-linejoin="round">
+                                        <path d="M3 6h18"></path>
+                                        <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
+                                        <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
+                                    </svg>
+                                </button>
+                            </div>
+                            <div class="data-list"></div>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
+    </div>
 
-        <!-- Toast Message -->
-        <dialog
-            id="toast-message"
-            class="toast"
-        >
-            <p class="toast-content"></p>
-        </dialog>
+    <!-- Toast Message -->
+    <dialog id="toast-message" class="toast">
+        <p class="toast-content"></p>
+    </dialog>
 
-        <!-- View Modal: Update to show tags and rating -->
-        <dialog
-            id="view-modal"
-            class="modal"
-        >
-            <div class="modal-content">
-                <h3>View Message</h3>
-                <div class="message-details">
-                    <div class="message-detail">
-                        <strong>Role:</strong>
-                        <span class="role-value"></span>
-                    </div>
-                    <div class="message-detail">
-                        <strong>Content:</strong>
-                        <pre class="content-value"></pre>
-                    </div>
-                    <div class="message-detail">
-                        <strong>Tags:</strong>
-                        <div class="tags-value"></div>
-                    </div>
-                    <!-- <div class="message-detail">
+    <!-- View Modal: Update to show tags and rating -->
+    <dialog id="view-modal" class="modal">
+        <div class="modal-content">
+            <h3>View Message</h3>
+            <div class="message-details">
+                <div class="message-detail">
+                    <strong>Role:</strong>
+                    <span class="role-value"></span>
+                </div>
+                <div class="message-detail">
+                    <strong>Content:</strong>
+                    <pre class="content-value"></pre>
+                </div>
+                <div class="message-detail">
+                    <strong>Tags:</strong>
+                    <div class="tags-value"></div>
+                </div>
+                <!-- <div class="message-detail">
                         <strong>Rating:</strong>
                         <span class="rating-value"></span>
                     </div> -->
-                    <div class="message-detail">
-                        <strong>Timestamp:</strong>
-                        <span class="timestamp-value"></span>
-                    </div>
-                </div>
-                <div class="modal-actions">
-                    <button
-                        type="submit"
-                        class="btn btn-blue close-btn"
-                        value="Novalidate close"
-                        formnovalidate
-                    >
-                        Close
-                    </button>
+                <div class="message-detail">
+                    <strong>Timestamp:</strong>
+                    <span class="timestamp-value"></span>
                 </div>
             </div>
-        </dialog>
+            <div class="modal-actions">
+                <button type="submit" class="btn btn-blue close-btn" value="Novalidate close" formnovalidate>
+                    Close
+                </button>
+            </div>
+        </div>
+    </dialog>
 
-        <!-- Edit Modal -->
-        <dialog
-            id="edit-modal"
-            class="modal"
-        >
-            <div class="modal-content">
-                <h2 class="modal-title">Edit Message</h2>
-                <form class="edit-form">
-                    <div class="form-group">
-                        <label>Content Blocks</label>
-                        <div class="content-blocks-container"></div>
-                    </div>
-                    <div class="form-group">
-                        <label for="messageTags">Tags (comma-separated)</label>
-                        <input
-                            type="text"
-                            id="messageTags"
-                            class="tag-input"
-                            placeholder="Enter tags..."
-                        >
-                    </div>
-                    <!-- <div class="form-group">
+    <!-- Edit Modal -->
+    <dialog id="edit-modal" class="modal">
+        <div class="modal-content">
+            <h2 class="modal-title">Edit Message</h2>
+            <form class="edit-form">
+                <div class="form-group">
+                    <label>Content Blocks</label>
+                    <div class="content-blocks-container"></div>
+                </div>
+                <div class="form-group">
+                    <label for="messageTags">Tags (comma-separated)</label>
+                    <input type="text" id="messageTags" class="tag-input" placeholder="Enter tags...">
+                </div>
+                <!-- <div class="form-group">
                         <label>Rating</label>
                         <div class="rating-toggle">
                             <span class="heart-toggle">🤍</span>
@@ -520,62 +332,39 @@
                             >
                         </div>
                     </div> -->
-                    <div class="modal-actions">
-                        <button
-                            type="submit"
-                            class="btn btn-danger cancel-btn"
-                            value="Novalidate close"
-                            formnovalidate
-                        >
-                            Cancel
-                        </button>
-                        <button
-                            type="submit"
-                            class="btn btn-blue save-btn"
-                        >
-                            Save Changes
-                        </button>
-                    </div>
-                </form>
-            </div>
-        </dialog>
+                <div class="modal-actions">
+                    <button type="submit" class="btn btn-danger cancel-btn" value="Novalidate close" formnovalidate>
+                        Cancel
+                    </button>
+                    <button type="submit" class="btn btn-blue save-btn">
+                        Save Changes
+                    </button>
+                </div>
+            </form>
+        </div>
+    </dialog>
 
-        <!-- New Message Modal -->
-        <dialog
-            id="new-modal"
-            class="modal"
-        >
-            <div class="modal-content">
-                <h3>New Message</h3>
-                <form class="new-message-form">
-                    <div class="form-group">
-                        <label for="messageRole">Role</label>
-                        <select
-                            id="messageRole"
-                            required
-                        >
-                            <option value="user">User</option>
-                            <option value="assistant">Assistant</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label for="newMessageContent">Message Content</label>
-                        <textarea
-                            id="newMessageContent"
-                            rows="4"
-                            required
-                        ></textarea>
-                    </div>
-                    <div class="form-group">
-                        <label for="newMessageTags">Tags (comma-separated)</label>
-                        <input
-                            type="text"
-                            id="newMessageTags"
-                            class="tag-input"
-                            placeholder="Enter tags..."
-                        >
-                    </div>
-                    <!-- <div class="form-group">
+    <!-- New Message Modal -->
+    <dialog id="new-modal" class="modal">
+        <div class="modal-content">
+            <h3>New Message</h3>
+            <form class="new-message-form">
+                <div class="form-group">
+                    <label for="messageRole">Role</label>
+                    <select id="messageRole" required>
+                        <option value="user">User</option>
+                        <option value="assistant">Assistant</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="newMessageContent">Message Content</label>
+                    <textarea id="newMessageContent" rows="4" required></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="newMessageTags">Tags (comma-separated)</label>
+                    <input type="text" id="newMessageTags" class="tag-input" placeholder="Enter tags...">
+                </div>
+                <!-- <div class="form-group">
                         <label>Rating</label>
                         <div class="rating-toggle">
                             <span class="heart-toggle">🤍</span>
@@ -586,418 +375,259 @@
                             >
                         </div>
                     </div> -->
-                    <div class="modal-actions">
-                        <button
-                            type="submit"
-                            class="btn btn-danger cancel-btn"
-                            value="Novalidate close"
-                            formnovalidate
-                        >
-                            Cancel
-                        </button>
-                        <button
-                            type="submit"
-                            class="btn btn-blue save-btn"
-                        >
-                            Add Message
-                        </button>
-                    </div>
-                </form>
-            </div>
-        </dialog>
-
-        <!-- Project Management Modal -->
-        <dialog
-            id="project-modal"
-            class="modal"
-        >
-            <div class="modal-content">
-                <h2>Manage Projects</h2>
-                <div class="project-list"></div>
                 <div class="modal-actions">
-                    <button class="btn btn-danger close-btn">Close</button>
+                    <button type="submit" class="btn btn-danger cancel-btn" value="Novalidate close" formnovalidate>
+                        Cancel
+                    </button>
+                    <button type="submit" class="btn btn-blue save-btn">
+                        Add Message
+                    </button>
                 </div>
-            </div>
-        </dialog>
+            </form>
+        </div>
+    </dialog>
 
-        <!-- New Project Form Modal -->
-        <dialog
-            id="project-form-modal"
-            class="modal"
-        >
-            <div class="modal-content">
-                <h2 class="modal-title">New Project</h2>
-                <form
-                    id="project-form"
-                    class="project-form"
-                    method="dialog"
-                >
-                    <div class="form-group">
-                        <label for="project-name">Project Name</label>
-                        <input
-                            type="text"
-                            id="project-name"
-                            required
-                        >
-                    </div>
-                    <div class="form-group">
-                        <label for="project-description">Description</label>
-                        <textarea id="project-description"></textarea>
-                    </div>
-                    <div class="modal-actions">
-                        <button
-                            type="submit"
-                            class="btn btn-danger cancel-btn"
-                            value="Novalidate close"
-                            formnovalidate
-                        >
-                            Cancel
-                        </button>
-                        <button
-                            type="submit"
-                            class="btn btn-blue"
-                        >
-                            Save Project
-                        </button>
-                    </div>
-                </form>
+    <!-- Project Management Modal -->
+    <dialog id="project-modal" class="modal">
+        <div class="modal-content">
+            <h2>Manage Projects</h2>
+            <div class="project-list"></div>
+            <div class="modal-actions">
+                <button class="btn btn-danger close-btn">Close</button>
             </div>
-        </dialog>
+        </div>
+    </dialog>
 
-        <!-- Project Item Template -->
-        <template id="project-item-template">
-            <div class="project-item">
-                <div class="project-info">
-                    <h3 class="project-name"></h3>
-                    <p class="project-meta"></p>
-                    <p class="project-description"></p>
+    <!-- New Project Form Modal -->
+    <dialog id="project-form-modal" class="modal">
+        <div class="modal-content">
+            <h2 class="modal-title">New Project</h2>
+            <form id="project-form" class="project-form" method="dialog">
+                <div class="form-group">
+                    <label for="project-name">Project Name</label>
+                    <input type="text" id="project-name" required>
                 </div>
-                <div class="project-actions">
-                    <button class="btn btn-small btn-blue select-btn">Select</button>
-                    <button class="btn btn-small btn-danger delete-btn">Delete</button>
+                <div class="form-group">
+                    <label for="project-description">Description</label>
+                    <textarea id="project-description"></textarea>
                 </div>
-            </div>
-        </template>
-
-        <!-- Basic message template -->
-        <template id="chat-message-template">
-            <div class="chat-message">
-                <div class="message-content-wrapper"></div>
-            </div>
-        </template>
-
-        <!-- Tool message Template -->
-        <template id="tool-message-template">
-            <div class="chat-message tool-message">
-                <div class="message-header">
-                    <div class="avatar tool-avatar">🛠️</div>
+                <div class="modal-actions">
+                    <button type="submit" class="btn btn-danger cancel-btn" value="Novalidate close" formnovalidate>
+                        Cancel
+                    </button>
+                    <button type="submit" class="btn btn-blue">
+                        Save Project
+                    </button>
                 </div>
-                <div class="message-content-wrapper"></div>
+            </form>
+        </div>
+    </dialog>
+
+    <!-- Project Item Template -->
+    <template id="project-item-template">
+        <div class="project-item">
+            <div class="project-info">
+                <h3 class="project-name"></h3>
+                <p class="project-meta"></p>
+                <p class="project-description"></p>
             </div>
-        </template>
-
-        <!-- User message template -->
-        <template id="user-message-template">
-            <div class="chat-message user">
-                <div class="message-header">
-                    <img
-                        src="/fav.png"
-                        alt="User avatar"
-                        class="avatar user-avatar"
-                    >
-                </div>
-                <div class="message-content-wrapper"></div>
-                <div class="message-actions"></div>
+            <div class="project-actions">
+                <button class="btn btn-small btn-blue select-btn">Select</button>
+                <button class="btn btn-small btn-danger delete-btn">Delete</button>
             </div>
-        </template>
+        </div>
+    </template>
 
-        <!-- Empty state template -->
-        <template id="chat-empty-state-template">
-            <div class="chat-empty-state">
-                <div class="kit-avatar-circle">
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="48"
-                    height="48"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                    stroke-width="2"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                  >
-                    <path d="M12 8V4H8"/>
-                    <rect width="16" height="12" x="4" y="8" rx="2"/>
-                    <path d="M2 14h2"/>
-                    <path d="M20 14h2"/>
-                    <path d="M15 13v2"/>
-                    <path d="M9 13v2"/>
-                  </svg>
-                </div>
-                  <p>How can I help you today?</p>
-                </div>
-        </template>
+    <!-- Basic message template -->
+    <template id="chat-message-template">
+        <div class="chat-message">
+            <div class="message-content-wrapper"></div>
+        </div>
+    </template>
 
-        <!-- Assistant message template -->
-        <template id="assistant-message-template">
-            <div class="chat-message assistant">
-                <div class="message-header">
-                    <div class="avatar assistant-avatar">
-                        <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            width="24"
-                            height="24"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
-                            stroke-width="2"
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                        >
-                            <path d="M12 8V4H8"></path>
-                            <rect
-                                width="16"
-                                height="12"
-                                x="4"
-                                y="8"
-                                rx="2"
-                            ></rect>
-                            <path d="M2 14h2"></path>
-                            <path d="M20 14h2"></path>
-                            <path d="M15 13v2"></path>
-                            <path d="M9 13v2"></path>
-                        </svg>
-                    </div>
-                </div>
-                <div class="message-content-wrapper"></div>
+    <!-- Tool message Template -->
+    <template id="tool-message-template">
+        <div class="chat-message tool-message">
+            <div class="message-header">
+                <div class="avatar tool-avatar">🛠️</div>
             </div>
-        </template>
+            <div class="message-content-wrapper"></div>
+        </div>
+    </template>
 
-        <!-- Tool message template -->
-        <template id="tool-message-template">
-            <div class="chat-message tool-message">
-                <div class="message-content-wrapper"></div>
+    <!-- User message template -->
+    <template id="user-message-template">
+        <div class="chat-message user">
+            <div class="message-header">
+                <img src="/fav.png" alt="User avatar" class="avatar user-avatar">
             </div>
-        </template>
+            <div class="message-content-wrapper"></div>
+            <div class="message-actions"></div>
+        </div>
+    </template>
 
-        <!-- Empty state template -->
-        <template id="empty-state-template">
-            <tr>
-                <td
-                    colspan="4"
-                    class="empty-state"
-                >
-                    No messages available
-                </td>
-            </tr>
-        </template>
-
-        <!-- Message row template -->
-        <template id="message-row-template">
-            <tr class="message-row">
-                <td>
-                    <span class="role-badge"></span>
-                </td>
-                <td class="message-content"></td>
-                <!-- <td class="rating-cell"></td> -->
-                <td class="timestamp-cell"></td>
-                <td>
-                    <div
-                        id="action-buttons"
-                        class="flex"
-                    >
-                        <button
-                            class="icon-btn action-btn view-btn"
-                            title="View Message"
-                        >
-                            <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                width="16"
-                                height="16"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="currentColor"
-                                stroke-width="2"
-                                stroke-linecap="round"
-                                stroke-linejoin="round"
-                            >
-                                <circle
-                                    cx="11"
-                                    cy="11"
-                                    r="8"
-                                ></circle>
-                                <line
-                                    x1="21"
-                                    y1="21"
-                                    x2="16.65"
-                                    y2="16.65"
-                                ></line>
-                            </svg>
-                        </button>
-                        <button
-                            class="icon-btn action-btn edit-btn"
-                            title="Edit Message"
-                        >
-                            <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                width="16"
-                                height="16"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="currentColor"
-                                stroke-width="2"
-                                stroke-linecap="round"
-                                stroke-linejoin="round"
-                            >
-                                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-                                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-                            </svg>
-                        </button>
-                        <button
-                            class="icon-btn action-btn delete-btn"
-                            title="Delete Message"
-                        >
-                            <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                width="16"
-                                height="16"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="currentColor"
-                                stroke-width="2"
-                                stroke-linecap="round"
-                                stroke-linejoin="round"
-                            >
-                                <path d="M3 6h18"></path>
-                                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"></path>
-                                <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                            </svg>
-                        </button>
-                    </div>
-                </td>
-            </tr>
-        </template>
-
-        <!-- Add new template for tag item -->
-        <template id="tag-item-template">
-            <span class="tag-item">
-                <span class="tag-text"></span>
-                <button
-                    class="remove-tag-btn"
-                    title="Remove Tag"
-                >
-                    ×
-                </button>
-            </span>
-        </template>
-
-        <!-- Content Block Editor Templates -->
-        <template id="content-block-editor-template">
-            <div class="content-blocks-list"></div>
-            <div class="block-actions">
-                <button
-                    type="button"
-                    class="btn btn-small btn-blue add-text-block"
-                >
-                    <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="16"
-                        height="16"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        stroke-width="2"
-                    >
-                        <path d="M12 5v14M5 12h14"></path>
-                    </svg>
-                    Add Text Block
-                </button>
-            </div>
-        </template>
-
-        <template id="text-block-template">
-            <div class="content-block">
-                <div class="block-header">
-                    <span class="block-type">Text Block</span>
-                    <div class="block-actions">
-                        <button
-                            type="button"
-                            class="btn btn-small move-up"
-                        >
-                            ↑
-                        </button>
-                        <button
-                            type="button"
-                            class="btn btn-small move-down"
-                        >
-                            ↓
-                        </button>
-                        <button
-                            type="button"
-                            class="btn btn-small btn-danger delete-block"
-                        >
-                            ×
-                        </button>
-                    </div>
-                </div>
-                <textarea
-                    class="block-content"
-                    rows="4"
-                ></textarea>
-            </div>
-        </template>
-
-        <!-- Re-execute button template -->
-        <template id="re-execute-button-template">
-            <button
-                class="action-btn re-execute-btn"
-                title="Re-execute HTML"
-            >
-                <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="16"
-                    height="16"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="2"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                >
-                    <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"></path>
-                    <path d="M21 3v5h-5"></path>
-                    <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"></path>
-                    <path d="M8 16H3v5"></path>
+    <!-- Empty state template -->
+    <template id="chat-empty-state-template">
+        <div class="chat-empty-state">
+            <div class="kit-avatar-circle">
+                <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" stroke="currentColor"
+                    stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 8V4H8" />
+                    <rect width="16" height="12" x="4" y="8" rx="2" />
+                    <path d="M2 14h2" />
+                    <path d="M20 14h2" />
+                    <path d="M15 13v2" />
+                    <path d="M9 13v2" />
                 </svg>
+            </div>
+            <p>How can I help you today?</p>
+        </div>
+    </template>
+
+    <!-- Assistant message template -->
+    <template id="assistant-message-template">
+        <div class="chat-message assistant">
+            <div class="message-header">
+                <div class="avatar assistant-avatar">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M12 8V4H8"></path>
+                        <rect width="16" height="12" x="4" y="8" rx="2"></rect>
+                        <path d="M2 14h2"></path>
+                        <path d="M20 14h2"></path>
+                        <path d="M15 13v2"></path>
+                        <path d="M9 13v2"></path>
+                    </svg>
+                </div>
+            </div>
+            <div class="message-content-wrapper"></div>
+        </div>
+    </template>
+
+    <!-- Tool message template -->
+    <template id="tool-message-template">
+        <div class="chat-message tool-message">
+            <div class="message-content-wrapper"></div>
+        </div>
+    </template>
+
+    <!-- Empty state template -->
+    <template id="empty-state-template">
+        <tr>
+            <td colspan="4" class="empty-state">
+                No messages available
+            </td>
+        </tr>
+    </template>
+
+    <!-- Message row template -->
+    <template id="message-row-template">
+        <tr class="message-row">
+            <td>
+                <span class="role-badge"></span>
+            </td>
+            <td class="message-content"></td>
+            <!-- <td class="rating-cell"></td> -->
+            <td class="timestamp-cell"></td>
+            <td>
+                <div id="action-buttons" class="flex">
+                    <button class="icon-btn action-btn view-btn" title="View Message">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="11" cy="11" r="8"></circle>
+                            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                        </svg>
+                    </button>
+                    <button class="icon-btn action-btn edit-btn" title="Edit Message">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                        </svg>
+                    </button>
+                    <button class="icon-btn action-btn delete-btn" title="Delete Message">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M3 6h18"></path>
+                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"></path>
+                            <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                        </svg>
+                    </button>
+                </div>
+            </td>
+        </tr>
+    </template>
+
+    <!-- Add new template for tag item -->
+    <template id="tag-item-template">
+        <span class="tag-item">
+            <span class="tag-text"></span>
+            <button class="remove-tag-btn" title="Remove Tag">
+                ×
             </button>
-        </template>
+        </span>
+    </template>
 
-        <template id="spinner-template">
-            <svg
-                class="animate-spin"
-                xmlns="http://www.w3.org/2000/svg"
-                width="20"
-                height="20"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-            >
-                <path d="M21 12a9 9 0 1 1-6.219-8.56"></path>
+    <!-- Content Block Editor Templates -->
+    <template id="content-block-editor-template">
+        <div class="content-blocks-list"></div>
+        <div class="block-actions">
+            <button type="button" class="btn btn-small btn-blue add-text-block">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" stroke-width="2">
+                    <path d="M12 5v14M5 12h14"></path>
+                </svg>
+                Add Text Block
+            </button>
+        </div>
+    </template>
+
+    <template id="text-block-template">
+        <div class="content-block">
+            <div class="block-header">
+                <span class="block-type">Text Block</span>
+                <div class="block-actions">
+                    <button type="button" class="btn btn-small move-up">
+                        ↑
+                    </button>
+                    <button type="button" class="btn btn-small move-down">
+                        ↓
+                    </button>
+                    <button type="button" class="btn btn-small btn-danger delete-block">
+                        ×
+                    </button>
+                </div>
+            </div>
+            <textarea class="block-content" rows="4"></textarea>
+        </div>
+    </template>
+
+    <!-- Re-execute button template -->
+    <template id="re-execute-button-template">
+        <button class="action-btn re-execute-btn" title="Re-execute HTML">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"></path>
+                <path d="M21 3v5h-5"></path>
+                <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"></path>
+                <path d="M8 16H3v5"></path>
             </svg>
-        </template>
+        </button>
+    </template>
 
-        <template id="archive-badge-template">
-            <span
-                class="archive-badge-pill"
-                title="Archived message"
-            >
-                Archived
-            </span>
-        </template>
-        <script
-            type="module"
-            src="/src/main.ts"
-        ></script>
-    </body>
+    <template id="spinner-template">
+        <svg class="animate-spin" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
+            fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 12a9 9 0 1 1-6.219-8.56"></path>
+        </svg>
+    </template>
+
+    <template id="archive-badge-template">
+        <span class="archive-badge-pill" title="Archived message">
+            Archived
+        </span>
+    </template>
+    <script type="module" src="/src/main.ts"></script>
+</body>
+
 </html>

@@ -29,6 +29,7 @@ export class WorkArea {
     this.messageTable.mount();
     this.setupEventListeners();
     this.initializeDataContextPanel();
+    this.initializeArchiveSummaryPanel();
 
     this.cleanupFns.push(
       effect(() => {
@@ -99,6 +100,80 @@ export class WorkArea {
     });
   }
 
+  private async updateArchiveSummaryText(textElement: Element, summaryText: string): Promise<void> {
+    const rendered = await Promise.resolve(marked(summaryText));
+    textElement.innerHTML = rendered;
+  }
+  
+  private initializeArchiveSummaryPanel(): void {
+    const button = this.element.querySelector(".archive-summary-button");
+    const popover = this.element.querySelector(
+      ".archive-summary-popover"
+    ) as HTMLElement;
+    const textElement = this.element.querySelector(".archive-summary-text");
+    const panel = this.element.querySelector(".archive-summary-panel");
+  
+    if (!button || !popover || !textElement || !panel) {
+      console.warn("Archive summary panel elements not found");
+      return;
+    }
+  
+    const updateSummaryDisplay = async () => {
+      const summary = converseStore.getArchiveSummary();
+      const isSummarizing = converseStore.getIsSummarizing();
+      const archivedMessages = converseStore.getMessages().filter(
+        (msg) => msg.metadata.isArchived
+      );
+  
+      if (isSummarizing) {
+        textElement.innerHTML = "Generating summary...";
+        button.classList.add("is-summarizing");
+      } else {
+        button.classList.remove("is-summarizing");
+        if (summary) {
+          await this.updateArchiveSummaryText(textElement, summary);
+          button.classList.add("has-summary");
+        } else {
+          textElement.textContent = archivedMessages.length > 0 
+            ? "No summary available yet" 
+            : "No archived messages";
+          button.classList.remove("has-summary");
+        }
+      }
+  
+      // Update button text to include count
+      button.innerHTML = `
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M21 8v13H3V8"></path>
+          <path d="M1 3h22v5H1z"></path>
+          <path d="M10 12h4"></path>
+        </svg>
+        Archive Summary ${archivedMessages.length > 0 ? `(${archivedMessages.length})` : ''}
+        ${isSummarizing ? '<span class="spinner"></span>' : ''}
+      `;
+    };
+  
+    button.addEventListener("click", () => {
+      console.log("Archive summary button clicked");
+      updateSummaryDisplay().catch(console.error);
+      popover.togglePopover();
+    });
+  
+    // Update when messages change
+    this.cleanupFns.push(
+      converseStore.onMessagesChange(() => {
+        updateSummaryDisplay().catch(console.error);
+      })
+    );
+  
+    // Initial update
+    updateSummaryDisplay().catch(console.error);
+  
+    // Cleanup popover
+    this.cleanupFns.push(() => {
+      popover.hidePopover();
+    });
+  }
   // Rest of existing methods remain unchanged
   private updateDynamicContent(): void {
     if (store.activeTab.value === "work-area") {

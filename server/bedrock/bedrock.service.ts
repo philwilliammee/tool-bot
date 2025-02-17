@@ -1,5 +1,8 @@
 import {
   BedrockRuntimeClient,
+  ConverseCommand,
+  ConverseCommandInput,
+  ConverseResponse,
   ConverseStreamCommand,
   ConverseStreamCommandInput,
   ConverseStreamResponse,
@@ -84,4 +87,36 @@ export class BedrockService {
   ): Promise<ConverseStreamResponse> {
     return this.converseStream(modelId, messages, systemPrompt);
   }
+  
+  // bedrock.service.ts
+async invoke(
+  modelId: string,
+  messages: Message[],
+  systemPrompt: string
+): Promise<ConverseResponse> {
+  const system: SystemContentBlock[] = [{ text: systemPrompt }];
+
+  // Ensure messages array starts with a user message
+  if (messages.length === 0) {
+    throw new Error("Messages array cannot be empty");
+  }
+
+  if (messages[0].role !== "user") {
+    throw new Error("First message must be from user");
+  }
+
+  const input: ConverseCommandInput = {
+    modelId,
+    system,
+    messages,
+    inferenceConfig: {
+      temperature: 0.7,
+      maxTokens: 8000,
+    },
+  };
+
+  const command = new ConverseCommand(input);
+  const response: ConverseResponse = await this.client.send(command);
+  return response;
+}
 }
