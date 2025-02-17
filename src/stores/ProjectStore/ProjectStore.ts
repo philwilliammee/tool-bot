@@ -73,17 +73,26 @@ export class ProjectStore {
   public getProject(id: string): ProjectMessages | null {
     const key = this.getProjectKey(id);
     const stored = localStorage.getItem(key);
-    // console.log(`Loading project ${id} from ${key}:`, stored);
-
+    
     if (!stored) {
       console.log(`No messages found for project ${id}`);
-      return null;
+      return {
+        projectId: id,
+        messages: [], // Return empty array instead of null
+        metadata: {
+          archiveSummary: {
+            summary: null,
+            lastSummarizedMessageIds: [],
+            lastSummarization: 0
+          }
+        }
+      };
     }
-
+  
     try {
-      const messages = JSON.parse(stored);
-      console.log(`Loaded ${messages.length} messages for project ${id}`);
-      return { projectId: id, messages };
+      const project = JSON.parse(stored) as ProjectMessages;
+      console.log(`Loaded ${project.messages.length} messages for project ${id}`);
+      return project;
     } catch (error) {
       console.error(`Error parsing messages for project ${id}:`, error);
       return null;
@@ -180,27 +189,33 @@ export class ProjectStore {
     );
   }
 
-  public saveProjectMessages(id: string, messages: MessageExtended[]): void {
+  public saveProjectMessages(
+    id: string, 
+    messages: MessageExtended[],
+    metadata?: ProjectMessages['metadata']
+  ): void {
     if (!this.metadata[id]) {
-      console.warn(
-        `Attempted to save messages for non-existent project: ${id}`
-      );
+      console.warn(`Attempted to save messages for non-existent project: ${id}`);
       return;
     }
-
+  
     const key = this.getProjectKey(id);
     console.log(`Project Store Saving ${messages.length} messages to ${key}`);
-
+  
     try {
-      localStorage.setItem(key, JSON.stringify(messages));
-
+      localStorage.setItem(key, JSON.stringify({ 
+        projectId: id, 
+        messages,
+        metadata 
+      }));
+  
       this.metadata[id] = {
         ...this.metadata[id],
         messageCount: messages.length,
         lastMessageDate: Date.now(),
         updatedAt: Date.now(),
       };
-
+  
       this.saveMetadata();
       console.log(`Successfully saved messages for project ${id}`);
     } catch (error) {

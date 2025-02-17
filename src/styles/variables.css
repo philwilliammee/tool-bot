@@ -12,6 +12,31 @@
   --bg-input: #ffffff;
   --cell-bg: #ffffff;
 
+  /* New variables for archive summary components */
+  --button-bg: #ffffff;
+  --button-hover-bg: #f3f4f6;
+  --text-color: #1f2937;
+  --popover-bg: #ffffff;
+  --code-bg: #f9fafb;
+  --text-muted: #6b7280;
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 
+               0 4px 6px -2px rgba(0, 0, 0, 0.05);
+
   /* Layout */
   --header-height: 64px;
+}
+
+/* Dark mode variables if needed */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --button-bg: #1f2937;
+    --button-hover-bg: #374151;
+    --text-color: #e5e7eb;
+    --popover-bg: #1f2937;
+    --code-bg: #111827;
+    --text-muted: #9ca3af;
+    --border-color: #374151;
+    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.5),
+                 0 4px 6px -2px rgba(0, 0, 0, 0.25);
+  }
 }

@@ -48,6 +48,11 @@ export interface ProjectMessages {
     lastSync?: number;
     isCompressed?: boolean;
     messageIds?: string[]; // For integrity checking
+    archiveSummary?: {
+      summary: string | null;
+      lastSummarizedMessageIds: string[];
+      lastSummarization: number;
+    };
   };
 }
 

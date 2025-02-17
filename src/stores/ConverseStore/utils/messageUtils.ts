@@ -26,6 +26,7 @@ export function determineActiveMessageRange(
 ): {
   splitIndex: number;
   activeMessages: MessageExtended[];
+  archivedMessages: MessageExtended[];  // Added this
 } {
   // Find genuine user messages (excluding tool results)
   const userMessageIndices = messages
@@ -42,6 +43,7 @@ export function determineActiveMessageRange(
     return {
       splitIndex,
       activeMessages: messages.slice(splitIndex),
+      archivedMessages: messages.slice(0, splitIndex)  // Added this
     };
   }
 
@@ -56,6 +58,7 @@ export function determineActiveMessageRange(
   return {
     splitIndex,
     activeMessages: messages.slice(splitIndex),
+    archivedMessages: messages.slice(0, splitIndex)  // Added this
   };
 }
 

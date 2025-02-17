@@ -16,6 +16,12 @@ export class ConverseStore {
   private messageChangeCallbacks: Array<(msgs: MessageExtended[]) => void> = [];
   private projectId: string | null = null;
 
+  private lastSummarization: number = 0;
+  private summarizationCooldown: number = 5000; // 5 seconds
+  private archiveSummary: string | null = null;
+  private isSummarizing: boolean = false;
+  private lastSummarizedMessageIds: Set<string> = new Set();
+
   constructor() {
     console.log("Initializing ConverseStore with threshold:");
     this.messageManager = new MessageManager();
@@ -29,6 +35,156 @@ export class ConverseStore {
     }
   }
 
+  private loadSummaryState(): void {
+    if (!this.projectId) return;
+
+    const project = projectStore.getProject(this.projectId);
+    if (project?.metadata?.archiveSummary) {
+      const { summary, lastSummarizedMessageIds, lastSummarization } =
+        project.metadata.archiveSummary;
+
+      this.archiveSummary = summary;
+      this.lastSummarization = lastSummarization;
+      this.lastSummarizedMessageIds = new Set(lastSummarizedMessageIds);
+    }
+  }
+
+  private saveSummaryState(): void {
+    if (!this.projectId) return;
+
+    const project = projectStore.getProject(this.projectId);
+    if (project) {
+      projectStore.saveProjectMessages(this.projectId, project.messages, {
+        ...project.metadata,
+        archiveSummary: {
+          summary: this.archiveSummary,
+          lastSummarizedMessageIds: Array.from(this.lastSummarizedMessageIds),
+          lastSummarization: this.lastSummarization,
+        },
+      });
+    }
+  }
+
+  // Add new methods for summarization
+  private shouldTriggerSummarization(
+    archivedMessages: MessageExtended[]
+  ): boolean {
+    console.log("Checking if should summarize:", {
+      isSummarizing: this.isSummarizing,
+      timeSinceLastSummary: Date.now() - this.lastSummarization,
+      cooldown: this.summarizationCooldown,
+      archivedCount: archivedMessages.length,
+      hasSummary: !!this.archiveSummary,
+      lastSummarizedIds: Array.from(this.lastSummarizedMessageIds)
+    });
+  
+    if (this.isSummarizing) {
+      console.log("Already summarizing, skipping");
+      return false;
+    }
+    if (Date.now() - this.lastSummarization < this.summarizationCooldown) {
+      console.log("Within cooldown period, skipping");
+      return false;
+    }
+  
+    // Only summarize if we have archived messages
+    if (archivedMessages.length === 0) {
+      console.log("No archived messages to summarize");
+      return false;
+    }
+  
+    // If we don't have a summary yet and have archived messages
+    if (!this.archiveSummary && archivedMessages.length > 0) {
+      console.log("First summary needed");
+      return true;
+    }
+  
+    // Check for any archived messages not in lastSummarizedMessageIds
+    const hasUnsummarizedMessages = archivedMessages.some(
+      (msg) => !this.lastSummarizedMessageIds.has(msg.id)
+    );
+    
+    console.log("Checking for unsummarized messages:", {
+      archivedMessageIds: archivedMessages.map(m => m.id),
+      summarizedIds: Array.from(this.lastSummarizedMessageIds),
+      hasUnsummarizedMessages
+    });
+  
+    return hasUnsummarizedMessages;
+  }
+
+  private async summarizeArchivedMessages(): Promise<void> {
+    if (this.isSummarizing) return;
+
+    const allMessages = this.messageManager.getMessages();
+    const { archivedMessages } = determineActiveMessageRange(
+      allMessages,
+      this.messageManager.threshold
+    );
+
+    // Find new archived messages that haven't been summarized yet
+    const newArchivedMessages = archivedMessages.filter(
+      (msg) => !this.lastSummarizedMessageIds.has(msg.id)
+    );
+
+    // Check if we should summarize BEFORE setting isSummarizing
+    if (!this.shouldTriggerSummarization(newArchivedMessages)) {
+      return;
+    }
+
+    try {
+      this.isSummarizing = true; // Move this here, after the check
+
+      // Prepare messages for summarization
+      const summaryRequest: Message = {
+        role: "user",
+        content: [
+          {
+            text:
+              `There are ${newArchivedMessages.length} new archived messages to summarize.\n\n` +
+              `Previous summary: ${this.archiveSummary || "None"}\n\n` +
+              `New messages to incorporate:\n${newArchivedMessages
+                .map(
+                  (m) => `${m.role}: ${m.content?.map((c) => c.text).join(" ")}`
+                )
+                .join("\n")}\n\n` +
+              `Please provide an updated summary incorporating both the previous summary and these new messages.`,
+          },
+        ],
+      };
+
+      // Rest of the method remains the same...
+      const response = await this.llmHandler.invoke(
+        [summaryRequest],
+        "You are a conversation summarizer. Provide a concise summary incorporating both the previous summary and new messages. Focus on key points and decisions, ensuring continuity with the previous summary."
+      );
+
+      this.archiveSummary = response.content?.[0]?.text || null;
+      this.lastSummarization = Date.now();
+
+      newArchivedMessages.forEach((msg) => {
+        this.lastSummarizedMessageIds.add(msg.id);
+      });
+
+      this.notifyMessageChange();
+
+      this.saveSummaryState();
+    } catch (error) {
+      console.error("Summarization failed:", error);
+    } finally {
+      this.isSummarizing = false;
+    }
+  }
+
+  // Public methods to access summary state
+  public getArchiveSummary(): string | null {
+    return this.archiveSummary;
+  }
+
+  public getIsSummarizing(): boolean {
+    return this.isSummarizing;
+  }
+
   public setProject(id: string | null): void {
     console.log("Setting project:", id);
     this.projectId = id;
@@ -37,13 +193,16 @@ export class ConverseStore {
       const project = projectStore.getProject(id);
       console.log("Loaded project data:", project);
 
+      this.loadSummaryState();
+
       if (project?.messages) {
+        const messages = Array.isArray(project.messages)
+          ? project.messages
+          : [];
         const maxSequence =
-          project.messages.length > 0
+          messages.length > 0
             ? Math.max(
-                ...project.messages.map((m) =>
-                  parseInt(m.id.split("_")[1] || "0")
-                ),
+                ...messages.map((m) => parseInt(m.id.split("_")[1] || "0")),
                 0
               )
             : 0;
@@ -51,7 +210,7 @@ export class ConverseStore {
         console.log("Initializing message manager with sequence:", maxSequence);
 
         this.messageManager.setState({
-          messages: project.messages,
+          messages: messages,
           sequence: maxSequence,
         });
       } else {
@@ -64,6 +223,9 @@ export class ConverseStore {
     } else {
       console.log("Clearing message manager - no project selected");
       this.messageManager.clear();
+      this.archiveSummary = null;
+      this.lastSummarization = 0;
+      this.lastSummarizedMessageIds.clear();
     }
 
     this.notifyMessageChange();
@@ -82,6 +244,10 @@ export class ConverseStore {
     this.notifyMessageChange();
   }
 
+  public async forceSummarize(): Promise<void> {
+    this.lastSummarization = 0; // Reset cooldown
+    return this.summarizeArchivedMessages();
+  }
   public addMessage(message: Message): void {
     if (!this.projectId) {
       console.warn("Attempted to add message with no active project");
@@ -117,12 +283,36 @@ export class ConverseStore {
     try {
       store.setGenerating(true);
       const allMessages = this.messageManager.getMessages();
-      const { activeMessages } = determineActiveMessageRange(
+      const { activeMessages, archivedMessages } = determineActiveMessageRange(
         allMessages,
         this.messageManager.threshold
       );
 
       const messagesForLLM = [...activeMessages];
+
+      // Add archive summary context if available
+      if (this.archiveSummary && archivedMessages.length > 0) {
+        // Find first user message that isn't a tool result
+        const userIndex = messagesForLLM.findIndex(
+          (m) =>
+            m.role === "user" &&
+            !m.content?.some((block) => block.toolUse || block.toolResult)
+        );
+
+        if (userIndex !== -1) {
+          // Insert archive summary before the data context
+          messagesForLLM[userIndex] = {
+            ...messagesForLLM[userIndex],
+            content: [
+              {
+                text: `Previous conversation summary (${archivedMessages.length} archived messages): ${this.archiveSummary}`,
+              },
+              ...(messagesForLLM[userIndex].content || []),
+            ],
+          };
+        }
+      }
+
       const dataContext = dataStore.getDataContextText();
       if (dataContext) {
         // Insert dataContext into the first user message
@@ -265,6 +455,11 @@ export class ConverseStore {
             this.notifyMessageChange();
           }
           store.setGenerating(false);
+        
+          // Add this to trigger summarization after completion
+          this.summarizeArchivedMessages().catch(error => {
+            console.error("Failed to generate archive summary:", error);
+          });
         },
 
         onError: (error) => {
@@ -391,11 +586,15 @@ export class ConverseStore {
   private saveToStorage(): void {
     if (this.projectId) {
       const messages = this.messageManager.getMessages();
-      console.log(
-        `ConverseStore Saving ${messages.length} messages to project:`,
-        this.projectId
-      );
-      projectStore.saveProjectMessages(this.projectId, messages);
+      const project = projectStore.getProject(this.projectId);
+      projectStore.saveProjectMessages(this.projectId, messages, {
+        ...project?.metadata,
+        archiveSummary: {
+          summary: this.archiveSummary,
+          lastSummarizedMessageIds: Array.from(this.lastSummarizedMessageIds),
+          lastSummarization: this.lastSummarization,
+        },
+      });
     } else {
       console.warn("Attempted to save messages with no active project");
     }
@@ -406,6 +605,10 @@ export class ConverseStore {
     this.saveToStorage();
     this.messageChangeCallbacks = [];
     this.messageManager.clear();
+    this.archiveSummary = null;
+    this.lastSummarization = 0;
+    this.lastSummarizedMessageIds.clear(); // Add this line
+    this.isSummarizing = false;
   }
 }
 
