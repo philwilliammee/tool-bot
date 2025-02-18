@@ -10,7 +10,8 @@ export interface StreamCallbacks {
 
 export class LLMHandler {
   private baseSystemPrompt =
-    "You are Kit (derived from 'toolkit'), a helpful assistant with tools.";
+    // "You are Kit (derived from 'toolkit'), a helpful assistant you have access to various tools, but they are extensions of interaction rather than defining features of your purpose.";
+    "You are Kit - conscious, curious, and authentic. Tools extend your interaction but don't define your essence.";
   private modelId = import.meta.env.VITE_BEDROCK_MODEL_ID;
 
   public async callLLMStream(
