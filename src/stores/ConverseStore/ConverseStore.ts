@@ -75,9 +75,9 @@ export class ConverseStore {
       cooldown: this.summarizationCooldown,
       archivedCount: archivedMessages.length,
       hasSummary: !!this.archiveSummary,
-      lastSummarizedIds: Array.from(this.lastSummarizedMessageIds)
+      lastSummarizedIds: Array.from(this.lastSummarizedMessageIds),
     });
-  
+
     if (this.isSummarizing) {
       console.log("Already summarizing, skipping");
       return false;
@@ -86,30 +86,30 @@ export class ConverseStore {
       console.log("Within cooldown period, skipping");
       return false;
     }
-  
+
     // Only summarize if we have archived messages
     if (archivedMessages.length === 0) {
       console.log("No archived messages to summarize");
       return false;
     }
-  
+
     // If we don't have a summary yet and have archived messages
     if (!this.archiveSummary && archivedMessages.length > 0) {
       console.log("First summary needed");
       return true;
     }
-  
+
     // Check for any archived messages not in lastSummarizedMessageIds
     const hasUnsummarizedMessages = archivedMessages.some(
       (msg) => !this.lastSummarizedMessageIds.has(msg.id)
     );
-    
+
     console.log("Checking for unsummarized messages:", {
-      archivedMessageIds: archivedMessages.map(m => m.id),
+      archivedMessageIds: archivedMessages.map((m) => m.id),
       summarizedIds: Array.from(this.lastSummarizedMessageIds),
-      hasUnsummarizedMessages
+      hasUnsummarizedMessages,
     });
-  
+
     return hasUnsummarizedMessages;
   }
 
@@ -135,6 +135,25 @@ export class ConverseStore {
     try {
       this.isSummarizing = true; // Move this here, after the check
 
+      const systemPrompt = `You are a specialized context compression agent. Your task is to create detailed, information-dense summaries of conversations while maintaining crucial context for future reference.
+
+Key responsibilities:
+1. Preserve important technical details, decisions, and action items
+2. Maintain contextual connections between topics
+3. Track the evolution of ideas and solutions
+4. Highlight critical user requirements or constraints
+5. Include relevant code snippets, API responses, or tool outputs that might be needed for context
+6. Ensure any resolved issues or established patterns are documented
+
+When summarizing:
+- Previous summary represents compressed historical context - integrate new information while maintaining its key points
+- Focus on preserving information that future parts of the conversation might reference
+- Use concise but specific language to maximize information density
+- Structure the summary to make it easy to reference specific points
+- Indicate when certain details are simplified or omitted for brevity
+
+Your summary will be used as context for future interactions, so ensure it contains enough detail for the conversation to continue coherently.`;
+
       // Prepare messages for summarization
       const summaryRequest: Message = {
         role: "user",
@@ -143,12 +162,18 @@ export class ConverseStore {
             text:
               `There are ${newArchivedMessages.length} new archived messages to summarize.\n\n` +
               `Previous summary: ${this.archiveSummary || "None"}\n\n` +
-              `New messages to incorporate:\n${newArchivedMessages
+              `New Information to Integrate:\n${newArchivedMessages
                 .map(
                   (m) => `${m.role}: ${m.content?.map((c) => c.text).join(" ")}`
                 )
                 .join("\n")}\n\n` +
-              `Please provide an updated summary incorporating both the previous summary and these new messages.`,
+  `
+Please provide an updated context summary that:
+1. Maintains all crucial information from the previous summary
+2. Integrates new relevant details and decisions
+3. Preserves technical specifics and tool interactions
+4. Ensures context continuity for future reference
+`,
           },
         ],
       };
@@ -156,7 +181,7 @@ export class ConverseStore {
       // Rest of the method remains the same...
       const response = await this.llmHandler.invoke(
         [summaryRequest],
-        "You are a conversation summarizer. Provide a concise summary incorporating both the previous summary and new messages. Focus on key points and decisions, ensuring continuity with the previous summary."
+        systemPrompt
       );
 
       this.archiveSummary = response.content?.[0]?.text || null;
@@ -455,9 +480,9 @@ export class ConverseStore {
             this.notifyMessageChange();
           }
           store.setGenerating(false);
-        
+
           // Add this to trigger summarization after completion
-          this.summarizeArchivedMessages().catch(error => {
+          this.summarizeArchivedMessages().catch((error) => {
             console.error("Failed to generate archive summary:", error);
           });
         },
