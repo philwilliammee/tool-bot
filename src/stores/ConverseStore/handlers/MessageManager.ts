@@ -127,7 +127,7 @@ export class MessageManager {
     }
   }
 
-  public addMessage(message: Partial<Message>): MessageExtended {
+  public addMessage(message: Partial< MessageExtended>) {
     console.log("Adding message:", message);
     const newMessage = this.createMessage(message);
     this.messages.set(newMessage.id, newMessage);

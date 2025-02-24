@@ -43,9 +43,22 @@ export class ConverseStore {
       const { summary, lastSummarizedMessageIds, lastSummarization } =
         project.metadata.archiveSummary;
 
+      console.log(`Loading summary state for project ${this.projectId}`, {
+        summary,
+        lastSummarizedMessageIds,
+        lastSummarization,
+      });
+
       this.archiveSummary = summary;
       this.lastSummarization = lastSummarization;
-      this.lastSummarizedMessageIds = new Set(lastSummarizedMessageIds);
+      this.lastSummarizedMessageIds = new Set(lastSummarizedMessageIds); // Ensure it's reset for this project
+    } else {
+      console.log(
+        `No summary state found for project ${this.projectId}, resetting.`
+      );
+      this.archiveSummary = null;
+      this.lastSummarization = 0;
+      this.lastSummarizedMessageIds.clear();
     }
   }
 
@@ -69,7 +82,9 @@ export class ConverseStore {
   private shouldTriggerSummarization(
     archivedMessages: MessageExtended[]
   ): boolean {
+    // Remove the project filtering here since we've already done it
     console.log("Checking if should summarize:", {
+      projectId: this.projectId,
       isSummarizing: this.isSummarizing,
       timeSinceLastSummary: Date.now() - this.lastSummarization,
       cooldown: this.summarizationCooldown,
@@ -78,24 +93,15 @@ export class ConverseStore {
       lastSummarizedIds: Array.from(this.lastSummarizedMessageIds),
     });
 
-    if (this.isSummarizing) {
-      console.log("Already summarizing, skipping");
+    if (this.isSummarizing) return false;
+    if (Date.now() - this.lastSummarization < this.summarizationCooldown)
       return false;
-    }
-    if (Date.now() - this.lastSummarization < this.summarizationCooldown) {
-      console.log("Within cooldown period, skipping");
-      return false;
-    }
 
     // Only summarize if we have archived messages
-    if (archivedMessages.length === 0) {
-      console.log("No archived messages to summarize");
-      return false;
-    }
+    if (archivedMessages.length === 0) return false;
 
     // If we don't have a summary yet and have archived messages
     if (!this.archiveSummary && archivedMessages.length > 0) {
-      console.log("First summary needed");
       return true;
     }
 
@@ -103,12 +109,6 @@ export class ConverseStore {
     const hasUnsummarizedMessages = archivedMessages.some(
       (msg) => !this.lastSummarizedMessageIds.has(msg.id)
     );
-
-    console.log("Checking for unsummarized messages:", {
-      archivedMessageIds: archivedMessages.map((m) => m.id),
-      summarizedIds: Array.from(this.lastSummarizedMessageIds),
-      hasUnsummarizedMessages,
-    });
 
     return hasUnsummarizedMessages;
   }
@@ -122,78 +122,110 @@ export class ConverseStore {
       this.messageManager.threshold
     );
 
+    // Add debug logging
+    console.log("Archive summary debug:", {
+      totalMessages: allMessages.length,
+      totalArchived: archivedMessages.length,
+      currentProjectId: this.projectId,
+      archivedMessageDetails: archivedMessages.map((m) => ({
+        id: m.id,
+        projectId: m.projectId,
+        isArchived: m.metadata.isArchived,
+      })),
+    });
+
     // Find new archived messages that haven't been summarized yet
-    const newArchivedMessages = archivedMessages.filter(
+    const projectArchivedMessages = archivedMessages.filter(
+      (msg) =>
+        msg.metadata.isArchived &&
+        (!msg.projectId || msg.projectId === this.projectId) // Check both conditions
+    );
+
+    console.log("Project-specific archived messages:", {
+      count: projectArchivedMessages.length,
+      messages: projectArchivedMessages.map((m) => m.id),
+    });
+
+    const newArchivedMessages = projectArchivedMessages.filter(
       (msg) => !this.lastSummarizedMessageIds.has(msg.id)
     );
 
+    console.log("New messages to summarize:", {
+      count: newArchivedMessages.length,
+      messages: newArchivedMessages.map((m) => m.id),
+    });
+
     // Check if we should summarize BEFORE setting isSummarizing
     if (!this.shouldTriggerSummarization(newArchivedMessages)) {
+      console.log(`Summarization not triggered for project ${this.projectId}`);
       return;
     }
 
     try {
-      this.isSummarizing = true; // Move this here, after the check
-
-      const systemPrompt = `You are a specialized context compression agent. Your task is to create detailed, information-dense summaries of conversations while maintaining crucial context for future reference.
-
-Key responsibilities:
-1. Preserve important technical details, decisions, and action items
-2. Maintain contextual connections between topics
-3. Track the evolution of ideas and solutions
-4. Highlight critical user requirements or constraints
-5. Include relevant code snippets, API responses, or tool outputs that might be needed for context
-6. Ensure any resolved issues or established patterns are documented
-
-When summarizing:
-- Previous summary represents compressed historical context - integrate new information while maintaining its key points
-- Focus on preserving information that future parts of the conversation might reference
-- Use concise but specific language to maximize information density
-- Structure the summary to make it easy to reference specific points
-- Indicate when certain details are simplified or omitted for brevity
-
-Your summary will be used as context for future interactions, so ensure it contains enough detail for the conversation to continue coherently.`;
+      this.isSummarizing = true;
 
       // Prepare messages for summarization
       const summaryRequest: Message = {
         role: "user",
         content: [
           {
-            text:
-              `There are ${newArchivedMessages.length} new archived messages to summarize.\n\n` +
-              `Previous summary: ${this.archiveSummary || "None"}\n\n` +
-              `New Information to Integrate:\n${newArchivedMessages
-                .map(
-                  (m) => `${m.role}: ${m.content?.map((c) => c.text).join(" ")}`
-                )
-                .join("\n")}\n\n` +
-  `
-Please provide an updated context summary that:
-1. Maintains all crucial information from the previous summary
-2. Integrates new relevant details and decisions
-3. Preserves technical specifics and tool interactions
-4. Ensures context continuity for future reference
-`,
+            text: `There are ${
+              newArchivedMessages.length
+            } new messages to compress into the context.
+  
+  Current Context Summary: ${this.archiveSummary || "None"}
+  
+  New Information to Integrate:
+  ${newArchivedMessages
+    .map(
+      (m) =>
+        `[${m.role}]: ${m.content?.map((c) => c.text).join(" ")}`
+    )
+    .join("\n\n")}
+  
+  Please provide an updated context summary that:
+  1. Maintains all crucial information from the previous summary
+  2. Integrates new relevant details and decisions
+  3. Preserves technical specifics and tool interactions
+  4. Ensures context continuity for future reference`,
           },
         ],
       };
 
-      // Rest of the method remains the same...
+      // Call LLM using invoke (non-streaming)
       const response = await this.llmHandler.invoke(
         [summaryRequest],
-        systemPrompt
+        `You are a specialized context compression agent. Your task is to create detailed, information-dense summaries of conversations while maintaining crucial context for future reference.
+  
+  Key responsibilities:
+  1. Preserve important technical details, decisions, and action items
+  2. Maintain contextual connections between topics
+  3. Track the evolution of ideas and solutions
+  4. Highlight critical user requirements or constraints
+  5. Include relevant code snippets, API responses, or tool outputs that might be needed for context
+  6. Ensure any resolved issues or established patterns are documented
+  
+  When summarizing:
+  - Previous summary represents compressed historical context - integrate new information while maintaining its key points
+  - Focus on preserving information that future parts of the conversation might reference
+  - Use concise but specific language to maximize information density
+  - Structure the summary to make it easy to reference specific points
+  - Indicate when certain details are simplified or omitted for brevity
+  
+  Your summary will be used as context for future interactions, so ensure it contains enough detail for the conversation to continue coherently.`
       );
 
+      // Update summary state
       this.archiveSummary = response.content?.[0]?.text || null;
       this.lastSummarization = Date.now();
 
+      // Record newly summarized messages
       newArchivedMessages.forEach((msg) => {
         this.lastSummarizedMessageIds.add(msg.id);
       });
 
-      this.notifyMessageChange();
-
       this.saveSummaryState();
+      this.notifyMessageChange();
     } catch (error) {
       console.error("Summarization failed:", error);
     } finally {
@@ -280,7 +312,10 @@ Please provide an updated context summary that:
     }
 
     console.log("Adding message:", message);
-    const newMessage = this.messageManager.addMessage(message);
+    const newMessage = this.messageManager.addMessage({
+      ...message,
+      projectId: this.projectId, // Add project ID to message
+    });
 
     // Handle LLM call for user messages. There is an issue if it is a fast toolcall and its generating.
     // if (newMessage.role === "user" && !store.isGenerating.value) {

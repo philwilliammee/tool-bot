@@ -6,6 +6,7 @@ import { WorkAreaModals } from "./WorkAreaModals";
 import { MessageExtended } from "../../app.types";
 import { dataStore } from "../../stores/DataStore/DataStore";
 import { marked } from "marked"; // Add this import for markdown rendering
+import { projectStore } from "../../stores/ProjectStore/ProjectStore";
 
 export class WorkArea {
   private modals: WorkAreaModals;
@@ -121,8 +122,10 @@ export class WorkArea {
     const updateSummaryDisplay = async () => {
       const summary = converseStore.getArchiveSummary();
       const isSummarizing = converseStore.getIsSummarizing();
+      // Get only archived messages for current project
+      const currentProjectId = projectStore.getActiveProject();
       const archivedMessages = converseStore.getMessages().filter(
-        (msg) => msg.metadata.isArchived
+        (msg) => msg.metadata.isArchived && msg.projectId === currentProjectId
       );
   
       if (isSummarizing) {
