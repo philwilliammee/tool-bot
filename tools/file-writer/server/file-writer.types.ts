@@ -14,6 +14,7 @@ export const FILE_WRITER_CONFIG = {
     ".html",
     ".dockerignore",
     ".gitignore",
+    ".scss",
     "", // Allow no extension
   ],
   MAX_FILE_SIZE: 1024 * 1024, // 1MB max file size
