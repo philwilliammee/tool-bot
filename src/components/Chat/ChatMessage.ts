@@ -1,6 +1,6 @@
 import { marked } from "marked";
 import { MessageExtended } from "../../app.types";
-import { ReExecuteButton } from "../../ReExecuteButton/ReExecuteButton";
+import { ReExecuteButton } from "../ReExecuteButton/ReExecuteButton";
 
 export class ChatMessage {
   private element: HTMLElement | null = null;

@@ -127,7 +127,7 @@ export class MessageManager {
     }
   }
 
-  public addMessage(message: Partial< MessageExtended>) {
+  public addMessage(message: Partial<MessageExtended>) {
     console.log("Adding message:", message);
     const newMessage = this.createMessage(message);
     this.messages.set(newMessage.id, newMessage);
@@ -227,12 +227,6 @@ export class MessageManager {
     this.messages.clear();
     this.messageOrder = [];
     this.sequence = 0;
-  }
-
-  public setThreshold(threshold: number): void {
-    console.log("Setting new threshold:", threshold);
-    this.threshold = threshold;
-    this.updateArchiveStatus();
   }
 
   private updateArchiveStatus(): void {

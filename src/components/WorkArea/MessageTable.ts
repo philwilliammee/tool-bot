@@ -1,7 +1,7 @@
 import { converseStore } from "../../stores/ConverseStore/ConverseStore";
 import { effect } from "@preact/signals-core";
 import { MessageExtended } from "../../app.types";
-import { ReExecuteButton } from "../../ReExecuteButton/ReExecuteButton";
+import { ReExecuteButton } from "../ReExecuteButton/ReExecuteButton";
 
 interface FilterState {
   search: string;

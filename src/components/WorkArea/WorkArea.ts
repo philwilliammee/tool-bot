@@ -101,11 +101,15 @@ export class WorkArea {
     });
   }
 
-  private async updateArchiveSummaryText(textElement: Element, summaryText: string): Promise<void> {
+  private async updateArchiveSummaryText(
+    textElement: Element,
+    summaryText: string
+  ): Promise<void> {
     const rendered = await Promise.resolve(marked(summaryText));
     textElement.innerHTML = rendered;
   }
-  
+
+  // Use effect for reactive updates
   private initializeArchiveSummaryPanel(): void {
     const button = this.element.querySelector(".archive-summary-button");
     const popover = this.element.querySelector(
@@ -113,70 +117,89 @@ export class WorkArea {
     ) as HTMLElement;
     const textElement = this.element.querySelector(".archive-summary-text");
     const panel = this.element.querySelector(".archive-summary-panel");
-  
+
     if (!button || !popover || !textElement || !panel) {
       console.warn("Archive summary panel elements not found");
       return;
     }
-  
+
     const updateSummaryDisplay = async () => {
-      const summary = converseStore.getArchiveSummary();
-      const isSummarizing = converseStore.getIsSummarizing();
-      // Get only archived messages for current project
       const currentProjectId = projectStore.getActiveProject();
-      const archivedMessages = converseStore.getMessages().filter(
+      if (!currentProjectId) return;
+
+      const isSummarizing = converseStore.getIsSummarizing().value;
+      const project = projectStore.getProject(currentProjectId);
+      const summary = project?.archiveSummary?.summary;
+      const messages = converseStore.getMessages();
+      const archivedMessages = messages.filter(
         (msg) => msg.metadata.isArchived && msg.projectId === currentProjectId
       );
-  
+
       if (isSummarizing) {
         textElement.innerHTML = "Generating summary...";
         button.classList.add("is-summarizing");
       } else {
         button.classList.remove("is-summarizing");
         if (summary) {
-          await this.updateArchiveSummaryText(textElement, summary);
-          button.classList.add("has-summary");
+          try {
+            const rendered = await marked(summary);
+            textElement.innerHTML = rendered;
+            button.classList.add("has-summary");
+          } catch (error) {
+            console.error("Failed to render summary:", error);
+            textElement.textContent = "Error rendering summary";
+          }
         } else {
-          textElement.textContent = archivedMessages.length > 0 
-            ? "No summary available yet" 
-            : "No archived messages";
+          textElement.textContent =
+            archivedMessages.length > 0
+              ? "No summary available yet"
+              : "No archived messages";
           button.classList.remove("has-summary");
         }
       }
-  
-      // Update button text to include count
+
+      // Update button text
       button.innerHTML = `
         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M21 8v13H3V8"></path>
           <path d="M1 3h22v5H1z"></path>
           <path d="M10 12h4"></path>
         </svg>
-        Archive Summary ${archivedMessages.length > 0 ? `(${archivedMessages.length})` : ''}
-        ${isSummarizing ? '<span class="spinner"></span>' : ''}
+        Archive Summary ${
+          archivedMessages.length > 0 ? `(${archivedMessages.length})` : ""
+        }
+        ${isSummarizing ? '<span class="spinner"></span>' : ""}
       `;
     };
-  
+
+    // Keep the effect just for the summarizing state
+    this.cleanupFns.push(
+      effect(() => {
+        const isSummarizing = converseStore.getIsSummarizing().value;
+        if (isSummarizing) {
+          button.classList.add("is-summarizing");
+        } else {
+          button.classList.remove("is-summarizing");
+        }
+      })
+    );
+
+    // Update summary when popover is opened
     button.addEventListener("click", () => {
       console.log("Archive summary button clicked");
       updateSummaryDisplay().catch(console.error);
       popover.togglePopover();
     });
-  
-    // Update when messages change
-    this.cleanupFns.push(
-      converseStore.onMessagesChange(() => {
-        updateSummaryDisplay().catch(console.error);
-      })
-    );
-  
+
     // Initial update
     updateSummaryDisplay().catch(console.error);
-  
+
     // Cleanup popover
     this.cleanupFns.push(() => {
       popover.hidePopover();
     });
   }
+
   // Rest of existing methods remain unchanged
   private updateDynamicContent(): void {
     if (store.activeTab.value === "work-area") {
