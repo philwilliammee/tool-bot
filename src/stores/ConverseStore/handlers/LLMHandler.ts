@@ -1,5 +1,6 @@
 import { Message, ConverseStreamOutput } from "@aws-sdk/client-bedrock-runtime";
 import { MessageExtended } from "../../../app.types";
+import { converseAgentConfig } from "../../../agents/converseAgent";
 
 export interface StreamCallbacks {
   onStart?: () => void;
@@ -9,8 +10,6 @@ export interface StreamCallbacks {
 }
 
 export class LLMHandler {
-  private baseSystemPrompt =
-    "You are Kit (derived from 'toolkit'), a helpful assistant with tools.";
   private modelId = import.meta.env.VITE_BEDROCK_MODEL_ID;
 
   public async callLLMStream(
@@ -24,7 +23,7 @@ export class LLMHandler {
         body: JSON.stringify({
           modelId: this.modelId,
           messages,
-          systemPrompt: this.baseSystemPrompt,
+          systemPrompt: converseAgentConfig.systemPrompt,
         }),
       });
 
@@ -131,42 +130,42 @@ export class LLMHandler {
   public async callLLM(messages: MessageExtended[]): Promise<Message> {
     return this.callLLMStream(messages, {});
   }
-  
+
   // Add to LLMHandler class
 
-public async invoke(
-  messages: Partial<MessageExtended[]> | Message[],
-  systemPrompt?: string
-): Promise<Message> {
-  try {
-    const response = await fetch("/api/ai/invoke", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        modelId: this.modelId,
-        messages,
-        systemPrompt: systemPrompt || this.baseSystemPrompt,
-      }),
-    });
+  public async invoke(
+    messages: Partial<MessageExtended[]> | Message[],
+    systemPrompt: string
+  ): Promise<Message> {
+    try {
+      const response = await fetch("/api/ai/invoke", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          modelId: this.modelId,
+          messages,
+          systemPrompt: systemPrompt,
+        }),
+      });
 
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(
-        errorData.message || `HTTP error! status: ${response.status}`
-      );
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(
+          errorData.message || `HTTP error! status: ${response.status}`
+        );
+      }
+
+      const result = await response.json();
+
+      // Extract the message from the ConverseResponse structure
+      if (result.output?.message) {
+        return result.output.message;
+      }
+
+      throw new Error("Invalid response format from /api/ai/invoke");
+    } catch (error) {
+      console.error("Invoke API error:", error);
+      throw error;
     }
-
-    const result = await response.json();
-
-    // Extract the message from the ConverseResponse structure
-    if (result.output?.message) {
-      return result.output.message;
-    }
-
-    throw new Error("Invalid response format from /api/ai/invoke");
-  } catch (error) {
-    console.error("Invoke API error:", error);
-    throw error;
   }
-}
 }
