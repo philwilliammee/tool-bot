@@ -1,32 +1,61 @@
-// src/stores/ConverseStore.ts
 import { Message } from "@aws-sdk/client-bedrock-runtime";
 import { MessageExtended, ToolUse } from "../../app.types";
 import { store } from "../AppStore";
+import { dataStore } from "../DataStore/DataStore";
+import { projectStore } from "../ProjectStore/ProjectStore";
 import { LLMHandler } from "./handlers/LLMHandler";
 import { MessageManager } from "./handlers/MessageManager";
+import { SummaryHandler } from "./handlers/SummaryHandler";
 import { ToolHandler } from "./handlers/ToolHandler";
 import { determineActiveMessageRange } from "./utils/messageUtils";
-import { projectStore } from "../ProjectStore/ProjectStore";
-import { dataStore } from "../DataStore/DataStore";
+import { Signal, computed } from "@preact/signals-core";
 
 export class ConverseStore {
   private messageManager: MessageManager;
   private llmHandler: LLMHandler;
   private toolHandler: ToolHandler;
+  summaryHandler: SummaryHandler;
   private messageChangeCallbacks: Array<(msgs: MessageExtended[]) => void> = [];
   private projectId: string | null = null;
 
   constructor() {
-    console.log("Initializing ConverseStore with threshold:");
     this.messageManager = new MessageManager();
     this.llmHandler = new LLMHandler();
     this.toolHandler = new ToolHandler();
+    this.summaryHandler = new SummaryHandler(this.llmHandler);
 
-    // Initialize with active project if exists
     const activeProjectId = projectStore.getActiveProject();
     if (activeProjectId) {
       this.setProject(activeProjectId);
     }
+  }
+
+  // In ConverseStore
+  public getIsSummarizing(): Signal<boolean> {
+    return this.summaryHandler.getIsSummarizing();
+  }
+
+  public getArchiveSummary(): Signal<string | null> {
+    return computed(() =>
+      this.projectId
+        ? this.summaryHandler.getSummary(this.projectId).value
+        : null
+    );
+  }
+
+  private async updateSummary(): Promise<void> {
+    if (!this.projectId) return;
+
+    const allMessages = this.messageManager.getMessages();
+    const { archivedMessages } = determineActiveMessageRange(
+      allMessages,
+      this.messageManager.threshold
+    );
+
+    await this.summaryHandler.summarizeArchivedMessages(
+      this.projectId,
+      archivedMessages
+    );
   }
 
   public setProject(id: string | null): void {
@@ -37,13 +66,17 @@ export class ConverseStore {
       const project = projectStore.getProject(id);
       console.log("Loaded project data:", project);
 
+      // Load project's summary state first
+      this.summaryHandler.loadProjectSummary(id);
+
       if (project?.messages) {
+        const messages = Array.isArray(project.messages)
+          ? project.messages
+          : [];
         const maxSequence =
-          project.messages.length > 0
+          messages.length > 0
             ? Math.max(
-                ...project.messages.map((m) =>
-                  parseInt(m.id.split("_")[1] || "0")
-                ),
+                ...messages.map((m) => parseInt(m.id.split("_")[1] || "0")),
                 0
               )
             : 0;
@@ -51,7 +84,7 @@ export class ConverseStore {
         console.log("Initializing message manager with sequence:", maxSequence);
 
         this.messageManager.setState({
-          messages: project.messages,
+          messages: messages,
           sequence: maxSequence,
         });
       } else {
@@ -64,6 +97,8 @@ export class ConverseStore {
     } else {
       console.log("Clearing message manager - no project selected");
       this.messageManager.clear();
+      // Clear summary state when no project is selected
+      this.summaryHandler.loadProjectSummary(null); // We'll need to add support for null in loadProjectSummary
     }
 
     this.notifyMessageChange();
@@ -77,11 +112,6 @@ export class ConverseStore {
     return !!this.messageManager;
   }
 
-  public setThreshold(threshold: number): void {
-    this.messageManager.setThreshold(threshold);
-    this.notifyMessageChange();
-  }
-
   public addMessage(message: Message): void {
     if (!this.projectId) {
       console.warn("Attempted to add message with no active project");
@@ -89,7 +119,10 @@ export class ConverseStore {
     }
 
     console.log("Adding message:", message);
-    const newMessage = this.messageManager.addMessage(message);
+    const newMessage = this.messageManager.addMessage({
+      ...message,
+      projectId: this.projectId, // Add project ID to message
+    });
 
     // Handle LLM call for user messages. There is an issue if it is a fast toolcall and its generating.
     // if (newMessage.role === "user" && !store.isGenerating.value) {
@@ -117,12 +150,40 @@ export class ConverseStore {
     try {
       store.setGenerating(true);
       const allMessages = this.messageManager.getMessages();
-      const { activeMessages } = determineActiveMessageRange(
+      const { activeMessages, archivedMessages } = determineActiveMessageRange(
         allMessages,
         this.messageManager.threshold
       );
 
       const messagesForLLM = [...activeMessages];
+
+      // Add archive summary context if available and we have a project
+      if (this.projectId) {
+        const archiveSummary = this.summaryHandler.getSummary(this.projectId);
+
+        if (archiveSummary && archivedMessages.length > 0) {
+          // Find first user message that isn't a tool result
+          const userIndex = messagesForLLM.findIndex(
+            (m) =>
+              m.role === "user" &&
+              !m.content?.some((block) => block.toolUse || block.toolResult)
+          );
+
+          if (userIndex !== -1) {
+            // Insert archive summary before the data context
+            messagesForLLM[userIndex] = {
+              ...messagesForLLM[userIndex],
+              content: [
+                {
+                  text: `Previous conversation summary (${archivedMessages.length} archived messages): ${archiveSummary}`,
+                },
+                ...(messagesForLLM[userIndex].content || []),
+              ],
+            };
+          }
+        }
+      }
+
       const dataContext = dataStore.getDataContextText();
       if (dataContext) {
         // Insert dataContext into the first user message
@@ -250,7 +311,6 @@ export class ConverseStore {
             }
           }
         },
-
         onComplete: (finalMessage) => {
           console.log(
             "callBedrockLLM -> onComplete with finalMessage:",
@@ -265,6 +325,11 @@ export class ConverseStore {
             this.notifyMessageChange();
           }
           store.setGenerating(false);
+
+          // Add this to trigger summarization after completion
+          this.updateSummary().catch((error) => {
+            console.error("Failed to update summary:", error);
+          });
         },
 
         onError: (error) => {
@@ -391,11 +456,12 @@ export class ConverseStore {
   private saveToStorage(): void {
     if (this.projectId) {
       const messages = this.messageManager.getMessages();
-      console.log(
-        `ConverseStore Saving ${messages.length} messages to project:`,
-        this.projectId
-      );
-      projectStore.saveProjectMessages(this.projectId, messages);
+      const project = projectStore.getProject(this.projectId);
+
+      if (project) {
+        // Update messages
+        projectStore.updateProjectMessages(this.projectId, messages);
+      }
     } else {
       console.warn("Attempted to save messages with no active project");
     }
@@ -406,6 +472,7 @@ export class ConverseStore {
     this.saveToStorage();
     this.messageChangeCallbacks = [];
     this.messageManager.clear();
+    // No need to clean up summary state as it's handled by SummaryHandler
   }
 }
 

@@ -1,9 +1,9 @@
 import { MessageExtended } from "../../app.types";
 
 /**
- * Metadata for a project, stored in localStorage under METADATA_KEY
+ * Core Project entity
  */
-export interface ProjectMetadata {
+export interface Project {
   /** Unique identifier for the project */
   id: string;
 
@@ -19,55 +19,41 @@ export interface ProjectMetadata {
   /** Timestamp of last project update */
   updatedAt: number;
 
-  /** Number of messages in the project */
-  messageCount: number;
-
-  /** Timestamp of last message update */
-  lastMessageDate: number;
-
-  /** Optional project status */
+  /** Project status */
   status?: "active" | "archived";
 
-  /** Optional version for data migration */
+  /** Version for data migrations */
   version?: number;
-}
 
-/**
- * Project messages stored separately in localStorage
- * under key: `project_${id}_messages`
- */
-export interface ProjectMessages {
-  /** Reference to parent project */
-  projectId: string;
-
-  /** Array of messages in the project */
+  /** Messages belonging to this project */
   messages: MessageExtended[];
 
-  /** Optional metadata for message collection */
-  metadata?: {
-    lastSync?: number;
-    isCompressed?: boolean;
-    messageIds?: string[]; // For integrity checking
+  /** Project summary state */
+  archiveSummary?: {
+    summary: string | null;
+    lastSummarizedMessageIds: string[];
+    lastSummarization: number;
   };
 }
 
 /**
  * Helper type for project updates
  */
-export type ProjectUpdate = Partial<Omit<ProjectMetadata, "id" | "createdAt">>;
+export type ProjectUpdate = Partial<
+  Omit<Project, "id" | "createdAt" | "messages">
+>;
 
 /**
- * Helper function to validate project metadata
+ * Helper function to validate project
  */
-export function isValidProjectMetadata(data: unknown): data is ProjectMetadata {
-  const metadata = data as ProjectMetadata;
+export function isValidProject(data: unknown): data is Project {
+  const project = data as Project;
   return (
-    typeof metadata === "object" &&
-    typeof metadata.id === "string" &&
-    typeof metadata.name === "string" &&
-    typeof metadata.createdAt === "number" &&
-    typeof metadata.updatedAt === "number" &&
-    typeof metadata.messageCount === "number" &&
-    typeof metadata.lastMessageDate === "number"
+    typeof project === "object" &&
+    typeof project.id === "string" &&
+    typeof project.name === "string" &&
+    typeof project.createdAt === "number" &&
+    typeof project.updatedAt === "number" &&
+    Array.isArray(project.messages)
   );
 }

@@ -1,8 +1,8 @@
 // src/components/ReExecuteButton/ReExecuteButton.ts
 import { ContentBlock } from "@aws-sdk/client-bedrock-runtime";
-import { htmlTool } from "../../tools/html-tool/client/html.client";
-import { MessageExtended } from "../app.types";
-import { store } from "../stores/AppStore";
+import { htmlTool } from "../../../tools/html-tool/client/html.client";
+import { MessageExtended } from "../../app.types";
+import { store } from "../../stores/AppStore";
 
 export class ReExecuteButton {
   private button: HTMLButtonElement;

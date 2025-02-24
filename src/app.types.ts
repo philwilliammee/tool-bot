@@ -31,5 +31,6 @@ export interface MessageMetadata {
 
 export interface MessageExtended extends Message {
   id: string;
+  projectId?: string; 
   metadata: MessageMetadata; // Note: not optional
 }
