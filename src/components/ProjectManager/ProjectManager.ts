@@ -174,6 +174,7 @@ export class ProjectManager {
           </div>
           <div class="project-actions">
             <button class="btn btn-small btn-blue select-btn">Select</button>
+            <button class="btn btn-small btn-green clone-btn">Clone</button>
             <button class="btn btn-small btn-danger delete-btn">Delete</button>
           </div>
         </div>
@@ -285,8 +286,32 @@ export class ProjectManager {
           persistentUserMessage: persistentMessage.value,
         });
 
-        // Show a confirmation message
-        alert("Project configuration saved");
+        // Show a simple alert for configuration saving
+        alert("Configuration saved successfully!");
+      });
+
+      // Add event listener for clone button
+      item.querySelector(".clone-btn")?.addEventListener("click", () => {
+        // Ask for a new name (optional)
+        const projectName = projectStore.getProject(id)?.name || "";
+        const newName = prompt(
+          "Enter a name for the cloned project:",
+          `Copy of ${projectName}`
+        );
+
+        // If user cancels, abort the operation
+        if (newName === null) return;
+
+        try {
+          // Clone the project
+          projectStore.cloneProject(id, newName.trim() || undefined);
+
+          // Simply refresh the project list - the new project will appear
+          this.renderProjectList();
+        } catch (error) {
+          // Just log errors to console
+          console.error("Failed to clone project:", error);
+        }
       });
     });
   }

@@ -258,6 +258,48 @@ export class ProjectStore {
 
     return this.projects[id].config || {};
   }
+
+  /**
+   * Clones an existing project
+   * @param projectId The ID of the project to clone
+   * @param newName Optional new name for the cloned project (defaults to "Copy of [Original Name]")
+   * @returns The ID of the newly created project clone
+   */
+  public cloneProject(projectId: string, newName?: string): string {
+    const sourceProject = this.getProject(projectId);
+
+    if (!sourceProject) {
+      throw new Error(`Project with ID ${projectId} not found`);
+    }
+
+    // Create a default name if none provided
+    const cloneName = newName || `Copy of ${sourceProject.name}`;
+
+    // Create a new project with the same description
+    const newProjectId = this.createProject(
+      cloneName,
+      sourceProject.description
+    );
+    const newProject = this.getProject(newProjectId);
+
+    if (!newProject) {
+      throw new Error("Failed to create new project");
+    }
+
+    // Copy configuration
+    if (sourceProject.config) {
+      this.updateProjectConfig(newProjectId, { ...sourceProject.config });
+    }
+
+    // Copy messages (optional - you may want to start with an empty conversation)
+    // Uncomment if you want to copy the messages too
+    /*
+    newProject.messages = JSON.parse(JSON.stringify(sourceProject.messages));
+    this.saveProjects();
+    */
+
+    return newProjectId;
+  }
 }
 
 export const projectStore = new ProjectStore();

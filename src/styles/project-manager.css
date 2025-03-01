@@ -70,8 +70,11 @@
 .project-actions {
   display: flex;
   gap: 0.5rem;
-  margin-top: 1rem;
-  align-self: flex-end;
+  flex-wrap: wrap;
+}
+
+.project-actions .btn {
+  flex: 0 0 auto;
 }
 
 /* Project configuration section styling */
@@ -219,4 +222,18 @@
 /* Style for the select element to better handle optgroups */
 .config-item select {
   padding-right: 2rem;
+}
+
+/* Clone button styling */
+.btn-green {
+  background-color: #10b981;
+  color: white;
+}
+
+.btn-green:hover {
+  background-color: #059669;
+}
+
+.btn-green:active {
+  background-color: #047857;
 }
