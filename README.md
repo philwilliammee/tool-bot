@@ -146,9 +146,8 @@ For detailed instructions on creating custom tools, please refer to the [tools/R
 - Testing coverage expansion
 
 ### Known Issues 🐞
-1. Chat scroll behavior needs improvement
-2. Tool response formatting inconsistencies
-3. Error handling refinements needed
+1. Tool response formatting inconsistencies
+2. Error handling refinements needed
 
 ## Roadmap
 
@@ -189,7 +188,29 @@ For issues and feature requests, please use the GitHub issue tracker.
 
 🄯 Copyleft 2025 Tool-Bot Open Source Project
 
+## Project Management
 
-The main one is: ### Known Issues 🐞
-1. Chat scroll behavior needs improvement.
-we used to have a scroll to bottom button. Also the auto scroll to bootomo should only work if the scroll possition is at the botom of the page if it is up a little the autoscroll should stop and the user should control the scrolling. Also if there are no messages we should say something like: "How can I help you today?" Also the ai avatar should be a nice svg of "The AI named Kit (derived from toolkit) a helphul assistant.
+Tool-Bot includes a robust project management system that allows you to:
+
+- Create multiple projects with different configurations
+- Switch between projects easily
+- Configure project-specific AI models and system prompts
+- Enable or disable specific tools for each project
+- Clone existing projects to use as templates or backups
+- Manage project metadata and settings
+
+To configure tools for a project:
+1. Click "Manage Projects" in the project dropdown
+2. Find the project you want to configure
+3. In the Project Configuration section, check or uncheck tools in the "Enabled Tools" list
+4. Click "Save Configuration" to apply your changes
+
+This allows you to create specialized projects with only the tools needed for specific tasks.
+
+To clone a project:
+1. Click "Manage Projects" in the project dropdown
+2. Find the project you want to clone
+3. Click the "Clone" button
+4. Enter a name for the new project (or accept the default "Copy of [Original]")
+5. The cloned project will appear in your project list with all the same settings
+

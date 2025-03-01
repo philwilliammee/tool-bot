@@ -8,6 +8,7 @@ import {
   ConverseStreamResponse,
   Message,
   SystemContentBlock,
+  ToolConfiguration,
 } from "@aws-sdk/client-bedrock-runtime";
 import { serverRegistry } from "../../tools/registry.server.js";
 
@@ -37,10 +38,50 @@ export class BedrockService {
     this.client = new BedrockRuntimeClient(config);
   }
 
+  /**
+   * Get tool configuration based on enabled tools
+   * @param enabledTools Optional array of tool IDs to enable
+   * @returns Tool configuration for Bedrock API
+   */
+  private getFilteredToolConfig(
+    enabledTools?: string[]
+  ): ToolConfiguration | undefined {
+    // If no enabledTools specified, return all tools
+    if (!enabledTools) {
+      return serverRegistry.getToolConfig();
+    }
+
+    // Get the full tool configuration
+    const fullToolConfig = serverRegistry.getToolConfig();
+
+    // If no tool configuration exists, return undefined
+    if (
+      !fullToolConfig ||
+      !fullToolConfig.tools ||
+      fullToolConfig.tools.length === 0
+    ) {
+      return undefined;
+    }
+
+    // Filter tools based on enabledTools array
+    const filteredTools = fullToolConfig.tools.filter((tool) => {
+      // Extract the tool name from the toolSpec
+      const toolName = tool.toolSpec?.name;
+      return toolName && enabledTools.includes(toolName);
+    });
+
+    // Return the filtered tool configuration
+    return {
+      ...fullToolConfig,
+      tools: filteredTools,
+    };
+  }
+
   async converseStream(
     modelId: string,
     messages: Message[],
-    systemPrompt: string
+    systemPrompt: string,
+    enabledTools?: string[]
   ): Promise<ConverseStreamResponse> {
     // Validation
     if (messages.length === 0) {
@@ -53,11 +94,20 @@ export class BedrockService {
 
     const system: SystemContentBlock[] = [{ text: systemPrompt }];
 
+    // Get filtered tool configuration
+    const toolConfig = this.getFilteredToolConfig(enabledTools);
+
+    console.log(
+      `[BEDROCK] Using ${
+        toolConfig?.tools?.length || 0
+      } tools for model ${modelId}`
+    );
+
     const input: ConverseStreamCommandInput = {
       modelId,
       system,
       messages,
-      toolConfig: serverRegistry.getToolConfig(),
+      toolConfig,
       inferenceConfig: {
         temperature: 0.7,
         maxTokens: 8000, // 128000 openai max tokens
@@ -83,40 +133,52 @@ export class BedrockService {
   async converse(
     modelId: string,
     messages: Message[],
-    systemPrompt: string
+    systemPrompt: string,
+    enabledTools?: string[]
   ): Promise<ConverseStreamResponse> {
-    return this.converseStream(modelId, messages, systemPrompt);
+    return this.converseStream(modelId, messages, systemPrompt, enabledTools);
   }
-  
+
   // bedrock.service.ts
-async invoke(
-  modelId: string,
-  messages: Message[],
-  systemPrompt: string
-): Promise<ConverseResponse> {
-  const system: SystemContentBlock[] = [{ text: systemPrompt }];
+  async invoke(
+    modelId: string,
+    messages: Message[],
+    systemPrompt: string,
+    enabledTools?: string[]
+  ): Promise<ConverseResponse> {
+    const system: SystemContentBlock[] = [{ text: systemPrompt }];
 
-  // Ensure messages array starts with a user message
-  if (messages.length === 0) {
-    throw new Error("Messages array cannot be empty");
+    // Ensure messages array starts with a user message
+    if (messages.length === 0) {
+      throw new Error("Messages array cannot be empty");
+    }
+
+    if (messages[0].role !== "user") {
+      throw new Error("First message must be from user");
+    }
+
+    // Get filtered tool configuration
+    // const toolConfig = this.getFilteredToolConfig(enabledTools);
+
+    // console.log(
+    //   `[BEDROCK] Using ${
+    //     toolConfig?.tools?.length || 0
+    //   } tools for model ${modelId}`
+    // );
+
+    const input: ConverseCommandInput = {
+      modelId,
+      system,
+      messages,
+      // toolConfig, // unused for now in invoke only by summary
+      inferenceConfig: {
+        temperature: 0.7,
+        maxTokens: 8000,
+      },
+    };
+
+    const command = new ConverseCommand(input);
+    const response: ConverseResponse = await this.client.send(command);
+    return response;
   }
-
-  if (messages[0].role !== "user") {
-    throw new Error("First message must be from user");
-  }
-
-  const input: ConverseCommandInput = {
-    modelId,
-    system,
-    messages,
-    inferenceConfig: {
-      temperature: 0.7,
-      maxTokens: 8000,
-    },
-  };
-
-  const command = new ConverseCommand(input);
-  const response: ConverseResponse = await this.client.send(command);
-  return response;
-}
 }

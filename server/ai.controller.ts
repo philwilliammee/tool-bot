@@ -18,18 +18,22 @@ if (AI_CLIENT === "bedrock") {
 
 router.post("/", async (req, res) => {
   try {
-    const { modelId, messages, systemPrompt } = req.body;
+    const { modelId, messages, systemPrompt, enabledTools } = req.body;
     console.log(
       `[ROUTER] POST request with messages count: ${messages.length} using ${AI_CLIENT}`
     );
-    
-    console.debug('messages:', JSON.stringify(messages, null, 2));
+
+    console.log(
+      `[ROUTER] Enabled tools: ${enabledTools ? enabledTools.length : "all"}`
+    );
+    console.debug("messages:", JSON.stringify(messages, null, 2));
 
     // Call the streaming method on whichever service we're using
     const response = await aiService.converseStream(
       modelId,
       messages,
-      systemPrompt
+      systemPrompt,
+      enabledTools // Pass the enabled tools to the service
     );
 
     if (!response.stream) {
@@ -69,12 +73,21 @@ router.post("/", async (req, res) => {
 // ai.controller.ts
 router.post("/invoke", async (req, res) => {
   try {
-    const { modelId, messages, systemPrompt } = req.body;
+    const { modelId, messages, systemPrompt, enabledTools } = req.body;
     console.log(
       `[ROUTER] POST invoke request with modelId: ${modelId} and messages count: ${messages.length} using ${AI_CLIENT}`
     );
 
-    const response = await aiService.invoke(modelId, messages, systemPrompt);
+    console.log(
+      `[ROUTER] Enabled tools: ${enabledTools ? enabledTools.length : "all"}`
+    );
+
+    const response = await aiService.invoke(
+      modelId,
+      messages,
+      systemPrompt,
+      enabledTools // Pass the enabled tools to the service
+    );
     res.json(response);
   } catch (error: any) {
     console.error(`${AI_CLIENT} error:`, error);

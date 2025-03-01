@@ -1,5 +1,4 @@
 import { defineConfig, UserConfigExport } from "vitest/config";
-import { resolve } from 'path';
 
 export default defineConfig({
   plugins: [],
@@ -7,7 +6,7 @@ export default defineConfig({
     exclude: [],
   },
   build: {
-    outDir: 'dist', // specify build output directory
+    outDir: "dist", // specify build output directory
     emptyOutDir: true, // clean the output directory before build
   },
   server: {

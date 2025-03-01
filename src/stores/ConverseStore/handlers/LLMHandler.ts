@@ -10,20 +10,32 @@ export interface StreamCallbacks {
 }
 
 export class LLMHandler {
-  private modelId = import.meta.env.VITE_BEDROCK_MODEL_ID;
+  // Rename to make it clear this is a fallback
+  private defaultModelId = import.meta.env.VITE_DEFAULT_MODEL_ID;
 
   public async callLLMStream(
     messages: MessageExtended[],
-    callbacks: StreamCallbacks
+    callbacks: StreamCallbacks,
+    enabledTools?: string[],
+    modelId?: string
   ): Promise<Message> {
     try {
+      // Ensure we have a valid model ID
+      if (!modelId) {
+        console.warn(
+          "No model ID provided, using default model:",
+          this.defaultModelId
+        );
+      }
+
       const response = await fetch("/api/ai", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          modelId: this.modelId,
+          modelId: modelId || this.defaultModelId,
           messages,
           systemPrompt: converseAgentConfig.systemPrompt,
+          enabledTools,
         }),
       });
 
@@ -127,24 +139,29 @@ export class LLMHandler {
   }
 
   // Old method for backward compat
-  public async callLLM(messages: MessageExtended[]): Promise<Message> {
-    return this.callLLMStream(messages, {});
-  }
+  // public async callLLM(
+  //   messages: MessageExtended[],
+  //   enabledTools?: string[]
+  // ): Promise<Message> {
+  //   return this.callLLMStream(messages, {}, enabledTools);
+  // }
 
-  // Add to LLMHandler class
-
+  // Update the invoke method to also accept a modelId parameter
   public async invoke(
     messages: Partial<MessageExtended[]> | Message[],
-    systemPrompt: string
+    systemPrompt: string,
+    enabledTools?: string[],
+    modelId?: string
   ): Promise<Message> {
     try {
       const response = await fetch("/api/ai/invoke", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          modelId: this.modelId,
+          modelId: modelId || this.defaultModelId,
           messages,
           systemPrompt: systemPrompt,
+          enabledTools,
         }),
       });
 

@@ -390,7 +390,10 @@
     <!-- Project Management Modal -->
     <dialog id="project-modal" class="modal">
         <div class="modal-content">
-            <h2>Manage Projects</h2>
+            <div class="modal-header">
+                <h2>Manage Projects</h2>
+                <button class="close-btn">&times;</button>
+            </div>
             <div class="project-list"></div>
             <div class="modal-actions">
                 <button class="btn btn-danger close-btn">Close</button>
@@ -411,6 +414,46 @@
                     <label for="project-description">Description</label>
                     <textarea id="project-description"></textarea>
                 </div>
+
+                <!-- Project Configuration Section -->
+                <div class="form-group project-config-section">
+                    <h4>Project Configuration</h4>
+                    <div class="config-item">
+                        <label for="new-project-model">AI Model:</label>
+                        <select id="new-project-model" class="form-select">
+                            <!-- Options will be populated dynamically by JavaScript -->
+                        </select>
+                    </div>
+
+                    <div class="config-item">
+                        <label for="new-project-system-prompt">System Prompt:</label>
+                        <textarea
+                            id="new-project-system-prompt"
+                            class="form-textarea"
+                            placeholder="Custom instructions for the AI..."
+                            rows="3"
+                        ></textarea>
+                    </div>
+
+                    <div class="config-item">
+                        <label for="new-project-persistent-message">Persistent User Message:</label>
+                        <textarea
+                            id="new-project-persistent-message"
+                            class="form-textarea"
+                            placeholder="Message to include in every conversation..."
+                            rows="3"
+                        ></textarea>
+                    </div>
+
+                    <!-- Tool Selection Section -->
+                    <div class="config-item">
+                        <label>Enabled Tools:</label>
+                        <div class="tool-selection" id="new-project-tools">
+                            <!-- Tool checkboxes will be populated dynamically by JavaScript -->
+                        </div>
+                    </div>
+                </div>
+
                 <div class="modal-actions">
                     <button type="submit" class="btn btn-danger cancel-btn" value="Novalidate close" formnovalidate>
                         Cancel
