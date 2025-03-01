@@ -3,6 +3,7 @@ import { converseStore } from "../../stores/ConverseStore/ConverseStore";
 import { projectStore } from "../../stores/ProjectStore/ProjectStore";
 import { converseAgentConfig } from "../../agents/converseAgent";
 import { getGroupedModelOptions } from "../../utils/modelOptions";
+import { clientRegistry } from "../../../tools/registry.client";
 
 export class ProjectManager {
   private dropdown!: HTMLSelectElement;
@@ -155,6 +156,14 @@ export class ProjectManager {
     const projects = projectStore.getAllProjects();
     const groupedModelOptions = getGroupedModelOptions();
 
+    // Get available tools from registry
+    const toolsRegistry = clientRegistry.getAllTools();
+    const availableTools = Object.keys(toolsRegistry).map((id) => ({
+      id,
+      name: id, // Use the ID as the name if no name property exists
+      description: "Tool", // Default description
+    }));
+
     this.projectList.innerHTML = projects
       .map(
         (project) => `
@@ -238,6 +247,37 @@ export class ProjectManager {
             >${project.config?.persistentUserMessage || ""}</textarea>
           </div>
 
+          <!-- Tool Configuration -->
+          <div class="config-item">
+            <label>Enabled Tools:</label>
+            <div class="tool-selection">
+              ${availableTools
+                .map(
+                  (tool) => `
+                <div class="tool-option">
+                  <input
+                    type="checkbox"
+                    id="tool-${project.id}-${tool.id}"
+                    class="tool-checkbox"
+                    data-tool-id="${tool.id}"
+                    ${
+                      project.config?.enabledTools?.includes(tool.id) ||
+                      !project.config?.enabledTools
+                        ? "checked"
+                        : ""
+                    }
+                  >
+                  <label for="tool-${project.id}-${tool.id}" class="tool-label">
+                    ${tool.name}
+                    <span class="tool-description">${tool.description}</span>
+                  </label>
+                </div>
+              `
+                )
+                .join("")}
+            </div>
+          </div>
+
           <button class="btn btn-small btn-blue save-config-btn" data-project-id="${
             project.id
           }">
@@ -280,10 +320,21 @@ export class ProjectManager {
           `.persistent-message`
         ) as HTMLTextAreaElement;
 
+        // Get selected tools
+        const enabledTools: string[] = [];
+        item
+          .querySelectorAll(".tool-checkbox")
+          .forEach((checkbox: HTMLInputElement) => {
+            if (checkbox.checked) {
+              enabledTools.push(checkbox.dataset.toolId || "");
+            }
+          });
+
         projectStore.updateProjectConfig(id, {
           model: modelSelect.value,
           systemPrompt: systemPrompt.value,
           persistentUserMessage: persistentMessage.value,
+          enabledTools: enabledTools,
         });
 
         // Show a simple alert for configuration saving

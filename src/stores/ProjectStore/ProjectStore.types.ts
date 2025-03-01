@@ -45,6 +45,9 @@ export interface Project {
 
     /** Persistent user message to include in every conversation */
     persistentUserMessage?: string;
+
+    /** Array of enabled tool IDs */
+    enabledTools?: string[];
   };
 }
 

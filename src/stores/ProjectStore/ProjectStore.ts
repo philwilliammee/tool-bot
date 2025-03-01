@@ -222,6 +222,7 @@ export class ProjectStore {
       model?: string;
       systemPrompt?: string;
       persistentUserMessage?: string;
+      enabledTools?: string[];
     }
   ): void {
     if (!this.projects[id]) {
