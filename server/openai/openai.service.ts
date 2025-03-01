@@ -121,9 +121,15 @@ export class OpenAIService {
   async converse(
     modelId: string,
     messages: Message[],
-    systemPrompt: string
+    systemPrompt: string,
+    enabledTools?: string[]
   ): Promise<any> {
-    const response = await this.converseStream(modelId, messages, systemPrompt);
+    const response = await this.converseStream(
+      modelId,
+      messages,
+      systemPrompt,
+      enabledTools
+    );
     const chunks: ConverseStreamOutput[] = [];
     const stream = response.stream as AsyncIterable<ConverseStreamOutput>;
     for await (const chunk of stream) {
@@ -138,7 +144,8 @@ export class OpenAIService {
   public async converseStream(
     modelId: string,
     messages: Message[],
-    systemPrompt: string
+    systemPrompt: string,
+    enabledTools?: string[]
   ): Promise<ConverseStreamResponse> {
     if (!messages.length) {
       throw new Error("Messages array cannot be empty");
@@ -161,8 +168,25 @@ export class OpenAIService {
     }
     // console.log("openAIMessages", openAIMessages);
 
+    // Get tool configuration and filter based on enabledTools
     const toolConfig = serverRegistry.getToolConfig();
-    const tools = transformToolsToOpenAIFormat(toolConfig);
+    let filteredToolConfig = toolConfig;
+
+    // Filter tools if enabledTools is provided
+    if (enabledTools && toolConfig) {
+      filteredToolConfig = {
+        ...toolConfig,
+        tools: toolConfig?.tools?.filter((tool) => {
+          const toolName = tool.toolSpec?.name;
+          return toolName && enabledTools.includes(toolName);
+        }),
+      };
+    }
+
+    // Transform filtered tools to OpenAI format
+    const tools = transformToolsToOpenAIFormat(filteredToolConfig);
+
+    console.log(`[OPENAI] Using ${tools.length} tools for model ${modelId}`);
 
     // Build a streaming request
     const request: ChatCompletionCreateParamsStreaming = {
@@ -182,54 +206,77 @@ export class OpenAIService {
     // Transform the stream using our utility function
     return await transformToBedrockStream(openAIStream);
   }
-  
+
   // openai.service.ts
-async invoke(
-  modelId: string,
-  messages: Message[],
-  systemPrompt: string
-): Promise<ConverseResponse> {
-  console.log("invoke", messages);
-  const startTime = Date.now();
-  
-  // Transform messages to OpenAI format
-  const openAIMessages: ChatCompletionMessageParam[] = messages.map(
-    transformToOpenAIMessage
-  );
+  async invoke(
+    modelId: string,
+    messages: Message[],
+    systemPrompt: string,
+    enabledTools?: string[]
+  ): Promise<ConverseResponse> {
+    console.log("invoke", messages);
+    const startTime = Date.now();
 
-  // Add system message to the beginning
-  if (systemPrompt) {
-    openAIMessages.unshift({
-      role: "system",
-      content: systemPrompt,
+    // Transform messages to OpenAI format
+    const openAIMessages: ChatCompletionMessageParam[] = messages.map(
+      transformToOpenAIMessage
+    );
+
+    // Add system message to the beginning
+    if (systemPrompt) {
+      openAIMessages.unshift({
+        role: "system",
+        content: systemPrompt,
+      });
+    }
+
+    // Get tool configuration and filter based on enabledTools
+    // const toolConfig = serverRegistry.getToolConfig();
+    // let filteredToolConfig = toolConfig;
+
+    // Filter tools if enabledTools is provided
+    // if (enabledTools && toolConfig) {
+    //   filteredToolConfig = {
+    //     ...toolConfig,
+    //     tools: toolConfig.tools.filter((tool) => {
+    //       const toolName = tool.toolSpec?.name;
+    //       return toolName && enabledTools.includes(toolName);
+    //     }),
+    //   };
+    // }
+
+    // Transform filtered tools to OpenAI format
+    // const tools = transformToolsToOpenAIFormat(filteredToolConfig);
+
+    // console.log(
+    //   `[OPENAI] Using ${tools.length} tools for invoke with model ${modelId}`
+    // );
+
+    const completion = await this.client.chat.completions.create({
+      messages: openAIMessages,
+      model: OpenAIService.CONFIG.API_MODEL,
+      temperature: 0.7,
+      max_tokens: 8000,
     });
-  }
 
-  const completion = await this.client.chat.completions.create({
-    messages: openAIMessages,
-    model: OpenAIService.CONFIG.API_MODEL,
-    temperature: 0.7,
-    max_tokens: 8000,
-  });
+    const assistantMessage = completion.choices[0].message;
 
-  const assistantMessage = completion.choices[0].message;
-
-  return {
-    output: {
-      message: {
-        role: "assistant",
-        content: [{ text: assistantMessage.content || "" }],
+    return {
+      output: {
+        message: {
+          role: "assistant",
+          content: [{ text: assistantMessage.content || "" }],
+        },
       },
-    },
-    stopReason: completion.choices[0].finish_reason as any,
-    usage: {
-      inputTokens: completion.usage?.prompt_tokens || 0,
-      outputTokens: completion.usage?.completion_tokens || 0,
-      totalTokens: completion.usage?.total_tokens || 0,
-    },
-    metrics: {
-      latencyMs: Date.now() - startTime,
-    },
-  };
-}
+      stopReason: completion.choices[0].finish_reason as any,
+      usage: {
+        inputTokens: completion.usage?.prompt_tokens || 0,
+        outputTokens: completion.usage?.completion_tokens || 0,
+        totalTokens: completion.usage?.total_tokens || 0,
+      },
+      metrics: {
+        latencyMs: Date.now() - startTime,
+      },
+    };
+  }
 }

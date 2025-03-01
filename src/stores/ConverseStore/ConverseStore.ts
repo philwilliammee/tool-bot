@@ -157,14 +157,16 @@ export class ConverseStore {
 
       const messagesForLLM = [...activeMessages];
 
-      // Get the current project's enabled tools configuration and persistent message
+      // Get the current project's configuration
       let enabledTools: string[] | undefined;
       let persistentUserMessage: string | undefined;
+      let modelId: string | undefined;
 
       if (this.projectId) {
         const project = projectStore.getProject(this.projectId);
         enabledTools = project?.config?.enabledTools;
         persistentUserMessage = project?.config?.persistentUserMessage;
+        modelId = project?.config?.model; // Get the model ID from project config
       }
 
       // Add archive summary context if available and we have a project
@@ -385,7 +387,8 @@ export class ConverseStore {
             store.setGenerating(false);
           },
         },
-        enabledTools
+        enabledTools,
+        modelId
       );
     } catch (error) {
       console.error("callBedrockLLM -> LLM call failed:", error);

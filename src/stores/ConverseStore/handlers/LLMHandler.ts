@@ -10,19 +10,29 @@ export interface StreamCallbacks {
 }
 
 export class LLMHandler {
-  private modelId = import.meta.env.VITE_BEDROCK_MODEL_ID;
+  // Rename to make it clear this is a fallback
+  private defaultModelId = import.meta.env.VITE_DEFAULT_MODEL_ID;
 
   public async callLLMStream(
     messages: MessageExtended[],
     callbacks: StreamCallbacks,
-    enabledTools?: string[]
+    enabledTools?: string[],
+    modelId?: string
   ): Promise<Message> {
     try {
+      // Ensure we have a valid model ID
+      if (!modelId) {
+        console.warn(
+          "No model ID provided, using default model:",
+          this.defaultModelId
+        );
+      }
+
       const response = await fetch("/api/ai", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          modelId: this.modelId,
+          modelId: modelId || this.defaultModelId,
           messages,
           systemPrompt: converseAgentConfig.systemPrompt,
           enabledTools,
@@ -136,19 +146,19 @@ export class LLMHandler {
   //   return this.callLLMStream(messages, {}, enabledTools);
   // }
 
-  // Add to LLMHandler class
-
+  // Update the invoke method to also accept a modelId parameter
   public async invoke(
     messages: Partial<MessageExtended[]> | Message[],
     systemPrompt: string,
-    enabledTools?: string[] //@todo any more than this and we will require an options object
+    enabledTools?: string[],
+    modelId?: string
   ): Promise<Message> {
     try {
       const response = await fetch("/api/ai/invoke", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          modelId: this.modelId,
+          modelId: modelId || this.defaultModelId,
           messages,
           systemPrompt: systemPrompt,
           enabledTools,
