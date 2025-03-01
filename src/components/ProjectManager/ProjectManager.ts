@@ -107,6 +107,16 @@ export class ProjectManager {
         "#new-project-persistent-message"
       ) as HTMLTextAreaElement;
 
+      // Get selected tools
+      const enabledTools: string[] = [];
+      form
+        .querySelectorAll(".tool-checkbox")
+        .forEach((checkbox: HTMLInputElement) => {
+          if (checkbox.checked) {
+            enabledTools.push(checkbox.dataset.toolId || "");
+          }
+        });
+
       // Validate project name
       if (!nameInput.value.trim()) {
         return; // Don't create project if name is empty
@@ -122,6 +132,7 @@ export class ProjectManager {
         model: modelSelect.value,
         systemPrompt: systemPromptInput.value.trim(),
         persistentUserMessage: persistentMessageInput.value.trim(),
+        enabledTools: enabledTools,
       });
 
       projectStore.setActiveProject(projectId);
@@ -412,6 +423,41 @@ export class ProjectManager {
 
       modelSelect.appendChild(optgroup);
     });
+
+    // Populate tool selection
+    const toolsContainer = formModal.querySelector("#new-project-tools");
+    if (toolsContainer) {
+      // Get available tools from registry
+      const toolsRegistry = clientRegistry.getAllTools();
+      const availableTools = Object.keys(toolsRegistry).map((id) => ({
+        id,
+        name: id, // Use the ID as the name if no name property exists
+        description: "Tool", // Default description
+      }));
+
+      // Clear existing tool options
+      toolsContainer.innerHTML = "";
+
+      // Add tool checkboxes
+      availableTools.forEach((tool) => {
+        const toolOption = document.createElement("div");
+        toolOption.className = "tool-option";
+        toolOption.innerHTML = `
+          <input
+            type="checkbox"
+            id="new-tool-${tool.id}"
+            class="tool-checkbox"
+            data-tool-id="${tool.id}"
+            checked
+          >
+          <label for="new-tool-${tool.id}" class="tool-label">
+            ${tool.name}
+            <span class="tool-description">${tool.description}</span>
+          </label>
+        `;
+        toolsContainer.appendChild(toolOption);
+      });
+    }
 
     formModal.showModal();
   }

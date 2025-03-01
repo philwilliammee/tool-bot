@@ -163,7 +163,7 @@
   color: #374151;
 }
 
-.project-form input,
+.project-form input:not([type="checkbox"]),
 .project-form textarea,
 .project-form select {
   width: 100%;
@@ -174,13 +174,41 @@
   background-color: white;
 }
 
-.project-form textarea {
-  min-height: 100px;
-  resize: vertical;
+/* Add specific styling for checkboxes */
+.project-form input[type="checkbox"] {
+  width: auto;
+  margin-right: 0.5rem;
+  vertical-align: middle;
 }
 
-.project-form .form-textarea {
-  min-height: 80px;
+/* Style for tool options in the project form */
+.project-form .tool-option {
+  margin-bottom: 0.5rem;
+  display: flex;
+  align-items: flex-start;
+}
+
+/* .project-form .tool-label {
+  display: inline-flex;
+  flex-direction: column;
+  margin-left: 0.25rem;
+} */
+
+.project-form .tool-description {
+  font-size: 0.8rem;
+  color: #6b7280;
+  margin-top: 0.25rem;
+}
+
+/* Tool selection container */
+.project-form .tool-selection {
+  max-height: 200px;
+  overflow-y: auto;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.375rem;
+  padding: 0.5rem;
+  margin-top: 0.25rem;
+  background-color: #f9fafb;
 }
 
 .project-form .project-config-section {
