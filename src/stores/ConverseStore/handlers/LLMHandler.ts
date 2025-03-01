@@ -14,7 +14,8 @@ export class LLMHandler {
 
   public async callLLMStream(
     messages: MessageExtended[],
-    callbacks: StreamCallbacks
+    callbacks: StreamCallbacks,
+    enabledTools?: string[]
   ): Promise<Message> {
     try {
       const response = await fetch("/api/ai", {
@@ -24,6 +25,7 @@ export class LLMHandler {
           modelId: this.modelId,
           messages,
           systemPrompt: converseAgentConfig.systemPrompt,
+          enabledTools,
         }),
       });
 
@@ -127,15 +129,19 @@ export class LLMHandler {
   }
 
   // Old method for backward compat
-  public async callLLM(messages: MessageExtended[]): Promise<Message> {
-    return this.callLLMStream(messages, {});
-  }
+  // public async callLLM(
+  //   messages: MessageExtended[],
+  //   enabledTools?: string[]
+  // ): Promise<Message> {
+  //   return this.callLLMStream(messages, {}, enabledTools);
+  // }
 
   // Add to LLMHandler class
 
   public async invoke(
     messages: Partial<MessageExtended[]> | Message[],
-    systemPrompt: string
+    systemPrompt: string,
+    enabledTools?: string[] //@todo any more than this and we will require an options object
   ): Promise<Message> {
     try {
       const response = await fetch("/api/ai/invoke", {
@@ -145,6 +151,7 @@ export class LLMHandler {
           modelId: this.modelId,
           messages,
           systemPrompt: systemPrompt,
+          enabledTools,
         }),
       });
 
