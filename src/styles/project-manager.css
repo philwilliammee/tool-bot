@@ -203,3 +203,20 @@
   border-color: #93c5fd;
   box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
 }
+
+/* Add styling for option groups */
+.config-item select optgroup {
+  font-weight: 600;
+  color: #4b5563;
+  padding: 4px 0;
+}
+
+.config-item select option {
+  padding: 4px 8px;
+  font-weight: normal;
+}
+
+/* Style for the select element to better handle optgroups */
+.config-item select {
+  padding-right: 2rem;
+}

@@ -2,6 +2,7 @@
 import { converseStore } from "../../stores/ConverseStore/ConverseStore";
 import { projectStore } from "../../stores/ProjectStore/ProjectStore";
 import { converseAgentConfig } from "../../agents/converseAgent";
+import { getGroupedModelOptions } from "../../utils/modelOptions";
 
 export class ProjectManager {
   private dropdown!: HTMLSelectElement;
@@ -152,6 +153,7 @@ export class ProjectManager {
 
   private renderProjectList(): void {
     const projects = projectStore.getAllProjects();
+    const groupedModelOptions = getGroupedModelOptions();
 
     this.projectList.innerHTML = projects
       .map(
@@ -184,23 +186,30 @@ export class ProjectManager {
             <select id="model-select-${
               project.id
             }" class="model-select" data-project-id="${project.id}">
-              <option value="gpt-4" ${
-                project.config?.model === "gpt-4" ? "selected" : ""
-              }>GPT-4</option>
-              <option value="gpt-3.5-turbo" ${
-                project.config?.model === "gpt-3.5-turbo" ? "selected" : ""
-              }>GPT-3.5 Turbo</option>
-              <option value="claude-3-opus" ${
-                project.config?.model === "claude-3-opus" ? "selected" : ""
-              }>Claude 3 Opus</option>
-              <option value="claude-3-sonnet" ${
-                project.config?.model === "claude-3-sonnet" ? "selected" : ""
-              }>Claude 3 Sonnet</option>
-              <option value="default" ${
-                !project.config?.model || project.config?.model === "default"
-                  ? "selected"
-                  : ""
-              }>Default</option>
+              ${Object.entries(groupedModelOptions)
+                .map(
+                  ([provider, models]) => `
+                <optgroup label="${provider}">
+                  ${models
+                    .map(
+                      (model: {
+                        id: string;
+                        name: string;
+                        provider: string;
+                        apiType: string;
+                      }) => `
+                    <option value="${model.id}" ${
+                        project.config?.model === model.id ? "selected" : ""
+                      }>
+                      ${model.name}
+                    </option>
+                  `
+                    )
+                    .join("")}
+                </optgroup>
+              `
+                )
+                .join("")}
             </select>
           </div>
 
@@ -286,6 +295,33 @@ export class ProjectManager {
     const formModal = document.getElementById(
       "project-form-modal"
     ) as HTMLDialogElement;
+
+    // Get the model select element in the form
+    const modelSelect = formModal.querySelector(
+      "#new-project-model"
+    ) as HTMLSelectElement;
+
+    // Clear existing options
+    modelSelect.innerHTML = "";
+
+    // Populate with grouped options
+    const groupedModelOptions = getGroupedModelOptions();
+
+    Object.entries(groupedModelOptions).forEach(([provider, models]) => {
+      const optgroup = document.createElement("optgroup");
+      optgroup.label = provider;
+
+      models.forEach((model) => {
+        const option = document.createElement("option");
+        option.value = model.id;
+        option.textContent = model.name;
+        option.selected = model.id === "default";
+        optgroup.appendChild(option);
+      });
+
+      modelSelect.appendChild(optgroup);
+    });
+
     formModal.showModal();
   }
 
