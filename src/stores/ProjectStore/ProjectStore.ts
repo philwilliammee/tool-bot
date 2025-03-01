@@ -261,45 +261,53 @@ export class ProjectStore {
   }
 
   /**
-   * Clones an existing project
-   * @param projectId The ID of the project to clone
-   * @param newName Optional new name for the cloned project (defaults to "Copy of [Original Name]")
-   * @returns The ID of the newly created project clone
+   * Clone an existing project
+   * @param id ID of the project to clone
+   * @param newName Optional name for the cloned project (defaults to "Copy of [Original Name]")
+   * @param cloneMessages Whether to clone the messages (defaults to true)
+   * @returns ID of the newly created project
    */
-  public cloneProject(projectId: string, newName?: string): string {
-    const sourceProject = this.getProject(projectId);
+  public cloneProject(
+    id: string,
+    newName?: string,
+    cloneMessages: boolean = true
+  ): string {
+    const sourceProject = this.getProject(id);
 
     if (!sourceProject) {
-      throw new Error(`Project with ID ${projectId} not found`);
+      console.error(`Cannot clone non-existent project: ${id}`);
+      throw new Error(`Project not found: ${id}`);
     }
 
-    // Create a default name if none provided
+    // Generate a name for the cloned project if not provided
     const cloneName = newName || `Copy of ${sourceProject.name}`;
 
-    // Create a new project with the same description
-    const newProjectId = this.createProject(
-      cloneName,
-      sourceProject.description
-    );
-    const newProject = this.getProject(newProjectId);
+    // Create a new project with the same properties as the source
+    const newProject: Project = {
+      id: crypto.randomUUID(),
+      name: cloneName,
+      description: sourceProject.description,
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+      status: "active",
+      version: sourceProject.version || 1,
+      messages: cloneMessages
+        ? JSON.parse(JSON.stringify(sourceProject.messages))
+        : [], // Deep clone messages if requested
+      archiveSummary: {
+        summary: null,
+        lastSummarizedMessageIds: [],
+        lastSummarization: 0,
+      },
+      config: sourceProject.config ? { ...sourceProject.config } : {},
+    };
 
-    if (!newProject) {
-      throw new Error("Failed to create new project");
-    }
-
-    // Copy configuration
-    if (sourceProject.config) {
-      this.updateProjectConfig(newProjectId, { ...sourceProject.config });
-    }
-
-    // Copy messages (optional - you may want to start with an empty conversation)
-    // Uncomment if you want to copy the messages too
-    /*
-    newProject.messages = JSON.parse(JSON.stringify(sourceProject.messages));
+    // Add the new project to the store
+    this.projects[newProject.id] = newProject;
     this.saveProjects();
-    */
+    this.notifyProjectChange();
 
-    return newProjectId;
+    return newProject.id;
   }
 }
 

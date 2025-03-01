@@ -343,25 +343,40 @@ export class ProjectManager {
 
       // Add event listener for clone button
       item.querySelector(".clone-btn")?.addEventListener("click", () => {
-        // Ask for a new name (optional)
-        const projectName = projectStore.getProject(id)?.name || "";
-        const newName = prompt(
+        // Fetch the project from the store
+        const sourceProject = projectStore.getProject(id);
+
+        if (!sourceProject) {
+          console.error("Could not find project to clone");
+          return;
+        }
+
+        // Ask for a new name
+        const projectName = prompt(
           "Enter a name for the cloned project:",
-          `Copy of ${projectName}`
+          `Copy of ${sourceProject.name}`
         );
 
-        // If user cancels, abort the operation
-        if (newName === null) return;
+        if (projectName) {
+          try {
+            // Ask if messages should be cloned
+            const cloneMessages = confirm(
+              "Would you like to clone the messages as well? Click OK to include messages, or Cancel to create an empty project."
+            );
 
-        try {
-          // Clone the project
-          projectStore.cloneProject(id, newName.trim() || undefined);
+            // Clone the project with the provided name and message preference
+            const newProjectId = projectStore.cloneProject(
+              id,
+              projectName,
+              cloneMessages
+            );
+            console.log(`Project cloned successfully: ${newProjectId}`);
 
-          // Simply refresh the project list - the new project will appear
-          this.renderProjectList();
-        } catch (error) {
-          // Just log errors to console
-          console.error("Failed to clone project:", error);
+            // Refresh the project list to show the new project
+            this.renderProjectList();
+          } catch (error) {
+            console.error("Failed to clone project:", error);
+          }
         }
       });
     });
