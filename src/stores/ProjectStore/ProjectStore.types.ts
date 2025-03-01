@@ -34,6 +34,18 @@ export interface Project {
     lastSummarizedMessageIds: string[];
     lastSummarization: number;
   };
+
+  /** Project configuration */
+  config?: {
+    /** Selected AI model for this project */
+    model?: string;
+
+    /** Custom system prompt override */
+    systemPrompt?: string;
+
+    /** Persistent user message to include in every conversation */
+    persistentUserMessage?: string;
+  };
 }
 
 /**

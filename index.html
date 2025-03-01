@@ -411,6 +411,42 @@
                     <label for="project-description">Description</label>
                     <textarea id="project-description"></textarea>
                 </div>
+
+                <!-- Project Configuration Section -->
+                <div class="form-group project-config-section">
+                    <h4>Project Configuration</h4>
+                    <div class="config-item">
+                        <label for="new-project-model">AI Model:</label>
+                        <select id="new-project-model" class="form-select">
+                            <option value="gpt-4">GPT-4</option>
+                            <option value="gpt-3.5-turbo">GPT-3.5 Turbo</option>
+                            <option value="claude-3-opus">Claude 3 Opus</option>
+                            <option value="claude-3-sonnet">Claude 3 Sonnet</option>
+                            <option value="default" selected>Default</option>
+                        </select>
+                    </div>
+
+                    <div class="config-item">
+                        <label for="new-project-system-prompt">System Prompt:</label>
+                        <textarea
+                            id="new-project-system-prompt"
+                            class="form-textarea"
+                            placeholder="Custom instructions for the AI..."
+                            rows="3"
+                        ></textarea>
+                    </div>
+
+                    <div class="config-item">
+                        <label for="new-project-persistent-message">Persistent User Message:</label>
+                        <textarea
+                            id="new-project-persistent-message"
+                            class="form-textarea"
+                            placeholder="Message to include in every conversation..."
+                            rows="3"
+                        ></textarea>
+                    </div>
+                </div>
+
                 <div class="modal-actions">
                     <button type="submit" class="btn btn-danger cancel-btn" value="Novalidate close" formnovalidate>
                         Cancel

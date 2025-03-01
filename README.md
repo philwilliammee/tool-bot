@@ -146,9 +146,8 @@ For detailed instructions on creating custom tools, please refer to the [tools/R
 - Testing coverage expansion
 
 ### Known Issues 🐞
-1. Chat scroll behavior needs improvement
-2. Tool response formatting inconsistencies
-3. Error handling refinements needed
+1. Tool response formatting inconsistencies
+2. Error handling refinements needed
 
 ## Roadmap
 

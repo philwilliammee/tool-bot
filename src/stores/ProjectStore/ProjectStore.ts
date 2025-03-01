@@ -66,6 +66,11 @@ export class ProjectStore {
         lastSummarizedMessageIds: [],
         lastSummarization: 0,
       },
+      config: {
+        model: "default", // Default model
+        systemPrompt: "", // Empty by default
+        persistentUserMessage: "", // Empty by default
+      },
     };
 
     this.saveProjects();
@@ -208,6 +213,50 @@ export class ProjectStore {
     console.log("Projects:", this.projects);
     console.log("localStorage keys:", Object.keys(localStorage));
     console.groupEnd();
+  }
+
+  // New method to update project configuration
+  public updateProjectConfig(
+    id: string,
+    config: {
+      model?: string;
+      systemPrompt?: string;
+      persistentUserMessage?: string;
+    }
+  ): void {
+    if (!this.projects[id]) {
+      console.warn(
+        `Attempted to update config for non-existent project: ${id}`
+      );
+      return;
+    }
+
+    console.log(`Updating project ${id} configuration:`, config);
+
+    // Create config object if it doesn't exist
+    if (!this.projects[id].config) {
+      this.projects[id].config = {};
+    }
+
+    // Update only the provided fields
+    this.projects[id].config = {
+      ...this.projects[id].config,
+      ...config,
+    };
+
+    this.projects[id].updatedAt = Date.now();
+    this.saveProjects();
+    this.notifyProjectChange();
+  }
+
+  // New method to get project configuration
+  public getProjectConfig(id: string): Project["config"] {
+    if (!this.projects[id]) {
+      console.warn(`Attempted to get config for non-existent project: ${id}`);
+      return {};
+    }
+
+    return this.projects[id].config || {};
   }
 }
 
