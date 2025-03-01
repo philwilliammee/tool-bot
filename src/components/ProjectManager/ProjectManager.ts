@@ -157,80 +157,82 @@ export class ProjectManager {
       .map(
         (project) => `
       <div class="project-item" data-id="${project.id}">
-        <div class="project-info">
-          <h3>${project.name}</h3>
-          <p class="project-meta">
-            ${project.messages.length} messages ·
-            Last updated: ${new Date(project.updatedAt).toLocaleDateString()}
-          </p>
-          ${
-            project.description
-              ? `<p class="project-description">${project.description}</p>`
-              : ""
-          }
-
-          <!-- Project Configuration Section -->
-          <div class="project-config-section">
-            <h4>Project Configuration</h4>
-            <div class="config-item">
-              <label for="model-select-${project.id}">AI Model:</label>
-              <select id="model-select-${
-                project.id
-              }" class="model-select" data-project-id="${project.id}">
-                <option value="gpt-4" ${
-                  project.config?.model === "gpt-4" ? "selected" : ""
-                }>GPT-4</option>
-                <option value="gpt-3.5-turbo" ${
-                  project.config?.model === "gpt-3.5-turbo" ? "selected" : ""
-                }>GPT-3.5 Turbo</option>
-                <option value="claude-3-opus" ${
-                  project.config?.model === "claude-3-opus" ? "selected" : ""
-                }>Claude 3 Opus</option>
-                <option value="claude-3-sonnet" ${
-                  project.config?.model === "claude-3-sonnet" ? "selected" : ""
-                }>Claude 3 Sonnet</option>
-                <option value="default" ${
-                  !project.config?.model || project.config?.model === "default"
-                    ? "selected"
-                    : ""
-                }>Default</option>
-              </select>
-            </div>
-
-            <div class="config-item">
-              <label for="system-prompt-${project.id}">System Prompt:</label>
-              <textarea
-                id="system-prompt-${project.id}"
-                class="system-prompt"
-                data-project-id="${project.id}"
-                placeholder="Custom instructions for the AI..."
-                rows="2"
-              >${project.config?.systemPrompt || ""}</textarea>
-            </div>
-
-            <div class="config-item">
-              <label for="persistent-message-${
-                project.id
-              }">Persistent User Message:</label>
-              <textarea
-                id="persistent-message-${project.id}"
-                class="persistent-message"
-                data-project-id="${project.id}"
-                placeholder="Message to include in every conversation..."
-                rows="2"
-              >${project.config?.persistentUserMessage || ""}</textarea>
-            </div>
-
-            <button class="btn btn-small btn-blue save-config-btn" data-project-id="${
-              project.id
-            }">
-              Save Configuration
-            </button>
+        <div class="project-header">
+          <div class="project-info">
+            <h3>${project.name}</h3>
+            <p class="project-meta">
+              ${project.messages.length} messages ·
+              Last updated: ${new Date(project.updatedAt).toLocaleDateString()}
+            </p>
+            ${
+              project.description
+                ? `<p class="project-description">${project.description}</p>`
+                : ""
+            }
+          </div>
+          <div class="project-actions">
+            <button class="btn btn-small btn-blue select-btn">Select</button>
+            <button class="btn btn-small btn-danger delete-btn">Delete</button>
           </div>
         </div>
-        <div class="project-actions">
-          <button class="btn btn-small btn-blue select-btn">Select</button>
-          <button class="btn btn-small btn-danger delete-btn">Delete</button>
+
+        <!-- Project Configuration Section -->
+        <div class="project-config-section">
+          <h4>Project Configuration</h4>
+          <div class="config-item">
+            <label for="model-select-${project.id}">AI Model:</label>
+            <select id="model-select-${
+              project.id
+            }" class="model-select" data-project-id="${project.id}">
+              <option value="gpt-4" ${
+                project.config?.model === "gpt-4" ? "selected" : ""
+              }>GPT-4</option>
+              <option value="gpt-3.5-turbo" ${
+                project.config?.model === "gpt-3.5-turbo" ? "selected" : ""
+              }>GPT-3.5 Turbo</option>
+              <option value="claude-3-opus" ${
+                project.config?.model === "claude-3-opus" ? "selected" : ""
+              }>Claude 3 Opus</option>
+              <option value="claude-3-sonnet" ${
+                project.config?.model === "claude-3-sonnet" ? "selected" : ""
+              }>Claude 3 Sonnet</option>
+              <option value="default" ${
+                !project.config?.model || project.config?.model === "default"
+                  ? "selected"
+                  : ""
+              }>Default</option>
+            </select>
+          </div>
+
+          <div class="config-item">
+            <label for="system-prompt-${project.id}">System Prompt:</label>
+            <textarea
+              id="system-prompt-${project.id}"
+              class="system-prompt"
+              data-project-id="${project.id}"
+              placeholder="Custom instructions for the AI..."
+              rows="2"
+            >${project.config?.systemPrompt || ""}</textarea>
+          </div>
+
+          <div class="config-item">
+            <label for="persistent-message-${
+              project.id
+            }">Persistent User Message:</label>
+            <textarea
+              id="persistent-message-${project.id}"
+              class="persistent-message"
+              data-project-id="${project.id}"
+              placeholder="Message to include in every conversation..."
+              rows="2"
+            >${project.config?.persistentUserMessage || ""}</textarea>
+          </div>
+
+          <button class="btn btn-small btn-blue save-config-btn" data-project-id="${
+            project.id
+          }">
+            Save Configuration
+          </button>
         </div>
       </div>
     `
