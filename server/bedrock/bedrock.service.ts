@@ -156,37 +156,30 @@ export class BedrockService {
         fixedMessage.content = [];
       }
 
-      // Ensure each content block has non-empty text and is properly typed
+      // Ensure each content block has appropriate structure
       fixedMessage.content = fixedMessage.content.map(
         (block: any, blockIndex) => {
-          // Handle document blocks - remove document property if it exists
-          if (block.document) {
-            console.warn(
-              `Document block found at index ${blockIndex} of message ${index}, converting to text-only block`
-            );
-            const { document, ...restBlock } = block;
-            return {
-              ...restBlock,
-              text: block.text || "[Document content]",
-            };
+          // If it's a tool result block, it doesn't need a text property
+          if (block.toolResult) {
+            return block;
           }
 
-          // Handle empty text
+          // If it's a tool use block, it doesn't need a text property
+          if (block.toolUse) {
+            return block;
+          }
+
+          // For other blocks, ensure they have a text property
           if (!block.text || block.text.trim() === "") {
             console.warn(
               `Empty text in content block ${blockIndex} of message ${index}, adding placeholder`
             );
-            return { text: "[Empty message content]" };
-          }
-
-          // For simple text blocks, ensure they have the correct structure
-          if (typeof block === "object" && !Array.isArray(block)) {
-            return { text: block.text };
+            return { ...block, text: "[Empty message content]" };
           }
 
           return block;
         }
-      ) as ContentBlock[];
+      );
 
       // If content array is empty, add a default text block
       if (fixedMessage.content.length === 0) {

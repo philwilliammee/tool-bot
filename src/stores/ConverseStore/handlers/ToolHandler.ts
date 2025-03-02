@@ -1,5 +1,5 @@
 import { clientRegistry } from "./../../../../tools/registry.client";
-import { Message } from "@aws-sdk/client-bedrock-runtime";
+import { Message, ToolResultStatus } from "@aws-sdk/client-bedrock-runtime";
 import { ToolUse } from "../../../app.types";
 
 export class ToolHandler {
@@ -36,7 +36,7 @@ export class ToolHandler {
             toolResult: {
               toolUseId: toolUse.toolUseId,
               content: [{ text: JSON.stringify(result) }],
-              status: "success",
+              status: ToolResultStatus.SUCCESS,
             },
           },
         ],
@@ -44,7 +44,16 @@ export class ToolHandler {
     } catch (error: any) {
       return {
         role: "user",
-        content: [{ text: `Tool execution failed: ${error.message}` }],
+        // content: [{ text: `Tool execution failed: ${error.message}` }],
+        content: [
+          {
+            toolResult: {
+              toolUseId: toolUse.toolUseId,
+              content: [{ text: `Tool execution failed: ${error.message}` }],
+              status: ToolResultStatus.ERROR,
+            },
+          },
+        ],
       };
     }
   }

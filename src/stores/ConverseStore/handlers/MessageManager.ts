@@ -60,7 +60,7 @@ export class MessageManager {
     return {
       id,
       role: message.role || "user",
-      content: message.content || [],
+      content: message.content || [{ text: "" }], // @todo fix root cause of this issue.
       metadata: {
         createdAt: Date.now(),
         updatedAt: Date.now(),
