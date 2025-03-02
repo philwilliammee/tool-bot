@@ -1,5 +1,6 @@
 import {
   BedrockRuntimeClient,
+  ContentBlock,
   ConverseCommand,
   ConverseCommandInput,
   ConverseResponse,
@@ -92,6 +93,9 @@ export class BedrockService {
       throw new Error("First message must be from user");
     }
 
+    // Preprocess and validate messages
+    const validatedMessages = this.validateAndFixMessages(messages);
+
     const system: SystemContentBlock[] = [{ text: systemPrompt }];
 
     // Get filtered tool configuration
@@ -106,18 +110,17 @@ export class BedrockService {
     const input: ConverseStreamCommandInput = {
       modelId,
       system,
-      messages,
+      messages: validatedMessages,
       toolConfig,
       inferenceConfig: {
         temperature: 0.7,
-        maxTokens: 8000, // 128000 openai max tokens
+        maxTokens: 8000,
       },
     };
 
     try {
       const command = new ConverseStreamCommand(input);
       const response = await this.client.send(command);
-      // console.log("Stream execution response:", response);
       return response;
     } catch (error: any) {
       console.error("Stream execution error:", {
@@ -125,8 +128,118 @@ export class BedrockService {
         modelId,
         stack: error.stack,
       });
+
+      // Add detailed message debugging if there's a validation error
+      if (error.message && error.message.includes("ContentBlock")) {
+        this.debugMessageStructure(messages);
+      }
+
       throw error;
     }
+  }
+
+  /**
+   * Validates and fixes messages to ensure they meet Bedrock API requirements
+   * @param messages Array of messages to validate
+   * @returns Fixed messages array
+   */
+  private validateAndFixMessages(messages: Message[]): Message[] {
+    return messages.map((message, index) => {
+      // Create a deep copy to avoid modifying the original
+      const fixedMessage: Message = { ...message };
+
+      // Ensure content array exists
+      if (!fixedMessage.content || !Array.isArray(fixedMessage.content)) {
+        console.warn(
+          `Message at index ${index} has no content array, creating empty one`
+        );
+        fixedMessage.content = [];
+      }
+
+      // Ensure each content block has non-empty text and is properly typed
+      fixedMessage.content = fixedMessage.content.map(
+        (block: any, blockIndex) => {
+          // Handle document blocks - remove document property if it exists
+          if (block.document) {
+            console.warn(
+              `Document block found at index ${blockIndex} of message ${index}, converting to text-only block`
+            );
+            const { document, ...restBlock } = block;
+            return {
+              ...restBlock,
+              text: block.text || "[Document content]",
+            };
+          }
+
+          // Handle empty text
+          if (!block.text || block.text.trim() === "") {
+            console.warn(
+              `Empty text in content block ${blockIndex} of message ${index}, adding placeholder`
+            );
+            return { text: "[Empty message content]" };
+          }
+
+          // For simple text blocks, ensure they have the correct structure
+          if (typeof block === "object" && !Array.isArray(block)) {
+            return { text: block.text };
+          }
+
+          return block;
+        }
+      ) as ContentBlock[];
+
+      // If content array is empty, add a default text block
+      if (fixedMessage.content.length === 0) {
+        console.warn(
+          `Message at index ${index} has empty content array, adding default block`
+        );
+        fixedMessage.content.push({ text: "[Empty message]" });
+      }
+
+      return fixedMessage;
+    });
+  }
+
+  /**
+   * Debug helper to print detailed message structure for troubleshooting
+   * @param messages Messages array to debug
+   */
+  private debugMessageStructure(messages: Message[]): void {
+    console.error("=== DETAILED MESSAGE STRUCTURE DEBUG ===");
+    messages.forEach((message, index) => {
+      console.error(`Message ${index}:`);
+      console.error(`  Role: ${message.role}`);
+      console.error(`  Content blocks: ${message.content?.length || 0}`);
+
+      if (message.content && Array.isArray(message.content)) {
+        message.content.forEach((block: any, blockIndex) => {
+          console.error(`    Block ${blockIndex}:`);
+          // Use optional chaining to safely access type property
+          console.error(`      Type: ${block.type ?? "text"}`);
+          console.error(
+            `      Text: ${
+              block.text
+                ? `"${block.text.substring(0, 50)}${
+                    block.text.length > 50 ? "..." : ""
+                  }"`
+                : "EMPTY"
+            }`
+          );
+          console.error(`      Text length: ${block.text?.length || 0}`);
+
+          // Log additional properties for debugging
+          const props = Object.keys(block).filter(
+            (k) => k !== "text" && k !== "type"
+          );
+          if (props.length > 0) {
+            console.error(`      Other properties: ${props.join(", ")}`);
+          }
+        });
+      } else {
+        console.error(`  Content is not an array or is undefined`);
+      }
+    });
+    console.error("=========================================");
   }
 
   // Keep the original non-streaming method if needed
