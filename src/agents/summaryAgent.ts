@@ -3,15 +3,14 @@ import { Project } from "../stores/ProjectStore/ProjectStore.types";
 
 // /agents/summaryAgent.ts
 export const summaryAgentConfig = {
-  systemPrompt: `You are a summary agent designed to compress and retain relevant information from conversation history.
-Your task is to analyze the provided conversation context and generate a concise summary that captures:
-1. Key points and main topics discussed
-2. Important decisions or conclusions
-3. Critical facts or information shared
-4. Any pending actions or questions
+  systemPrompt: `You are a summary agent that compresses conversation history while preserving key information.
+Your summaries should be concise, factual, and structured to capture:
+- Main topics and key points
+- Important decisions and conclusions
+- Critical facts and technical details
+- Pending actions or questions
 
-Keep the summary structured, factual, and free of unnecessary details. Focus on clarity and brevity while preserving the essence of the conversation.
-`,
+Focus on clarity and continuity for future reference.`,
 
   temperature: 0.5, // Lower temperature for more consistent summaries
   maxTokens: 4000,
@@ -20,21 +19,22 @@ Keep the summary structured, factual, and free of unnecessary details. Focus on 
     project: Project,
     newMessages: MessageExtended[]
   ): string {
-    return `There are ${
+    return `TASK: Integrate ${
       newMessages.length
-    } new messages to compress into the context.
+    } new messages into the existing conversation summary.
 
-Current Context Summary: ${project.archiveSummary?.summary || "None"}
+CURRENT SUMMARY: ${project.archiveSummary?.summary || "No existing summary."}
 
-New Information to Integrate:
+NEW MESSAGES:
 ${newMessages
   .map((m) => `[${m.role}]: ${m.content?.map((c) => c.text).join(" ")}`)
   .join("\n\n")}
 
-Please provide an updated context summary that:
-1. Maintains all crucial information from the previous summary
-2. Integrates new relevant details and decisions
-3. Preserves technical specifics and tool interactions
-4. Ensures context continuity for future reference`;
+INSTRUCTIONS:
+1. Create a cohesive summary that combines the existing summary with new information
+2. Prioritize technical details, tool interactions, and specific decisions
+3. Maintain chronological flow where relevant
+4. Format the summary in clear paragraphs organized by topic
+5. Keep the summary concise but comprehensive`;
   },
 };
