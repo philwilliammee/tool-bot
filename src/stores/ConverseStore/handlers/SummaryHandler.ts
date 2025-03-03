@@ -23,6 +23,9 @@ export class SummaryHandler {
   constructor(private llmHandler: LLMHandler) {
     // Initialize with existing projects
     this.loadExistingProjects();
+
+    // REMOVED: The project change listener that was creating a cycle
+    // We'll rely on the ConverseStore effect to trigger loadProjectSummary
   }
 
   private loadExistingProjects(): void {
@@ -45,13 +48,26 @@ export class SummaryHandler {
   // Add method to load a specific project's summary
   public loadProjectSummary(projectId: string | null): void {
     if (!projectId) {
-      // Clear the summary state for the current project
-      this.summaryState.value = {};
+      // Don't clear the entire state, just don't update anything
       return;
     }
 
     const project = projectStore.getProject(projectId);
     if (!project) return;
+
+    // Check if we already have this project in our state to prevent unnecessary updates
+    if (this.summaryState.value[projectId]) {
+      const currentSummary = this.summaryState.value[projectId].summary;
+      const currentLastUpdate = this.summaryState.value[projectId].lastUpdate;
+
+      // Only update if something changed
+      if (
+        currentSummary === project.archiveSummary?.summary &&
+        currentLastUpdate === project.archiveSummary?.lastSummarization
+      ) {
+        return;
+      }
+    }
 
     this.summaryState.value = {
       ...this.summaryState.value,
@@ -75,6 +91,7 @@ export class SummaryHandler {
     }
     return computed(() => this.summaryState.value[projectId]?.summary ?? null);
   }
+
   public getIsSummarizing(): Signal<boolean> {
     return this.isSummarizing;
   }
@@ -84,6 +101,7 @@ export class SummaryHandler {
   }
 
   private setSummary(projectId: string, summary: string | null): void {
+    // Update the summary signal
     this.summaryState.value = {
       ...this.summaryState.value,
       [projectId]: {
@@ -97,9 +115,13 @@ export class SummaryHandler {
     projectId: string,
     summary: Project["archiveSummary"]
   ): void {
+    // Update the project store
     projectStore.updateProject(projectId, {
       archiveSummary: summary,
     });
+
+    // Also update our local signal to ensure reactivity
+    this.setSummary(projectId, summary?.summary || null);
   }
 
   public async summarizeArchivedMessages(

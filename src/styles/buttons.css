@@ -29,8 +29,8 @@
 }
 
 .btn-blue {
-  background-color: var(--primary);
-  color: white !important
+  background-color: var(--primary) !important;
+  color: white !important;
 }
 
 .btn-secondary {

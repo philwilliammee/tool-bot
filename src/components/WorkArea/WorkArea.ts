@@ -36,6 +36,11 @@ export class WorkArea {
       effect(() => {
         const isActive = store.activeTab.value === "work-area";
         this.element.style.display = isActive ? "block" : "none";
+        
+        // Update content if becoming visible
+        if (isActive) {
+          this.updateDynamicContent();
+        }
       })
     );
 
@@ -48,7 +53,32 @@ export class WorkArea {
         }
       })
     );
+    
+    // Active project effect - updates when project changes
+    this.cleanupFns.push(
+      effect(() => {
+        // This effect will run whenever the active project changes
+        const project = projectStore.activeProject.value;
+        if (project && store.activeTab.value === "work-area") {
+          console.log("Active project changed, updating WorkArea");
+          this.updateDynamicContent();
+          this.updateArchiveSummaryDisplay().catch(console.error);
+        }
+      })
+    );
+    
+    // Messages effect - updates when messages change
+    this.cleanupFns.push(
+      effect(() => {
+        const messages = projectStore.activeProjectMessages.value;
+        if (store.activeTab.value === "work-area") {
+          this.updateMessageCount();
+          this.updateButtonStates();
+        }
+      })
+    );
 
+    // Still keep the converseStore listener for compatibility
     converseStore.onMessagesChange(() => {
       this.updateDynamicContent();
     });
@@ -101,15 +131,7 @@ export class WorkArea {
     });
   }
 
-  private async updateArchiveSummaryText(
-    textElement: Element,
-    summaryText: string
-  ): Promise<void> {
-    const rendered = await Promise.resolve(marked(summaryText));
-    textElement.innerHTML = rendered;
-  }
-
-  // Use effect for reactive updates
+  // Use effect for reactive updates with signals
   private initializeArchiveSummaryPanel(): void {
     const button = this.element.querySelector(".archive-summary-button");
     const popover = this.element.querySelector(
@@ -123,63 +145,22 @@ export class WorkArea {
       return;
     }
 
-    const updateSummaryDisplay = async () => {
-      const currentProjectId = projectStore.getActiveProject();
-      if (!currentProjectId) return;
-
-      const isSummarizing = converseStore.getIsSummarizing().value;
-      const project = projectStore.getProject(currentProjectId);
-      const summary = project?.archiveSummary?.summary;
-      const messages = converseStore.getMessages();
-      const archivedMessages = messages.filter(
-        (msg) => msg.metadata.isArchived && msg.projectId === currentProjectId
-      );
-
-      if (isSummarizing) {
-        textElement.innerHTML = "Generating summary...";
-        button.classList.add("is-summarizing");
-      } else {
-        button.classList.remove("is-summarizing");
-        if (summary) {
-          try {
-            const rendered = await marked(summary);
-            textElement.innerHTML = rendered;
-            button.classList.add("has-summary");
-          } catch (error) {
-            console.error("Failed to render summary:", error);
-            textElement.textContent = "Error rendering summary";
-          }
-        } else {
-          textElement.textContent =
-            archivedMessages.length > 0
-              ? "No summary available yet"
-              : "No archived messages";
-          button.classList.remove("has-summary");
-        }
-      }
-
-      // Update button text
-      button.innerHTML = `
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M21 8v13H3V8"></path>
-          <path d="M1 3h22v5H1z"></path>
-          <path d="M10 12h4"></path>
-        </svg>
-        Archive Summary ${
-          archivedMessages.length > 0 ? `(${archivedMessages.length})` : ""
-        }
-        ${isSummarizing ? '<span class="spinner"></span>' : ""}
-      `;
-    };
-
-    // Keep the effect just for the summarizing state
+    // Add effect for archive summary updates
     this.cleanupFns.push(
       effect(() => {
+        const archiveSummary = projectStore.activeProjectArchiveSummary.value;
         const isSummarizing = converseStore.getIsSummarizing().value;
+        
+        // Update button state based on summarizing status
         if (isSummarizing) {
           button.classList.add("is-summarizing");
         } else {
           button.classList.remove("is-summarizing");
+        }
+        
+        // Only update content if popover is open
+        if (popover.matches(':popover-open')) {
+          this.updateArchiveSummaryDisplay().catch(console.error);
         }
       })
     );
@@ -187,20 +168,74 @@ export class WorkArea {
     // Update summary when popover is opened
     button.addEventListener("click", () => {
       console.log("Archive summary button clicked");
-      updateSummaryDisplay().catch(console.error);
+      this.updateArchiveSummaryDisplay().catch(console.error);
       popover.togglePopover();
     });
 
     // Initial update
-    updateSummaryDisplay().catch(console.error);
+    this.updateArchiveSummaryDisplay().catch(console.error);
 
     // Cleanup popover
     this.cleanupFns.push(() => {
       popover.hidePopover();
     });
   }
+  
+  private async updateArchiveSummaryDisplay(): Promise<void> {
+    const button = this.element.querySelector(".archive-summary-button");
+    const textElement = this.element.querySelector(".archive-summary-text");
+    
+    if (!button || !textElement) return;
+    
+    const isSummarizing = converseStore.getIsSummarizing().value;
+    const currentProject = projectStore.activeProject.value;
+    
+    if (!currentProject) return;
+    
+    const summary = currentProject.archiveSummary?.summary;
+    const messages = converseStore.getMessages();
+    const archivedMessages = messages.filter(
+      (msg) => msg.metadata.isArchived && msg.projectId === currentProject.id
+    );
+    
+    if (isSummarizing) {
+      textElement.innerHTML = "Generating summary...";
+      button.classList.add("is-summarizing");
+    } else {
+      button.classList.remove("is-summarizing");
+      if (summary) {
+        try {
+          const rendered = await marked(summary);
+          textElement.innerHTML = rendered;
+          button.classList.add("has-summary");
+        } catch (error) {
+          console.error("Failed to render summary:", error);
+          textElement.textContent = "Error rendering summary";
+        }
+      } else {
+        textElement.textContent =
+          archivedMessages.length > 0
+            ? "No summary available yet"
+            : "No archived messages";
+        button.classList.remove("has-summary");
+      }
+    }
 
-  // Rest of existing methods remain unchanged
+    // Update button text
+    button.innerHTML = `
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M21 8v13H3V8"></path>
+        <path d="M1 3h22v5H1z"></path>
+        <path d="M10 12h4"></path>
+      </svg>
+      Archive Summary ${
+        archivedMessages.length > 0 ? `(${archivedMessages.length})` : ""
+      }
+      ${isSummarizing ? '<span class="spinner"></span>' : ""}
+    `;
+  }
+
+  // Rest of existing methods remain, but with signal-based updates
   private updateDynamicContent(): void {
     if (store.activeTab.value === "work-area") {
       this.updateMessageCount();
@@ -211,9 +246,9 @@ export class WorkArea {
   private updateMessageCount(): void {
     const countElement = this.element.querySelector(".message-count");
     if (countElement) {
-      countElement.textContent = `${
-        converseStore.getMessages().length
-      } messages`;
+      // Use the active project messages signal
+      const messages = projectStore.activeProjectMessages.value;
+      countElement.textContent = `${messages.length} messages`;
     }
   }
 
@@ -226,19 +261,15 @@ export class WorkArea {
     ) as HTMLButtonElement;
 
     if (deleteAllBtn && newMessageBtn) {
-      const hasMessages = converseStore.getMessages().length > 0;
+      // Use the active project messages signal
+      const messages = projectStore.activeProjectMessages.value;
+      const hasMessages = messages.length > 0;
       const isGenerating = store.isGenerating.value;
 
       deleteAllBtn.disabled = !hasMessages || isGenerating;
       newMessageBtn.disabled = isGenerating;
     }
   }
-
-  // private disableInteractions(): void {
-  //   this.element
-  //     .querySelectorAll("button")
-  //     .forEach((btn) => (btn.disabled = true));
-  // }
 
   private enableInteractions(): void {
     this.updateButtonStates();

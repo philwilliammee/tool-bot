@@ -23,7 +23,7 @@ export class MessageManager {
   constructor(
     tokenConfig: TokenConfig = {
       maxTokens: 6000,
-      targetTokens: 2500,
+      targetTokens: 4000, // 2500
       overlapTokens: 500,
     }
   ) {

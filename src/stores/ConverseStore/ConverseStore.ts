@@ -8,7 +8,7 @@ import { MessageManager } from "./handlers/MessageManager";
 import { SummaryHandler } from "./handlers/SummaryHandler";
 import { ToolHandler } from "./handlers/ToolHandler";
 import { determineActiveMessageRange } from "./utils/messageUtils";
-import { Signal, computed } from "@preact/signals-core";
+import { Signal, computed, effect } from "@preact/signals-core";
 
 export class ConverseStore {
   private messageManager: MessageManager;
@@ -24,10 +24,19 @@ export class ConverseStore {
     this.toolHandler = new ToolHandler();
     this.summaryHandler = new SummaryHandler(this.llmHandler);
 
-    const activeProjectId = projectStore.getActiveProject();
-    if (activeProjectId) {
-      this.setProject(activeProjectId);
-    }
+    // Set up effect to sync with the active project from projectStore
+    effect(() => {
+      const project = projectStore.activeProject.value;
+      if (project) {
+        // Don't trigger setProject from inside the effect if the project hasn't changed
+        if (this.projectId !== project.id) {
+          this.setProject(project.id);
+        }
+      } else if (this.projectId !== null) {
+        // Only clear if we actually have a project set
+        this.setProject(null);
+      }
+    });
   }
 
   // In ConverseStore
@@ -60,15 +69,20 @@ export class ConverseStore {
 
   public setProject(id: string | null): void {
     console.log("Setting project:", id);
+    
+    // If the project hasn't changed, do nothing
+    if (this.projectId === id) {
+      console.log("Project ID unchanged, skipping update");
+      return;
+    }
+    
     this.projectId = id;
 
     if (id) {
       const project = projectStore.getProject(id);
       console.log("Loaded project data:", project);
 
-      // Load project's summary state first
-      this.summaryHandler.loadProjectSummary(id);
-
+      // Load project's messages first
       if (project?.messages) {
         const messages = Array.isArray(project.messages)
           ? project.messages
@@ -94,11 +108,12 @@ export class ConverseStore {
           sequence: 0,
         });
       }
+      
+      // Load project's summary state after messages are set
+      this.summaryHandler.loadProjectSummary(id);
     } else {
       console.log("Clearing message manager - no project selected");
       this.messageManager.clear();
-      // Clear summary state when no project is selected
-      this.summaryHandler.loadProjectSummary(null); // We'll need to add support for null in loadProjectSummary
     }
 
     this.notifyMessageChange();
@@ -163,10 +178,11 @@ export class ConverseStore {
       let modelId: string | undefined;
 
       if (this.projectId) {
-        const project = projectStore.getProject(this.projectId);
-        enabledTools = project?.config?.enabledTools;
-        persistentUserMessage = project?.config?.persistentUserMessage;
-        modelId = project?.config?.model; // Get the model ID from project config
+        // Use projectStore.getProjectConfig for a more direct approach
+        const config = projectStore.getProjectConfig(this.projectId);
+        enabledTools = config?.enabledTools;
+        persistentUserMessage = config?.persistentUserMessage;
+        modelId = config?.model;
       }
 
       // Add archive summary context if available and we have a project
@@ -500,12 +516,8 @@ export class ConverseStore {
   private saveToStorage(): void {
     if (this.projectId) {
       const messages = this.messageManager.getMessages();
-      const project = projectStore.getProject(this.projectId);
-
-      if (project) {
-        // Update messages
-        projectStore.updateProjectMessages(this.projectId, messages);
-      }
+      // Use direct update method from projectStore
+      projectStore.updateProjectMessages(this.projectId, messages);
     } else {
       console.warn("Attempted to save messages with no active project");
     }
