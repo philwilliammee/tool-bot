@@ -1,4 +1,5 @@
 // src/components/ProjectManager/ProjectManager.ts
+import { effect, batch } from "@preact/signals-core";
 import { converseStore } from "../../stores/ConverseStore/ConverseStore";
 import { projectStore } from "../../stores/ProjectStore/ProjectStore";
 import { converseAgentConfig } from "../../agents/converseAgent";
@@ -16,6 +17,25 @@ export class ProjectManager {
   constructor() {
     this.initializeElements();
     this.setupEventListeners();
+    
+    // Add effect to update UI when projects change
+    this.cleanupFns.push(
+      effect(() => {
+        // This will re-run whenever allProjects signal changes
+        const projects = projectStore.allProjects.value;
+        this.render();
+      })
+    );
+    
+    // Add effect to update UI when active project changes
+    this.cleanupFns.push(
+      effect(() => {
+        // This will re-run whenever activeProject signal changes
+        const activeProject = projectStore.activeProject.value;
+        this.render();
+      })
+    );
+    
     this.render();
   }
 
@@ -48,7 +68,7 @@ export class ProjectManager {
     this.dropdown.addEventListener("change", (e) => {
       const projectId = (e.target as HTMLSelectElement).value;
       projectStore.setActiveProject(projectId);
-      converseStore.setProject(projectId);
+      // converseStore will be updated via an effect in ConverseStore
     });
 
     // New project button
@@ -122,31 +142,32 @@ export class ProjectManager {
         return; // Don't create project if name is empty
       }
 
-      const projectId = projectStore.createProject(
-        nameInput.value.trim(),
-        descInput.value.trim()
-      );
+      // Use batch to perform all operations together
+      batch(() => {
+        const projectId = projectStore.createProject(
+          nameInput.value.trim(),
+          descInput.value.trim()
+        );
 
-      // Update project configuration
-      projectStore.updateProjectConfig(projectId, {
-        model: modelSelect.value,
-        systemPrompt: systemPromptInput.value.trim(),
-        persistentUserMessage: persistentMessageInput.value.trim(),
-        enabledTools: enabledTools,
+        // Update project configuration
+        projectStore.updateProjectConfig(projectId, {
+          model: modelSelect.value,
+          systemPrompt: systemPromptInput.value.trim(),
+          persistentUserMessage: persistentMessageInput.value.trim(),
+          enabledTools: enabledTools,
+        });
+
+        projectStore.setActiveProject(projectId);
       });
-
-      projectStore.setActiveProject(projectId);
-      converseStore.setProject(projectId);
 
       form.reset();
       this.formModal.close();
-      this.render();
     });
   }
 
   private render(): void {
-    // Update dropdown options
-    const projects = projectStore.getAllProjects();
+    // Update dropdown options using signals
+    const projects = projectStore.allProjects.value;
     const activeId = projectStore.getActiveProject();
 
     this.dropdown.innerHTML = `
@@ -164,7 +185,8 @@ export class ProjectManager {
   }
 
   private renderProjectList(): void {
-    const projects = projectStore.getAllProjects();
+    // Use signals for reactive data
+    const projects = projectStore.allProjects.value;
     const groupedModelOptions = getGroupedModelOptions();
 
     // Get available tools from registry
@@ -306,16 +328,16 @@ export class ProjectManager {
 
       item.querySelector(".select-btn")?.addEventListener("click", () => {
         projectStore.setActiveProject(id);
-        converseStore.setProject(id);
         this.modal.close();
-        this.render();
       });
 
       item.querySelector(".delete-btn")?.addEventListener("click", () => {
         if (confirm("Are you sure you want to delete this project?")) {
-          projectStore.deleteProject(id);
-          this.renderProjectList();
-          this.render();
+          try {
+            projectStore.deleteProject(id);
+          } catch (error) {
+            alert("Cannot delete the last project.");
+          }
         }
       });
 
@@ -382,9 +404,6 @@ export class ProjectManager {
               cloneMessages
             );
             console.log(`Project cloned successfully: ${newProjectId}`);
-
-            // Refresh the project list to show the new project
-            this.renderProjectList();
           } catch (error) {
             console.error("Failed to clone project:", error);
           }
