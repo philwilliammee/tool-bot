@@ -43,6 +43,13 @@ export class ChatMessage {
     this.domElement.className = "message-container";
     this.domElement.dataset.messageId = this.message.id;
 
+    // Apply archived-message class if the message is archived
+    if (this.message.metadata?.isArchived) {
+      this.domElement.classList.add("archived-message");
+      this.domElement.title =
+        "Archived message - not included in context window";
+    }
+
     // Put the template content inside our container
     while (this.element.firstChild) {
       this.domElement.appendChild(this.element.firstChild);
@@ -74,6 +81,19 @@ export class ChatMessage {
    */
   public async update(newMessage: MessageExtended): Promise<void> {
     this.message = newMessage;
+
+    // Update archived status if changed
+    if (this.domElement) {
+      if (this.message.metadata?.isArchived) {
+        this.domElement.classList.add("archived-message");
+        this.domElement.title =
+          "Archived message - not included in context window";
+      } else {
+        this.domElement.classList.remove("archived-message");
+        this.domElement.title = "";
+      }
+    }
+
     await this.updateContent();
   }
 
