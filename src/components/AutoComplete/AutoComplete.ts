@@ -136,6 +136,14 @@ Generate the final output in html format using a chart to show the height of the
     selected?.scrollIntoView({ block: "nearest" });
   }
 
+  /**
+   * Check if there is currently a highlighted suggestion
+   * @returns true if there's a valid selection, false otherwise
+   */
+  public hasHighlightedSuggestion(): boolean {
+    return this.currentSelection >= 0 && this.currentSelection < this.suggestions.length;
+  }
+
   public selectCurrent(): void {
     if (this.currentSelection < 0) return;
     const suggestion = this.suggestions[this.currentSelection];
@@ -167,7 +175,7 @@ Generate the final output in html format using a chart to show the height of the
     this.textarea.focus();
     this.textarea.setSelectionRange(newCursor, newCursor);
 
-    // Dispatch a native "input" event so the parent’s onInput listener fires
+    // Dispatch a native "input" event so the parent's onInput listener fires
     const event = new Event("input", { bubbles: true });
     this.textarea.dispatchEvent(event);
 

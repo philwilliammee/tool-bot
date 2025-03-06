@@ -3,6 +3,9 @@ import { MessageExtended } from "../../app.types";
 import { ReExecuteButton } from "../ReExecuteButton/ReExecuteButton";
 
 export class ChatMessage {
+  // This tracks the actual element in the DOM
+  private domElement: HTMLElement | null = null;
+  // This is the cloned template content
   private element: HTMLElement | null = null;
   private content: HTMLElement | null = null;
   private cleanupFns: Array<() => void> = [];
@@ -19,21 +22,38 @@ export class ChatMessage {
   ) {}
 
   /**
-   * Creates the main DOM element for this message by cloning a template.
+   * Creates the main DOM element for this message by cloning a template,
+   * and returns it for appending to the DOM.
    */
   public async render(): Promise<HTMLElement | null> {
-    if (this.message.metadata.hasToolResult) {
-    }
     const templateId = this.message.metadata.hasToolResult
       ? "tool-message-template"
       : `${this.message.role}-message-template`;
     const template = document.getElementById(templateId) as HTMLTemplateElement;
-    if (!template) return null;
+    if (!template) {
+      console.error(`ChatMessage: Template not found: ${templateId}`);
+      return null;
+    }
 
     // Clone the template into this.element
     this.element = template.content.cloneNode(true) as HTMLElement;
-    this.content = this.element.querySelector(".message-content-wrapper");
-    if (!this.content) return null;
+
+    // Create a wrapper container that will be our actual DOM element
+    this.domElement = document.createElement("div");
+    this.domElement.className = "message-container";
+    this.domElement.dataset.messageId = this.message.id;
+
+    // Put the template content inside our container
+    while (this.element.firstChild) {
+      this.domElement.appendChild(this.element.firstChild);
+    }
+
+    // Find content wrapper inside our container
+    this.content = this.domElement.querySelector(".message-content-wrapper");
+    if (!this.content) {
+      console.error("ChatMessage: Content wrapper not found in template");
+      return null;
+    }
 
     this.content.setAttribute("data-message-id", this.message.id);
     this.content.setAttribute(
@@ -45,7 +65,7 @@ export class ChatMessage {
     // Render or update content
     await this.update(this.message);
 
-    return this.element;
+    return this.domElement;
   }
 
   /**
@@ -189,8 +209,25 @@ export class ChatMessage {
    * Destroys this ChatMessage component and cleans up event listeners.
    */
   public destroy(): void {
+    // Run cleanup functions for event listeners
     this.cleanupFns.forEach((fn) => fn());
     this.cleanupFns = [];
+
+    // Remove our element from DOM if it exists
+    if (this.domElement && this.domElement.parentElement) {
+      this.domElement.parentElement.removeChild(this.domElement);
+    } else {
+      // Try to find the element directly in the DOM as backup
+      const domElement = document.querySelector(
+        `[data-message-id="${this.message.id}"]`
+      );
+      if (domElement && domElement.parentElement) {
+        domElement.parentElement.removeChild(domElement);
+      }
+    }
+
+    // Clear references
+    this.domElement = null;
     this.element = null;
     this.content = null;
   }

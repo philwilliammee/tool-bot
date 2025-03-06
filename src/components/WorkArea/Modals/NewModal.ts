@@ -55,12 +55,14 @@ export class NewMessageModal extends BaseModal {
     ) as HTMLInputElement;
 
     if (roleSelect?.value && contentInput?.value.trim()) {
-      const tags = tagsInput.value
-        .split(",")
-        .map((tag) => tag.trim())
-        .filter((tag) => tag.length > 0);
+      const tags = tagsInput?.value
+        ? tagsInput.value
+            .split(",")
+            .map((tag) => tag.trim())
+            .filter((tag) => tag.length > 0)
+        : [];
 
-      const rating = parseInt(ratingInput.value) || 0;
+      const rating = ratingInput?.value ? parseInt(ratingInput.value) : 0;
 
       onAdd(
         roleSelect.value as "user" | "assistant",

@@ -1,7 +1,7 @@
 import { Message } from "@aws-sdk/client-bedrock-runtime";
 import { MessageExtended } from "../../../app.types";
+import { Signal, signal } from "@preact/signals-core";
 
-// @todo add chat summary a llm tool or agent that summarizes the older pieces of the chat context.
 /**
  * Configuration for managing conversation context windows based on token limits.
  * maxTokens sets the absolute limit, targetTokens is used to calculate the optimal
@@ -20,6 +20,10 @@ export class MessageManager {
   private tokenConfig: TokenConfig;
   threshold: number = 10; // Initial threshold, will be adjusted by token counts
 
+  // Signal-based state
+  private messagesSignal = signal<MessageExtended[]>([]);
+  private messagesUpdatedSignal = signal<number>(0); // Timestamp of last update
+
   constructor(
     tokenConfig: TokenConfig = {
       maxTokens: 6000,
@@ -28,6 +32,31 @@ export class MessageManager {
     }
   ) {
     this.tokenConfig = tokenConfig;
+  }
+
+  // Signal getters
+  public getMessagesSignal(): Signal<MessageExtended[]> {
+    return this.messagesSignal;
+  }
+
+  public getMessagesUpdatedSignal(): Signal<number> {
+    return this.messagesUpdatedSignal;
+  }
+
+  // Update the signal with current messages
+  private updateSignals(): void {
+    const messageCount = this.messages.size;
+
+    // Create a new array from the messages map to ensure reference changes
+    const currentMessages = Array.from(this.messages.values()).sort(
+      (a, b) =>
+        (a.metadata.sequenceNumber || 0) - (b.metadata.sequenceNumber || 0)
+    );
+
+    // Always create new array references to ensure reactivity
+    this.messagesSignal.value = [...currentMessages];
+    // Update timestamp to trigger effects even if array reference hasn't changed
+    this.messagesUpdatedSignal.value = Date.now();
   }
 
   public getNextId(): string {
@@ -40,9 +69,9 @@ export class MessageManager {
     return (
       message.content?.reduce((total, block) => {
         if (block.text) {
-          return total + block.text.split(/\s+/).length;
+          return total + block.text.split(/\\s+/).length;
         } else if (block.toolUse || block.toolResult) {
-          return total + JSON.stringify(block).split(/\s+/).length;
+          return total + JSON.stringify(block).split(/\\s+/).length;
         }
         return total;
       }, 0) ?? 0
@@ -133,6 +162,10 @@ export class MessageManager {
     this.messages.set(newMessage.id, newMessage);
     this.messageOrder.push(newMessage.id);
     this.updateThresholdBasedOnTokens();
+
+    // Update signals after adding a message
+    this.updateSignals();
+
     return newMessage;
   }
 
@@ -172,6 +205,10 @@ export class MessageManager {
 
     this.messages.set(id, updatedMessage);
     this.updateThresholdBasedOnTokens();
+
+    // Update signals after modifying a message
+    this.updateSignals();
+
     return updatedMessage;
   }
 
@@ -208,6 +245,10 @@ export class MessageManager {
       };
       this.messages.set(existingMessage.id, updatedMessage);
       this.updateThresholdBasedOnTokens();
+
+      // Update signals after modifying a message
+      this.updateSignals();
+
       return updatedMessage;
     } else {
       console.log("Creating new message from upsert data");
@@ -216,10 +257,16 @@ export class MessageManager {
   }
 
   public deleteMessage(id: string): void {
-    console.log("Deleting message:", id);
+    // Delete the message
     this.messages.delete(id);
+
+    // Update message order
     this.messageOrder = this.messageOrder.filter((msgId) => msgId !== id);
+
     this.updateThresholdBasedOnTokens();
+
+    // Update signals after deleting a message
+    this.updateSignals();
   }
 
   public clear(): void {
@@ -227,6 +274,9 @@ export class MessageManager {
     this.messages.clear();
     this.messageOrder = [];
     this.sequence = 0;
+
+    // Update signals after clearing messages
+    this.updateSignals();
   }
 
   private updateArchiveStatus(): void {
@@ -235,17 +285,21 @@ export class MessageManager {
       `Updating archive status. Active messages: ${activeIds.length}`
     );
 
+    let hasChanges = false;
     this.messages.forEach((message, id) => {
       const wasArchived = message.metadata.isArchived;
       const isNowArchived = !activeIds.includes(id);
 
       if (wasArchived !== isNowArchived) {
-        // console.log(
-        //   `Message ${id} archived status changed: ${wasArchived} -> ${isNowArchived}`
-        // );
         message.metadata.isArchived = isNowArchived;
+        hasChanges = true;
       }
     });
+
+    // Only update signals if archive status changed
+    if (hasChanges) {
+      this.updateSignals();
+    }
   }
 
   public getState() {
@@ -290,5 +344,13 @@ export class MessageManager {
 
     console.log(`Restored ${this.messageOrder.length} messages`);
     this.updateThresholdBasedOnTokens();
+
+    // Update signals after setting state
+    this.updateSignals();
+  }
+
+  // Public method to explicitly force signal updates
+  public updateSignalsExplicitly(): void {
+    this.updateSignals();
   }
 }

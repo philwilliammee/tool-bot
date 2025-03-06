@@ -4,7 +4,23 @@ import { signal, computed, batch } from "@preact/signals-core";
 type TabId = "preview" | "work-area" | "data";
 
 /**
- * UI State Transition Diagram:
+ * UI Layout State Management
+ * 
+ * The application has three layout states that control panel visibility:
+ * 
+ * 1. "normal": Default state
+ *    - Left panel at 30% width (reduced)
+ *    - Right panel at 70% width
+ * 
+ * 2. "left-expanded": Left panel expanded
+ *    - Left panel at 100% width
+ *    - Right panel collapsed (hidden)
+ * 
+ * 3. "right-expanded": Right panel expanded
+ *    - Right panel at 100% width
+ *    - Left panel collapsed (hidden)
+ * 
+ * State Transition Diagram:
  *
  *  ┌────────────┐     TOGGLE_LEFT      ┌────────────────┐
  *  │            │─────────────────────▶│                │
@@ -38,7 +54,24 @@ function createAppStore() {
   // UI Layout State
   const uiLayout = signal<UILayout>("normal");
 
-  // State transition reducer
+  /**
+   * Handles UI layout state transitions based on the current state and action
+   * 
+   * State transitions follow these rules:
+   * - From "normal": 
+   *   - TOGGLE_LEFT_PANEL → "left-expanded"
+   *   - TOGGLE_RIGHT_PANEL → "right-expanded"
+   * - From "left-expanded":
+   *   - TOGGLE_LEFT_PANEL → "normal"
+   *   - TOGGLE_RIGHT_PANEL → no change (stay in "left-expanded")
+   * - From "right-expanded":
+   *   - TOGGLE_LEFT_PANEL → no change (stay in "right-expanded")
+   *   - TOGGLE_RIGHT_PANEL → "normal"
+   * 
+   * @param currentLayout The current UI layout state
+   * @param action The action being performed
+   * @returns The new UI layout state
+   */
   function reduceUILayout(currentLayout: UILayout, action: UIAction): UILayout {
     console.log("UI State Transition:", {
       from: currentLayout,
@@ -103,20 +136,36 @@ function createAppStore() {
     shouldDisableInput,
     statusMessage,
 
-    // UI Layout Actions
+    /**
+     * Toggles the left panel between normal and expanded states
+     * - If currently in "normal" state: transitions to "left-expanded"
+     * - If currently in "left-expanded" state: transitions to "normal"
+     * - If currently in "right-expanded" state: no change (stays in "right-expanded")
+     */
     toggleLeftPanel() {
       const newLayout = reduceUILayout(uiLayout.value, "TOGGLE_LEFT_PANEL");
+      console.log("Toggle Left Panel: Changing layout from", uiLayout.value, "to", newLayout);
       uiLayout.value = newLayout;
       localStorage.setItem("uiLayout", newLayout);
     },
 
+    /**
+     * Toggles the right panel between normal and expanded states
+     * - If currently in "normal" state: transitions to "right-expanded"
+     * - If currently in "right-expanded" state: transitions to "normal"
+     * - If currently in "left-expanded" state: no change (stays in "left-expanded")
+     */
     toggleRightPanel() {
       const newLayout = reduceUILayout(uiLayout.value, "TOGGLE_RIGHT_PANEL");
+      console.log("Toggle Right Panel: Changing layout from", uiLayout.value, "to", newLayout);
       uiLayout.value = newLayout;
       localStorage.setItem("uiLayout", newLayout);
     },
 
-    // Initialize UI Layout
+    /**
+     * Initializes the UI layout state from localStorage or defaults to "normal"
+     * This should be called during application initialization
+     */
     initializeUILayout() {
       const savedLayout = localStorage.getItem("uiLayout") as UILayout;
       if (
@@ -127,6 +176,8 @@ function createAppStore() {
         console.log("UI Layout Restored:", savedLayout);
       } else {
         console.log("Using default UI Layout: normal");
+        // Ensure we clear any old invalid layout value
+        localStorage.removeItem("uiLayout");
       }
     },
 
