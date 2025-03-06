@@ -23,7 +23,7 @@ export const xToolConfig: ToolConfiguration = {
               },
               username: {
                 type: "string",
-                description: "X username to fetch posts from",
+                description: "X username to fetch posts from, if you don't know what username to use make sure to ask for clarification.",
               },
               limit: {
                 type: "number",
