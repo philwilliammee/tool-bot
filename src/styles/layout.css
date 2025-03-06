@@ -9,20 +9,19 @@
 /* Base Layout Container */
 .main-content {
   display: flex;
-  /* height: calc(100vh - var(--header-height)); */
   overflow: hidden;
   flex: 1;
+  position: relative;
 }
 
 /* Left Panel Base Styles */
 .left-column {
-  width: 30%;
-  min-width: 500px;
   display: flex;
   flex-direction: column;
   border-right: 1px solid #e5e7eb;
   overflow: hidden;
   transition: all 0.3s ease;
+  /* No default width - let the state classes handle this */
 }
 
 /* Left Panel States */
@@ -33,7 +32,7 @@
 
 .left-column.expanded {
   width: 100%;
-  min-width: none;
+  min-width: 0;
 }
 
 .left-column.collapsed {
@@ -61,6 +60,11 @@
   opacity: 0;
   flex: 0;
   pointer-events: none;
+}
+
+.right-column.expanded {
+  width: 100%;
+  flex: 1;
 }
 
 /* Toggle Button Styles */
@@ -112,12 +116,18 @@
 }
 
 /* Content Visibility Management */
-.left-column.collapsed *:not(.toggle-panel-btn) {
-  visibility: hidden; /* Hide content but keep button visible */
+.left-column.collapsed * {
+  visibility: hidden;
 }
 
 .right-column.collapsed * {
   visibility: hidden;
+}
+
+/* Make sure toggle buttons are always visible */
+.toggle-panel-btn {
+  visibility: visible !important;
+  opacity: 1 !important;
 }
 
 /* Accessibility Enhancements */

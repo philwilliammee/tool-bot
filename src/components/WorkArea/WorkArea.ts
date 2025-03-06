@@ -7,36 +7,65 @@ import { MessageExtended } from "../../app.types";
 import { dataStore } from "../../stores/DataStore/DataStore";
 import { marked } from "marked"; // Add this import for markdown rendering
 import { projectStore } from "../../stores/ProjectStore/ProjectStore";
+import { ArchivedMessages } from "./ArchivedMessages";
 
 export class WorkArea {
   private modals: WorkAreaModals;
   private messageTable: MessageTable;
+  private archivedMessages: ArchivedMessages | null = null;
   private initialized: boolean = false;
   private cleanupFns: Array<() => void> = [];
 
   constructor(private element: HTMLElement) {
-    console.log("WorkArea component initialized");
-    this.modals = new WorkAreaModals();
+    console.log("WorkArea component initialized with element:", element);
+
+    // Initialize message table with handlers
     this.messageTable = new MessageTable(
       this.handleViewMessage.bind(this),
       this.handleEditMessage.bind(this),
       this.handleDeleteMessage.bind(this)
     );
 
+    // Initialize modals
+    this.modals = new WorkAreaModals();
+
+    // Complete initialization
     this.initialize();
+    console.log("WorkArea initialization complete");
   }
 
   private initialize(): void {
+    // Mount the message table to the DOM
+    console.log("Mounting message table");
     this.messageTable.mount();
+
+    // Set up event handlers
     this.setupEventListeners();
+
+    // Initialize panels
     this.initializeDataContextPanel();
     this.initializeArchiveSummaryPanel();
 
+    // Set up effects for reactive updates
+    this.setupEffects();
+
+    // Initial content update
+    this.updateDynamicContent();
+
+    // Mark as initialized
+    this.initialized = true;
+  }
+
+  private setupEffects(): void {
+    // Tab visibility effect
     this.cleanupFns.push(
       effect(() => {
         const isActive = store.activeTab.value === "work-area";
+        console.log("WorkArea tab active:", isActive);
+
+        // Update visibility
         this.element.style.display = isActive ? "block" : "none";
-        
+
         // Update content if becoming visible
         if (isActive) {
           this.updateDynamicContent();
@@ -44,6 +73,7 @@ export class WorkArea {
       })
     );
 
+    // UI state effect
     this.cleanupFns.push(
       effect(() => {
         if (store.isGenerating.value) {
@@ -53,8 +83,8 @@ export class WorkArea {
         }
       })
     );
-    
-    // Active project effect - updates when project changes
+
+    // Active project effect
     this.cleanupFns.push(
       effect(() => {
         // This effect will run whenever the active project changes
@@ -66,24 +96,28 @@ export class WorkArea {
         }
       })
     );
-    
-    // Messages effect - updates when messages change
+
+    // Messages effect
     this.cleanupFns.push(
       effect(() => {
         const messages = projectStore.activeProjectMessages.value;
         if (store.activeTab.value === "work-area") {
+          console.log(
+            "Messages updated, updating WorkArea with",
+            messages.length,
+            "messages"
+          );
           this.updateMessageCount();
           this.updateButtonStates();
         }
       })
     );
 
-    // Still keep the converseStore listener for compatibility
-    converseStore.onMessagesChange(() => {
+    // Legacy listener for compatibility
+    converseStore.onMessagesChange((messages) => {
+      console.log("Messages changed via callback, count:", messages.length);
       this.updateDynamicContent();
     });
-
-    this.initialized = true;
   }
 
   // Add new method for data context panel
@@ -133,111 +167,41 @@ export class WorkArea {
 
   // Use effect for reactive updates with signals
   private initializeArchiveSummaryPanel(): void {
-    const button = this.element.querySelector(".archive-summary-button");
-    const popover = this.element.querySelector(
-      ".archive-summary-popover"
-    ) as HTMLElement;
-    const textElement = this.element.querySelector(".archive-summary-text");
-    const panel = this.element.querySelector(".archive-summary-panel");
+    const archiveSummaryPanel = this.element.querySelector(
+      ".archive-summary-panel"
+    );
 
-    if (!button || !popover || !textElement || !panel) {
-      console.warn("Archive summary panel elements not found");
+    if (!archiveSummaryPanel) {
+      console.warn("Archive summary panel element not found");
       return;
     }
 
-    // Add effect for archive summary updates
-    this.cleanupFns.push(
-      effect(() => {
-        const archiveSummary = projectStore.activeProjectArchiveSummary.value;
-        const isSummarizing = converseStore.getIsSummarizing().value;
-        
-        // Update button state based on summarizing status
-        if (isSummarizing) {
-          button.classList.add("is-summarizing");
-        } else {
-          button.classList.remove("is-summarizing");
-        }
-        
-        // Only update content if popover is open
-        if (popover.matches(':popover-open')) {
-          this.updateArchiveSummaryDisplay().catch(console.error);
-        }
-      })
-    );
+    try {
+      // Initialize the ArchivedMessages component with the panel element
+      this.archivedMessages = new ArchivedMessages(
+        archiveSummaryPanel as HTMLElement
+      );
 
-    // Update summary when popover is opened
-    button.addEventListener("click", () => {
-      console.log("Archive summary button clicked");
-      this.updateArchiveSummaryDisplay().catch(console.error);
-      popover.togglePopover();
-    });
-
-    // Initial update
-    this.updateArchiveSummaryDisplay().catch(console.error);
-
-    // Cleanup popover
-    this.cleanupFns.push(() => {
-      popover.hidePopover();
-    });
-  }
-  
-  private async updateArchiveSummaryDisplay(): Promise<void> {
-    const button = this.element.querySelector(".archive-summary-button");
-    const textElement = this.element.querySelector(".archive-summary-text");
-    
-    if (!button || !textElement) return;
-    
-    const isSummarizing = converseStore.getIsSummarizing().value;
-    const currentProject = projectStore.activeProject.value;
-    
-    if (!currentProject) return;
-    
-    const summary = currentProject.archiveSummary?.summary;
-    const messages = converseStore.getMessages();
-    const archivedMessages = messages.filter(
-      (msg) => msg.metadata.isArchived && msg.projectId === currentProject.id
-    );
-    
-    if (isSummarizing) {
-      textElement.innerHTML = "Generating summary...";
-      button.classList.add("is-summarizing");
-    } else {
-      button.classList.remove("is-summarizing");
-      if (summary) {
-        try {
-          const rendered = await marked(summary);
-          textElement.innerHTML = rendered;
-          button.classList.add("has-summary");
-        } catch (error) {
-          console.error("Failed to render summary:", error);
-          textElement.textContent = "Error rendering summary";
-        }
-      } else {
-        textElement.textContent =
-          archivedMessages.length > 0
-            ? "No summary available yet"
-            : "No archived messages";
-        button.classList.remove("has-summary");
-      }
+      // Add cleanup function
+      this.cleanupFns.push(() => {
+        this.archivedMessages?.destroy();
+        this.archivedMessages = null;
+      });
+    } catch (error) {
+      console.error("Failed to initialize archive summary panel:", error);
     }
+  }
 
-    // Update button text
-    button.innerHTML = `
-      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <path d="M21 8v13H3V8"></path>
-        <path d="M1 3h22v5H1z"></path>
-        <path d="M10 12h4"></path>
-      </svg>
-      Archive Summary ${
-        archivedMessages.length > 0 ? `(${archivedMessages.length})` : ""
-      }
-      ${isSummarizing ? '<span class="spinner"></span>' : ""}
-    `;
+  private async updateArchiveSummaryDisplay(): Promise<void> {
+    // This is now handled by the ArchivedMessages component through effects
+    // We can keep this method as a no-op for backward compatibility
+    return Promise.resolve();
   }
 
   // Rest of existing methods remain, but with signal-based updates
   private updateDynamicContent(): void {
     if (store.activeTab.value === "work-area") {
+      console.log("Updating WorkArea dynamic content");
       this.updateMessageCount();
       this.updateButtonStates();
     }
@@ -249,6 +213,7 @@ export class WorkArea {
       // Use the active project messages signal
       const messages = projectStore.activeProjectMessages.value;
       countElement.textContent = `${messages.length} messages`;
+      console.log("Updated message count to", messages.length);
     }
   }
 
@@ -357,6 +322,7 @@ export class WorkArea {
   }
 
   public destroy(): void {
+    console.log("Destroying WorkArea component");
     this.cleanupFns.forEach((cleanup) => cleanup());
     this.modals.destroy();
     this.messageTable.destroy();

@@ -18,6 +18,7 @@ An AI-powered chat bot that can help with various tasks through natural language
 - Project management system
 - File system operations and management
 - Comprehensive tool integration system
+- Responsive UI with collapsible panels
 
 ### Available Tools
 - **LDAP Tool**: Directory services integration and user search
@@ -103,6 +104,15 @@ An AI-powered chat bot that can help with various tasks through natural language
 - **Tool Registry**: Manages tool registration and execution
 - **Data Store**: Persistent storage for projects and data
 - **Error Handling**: Robust error recovery system
+- **UI State Management**: Signal-based reactive state management
+
+### UI Layout System
+The application features a responsive layout system with three main states:
+- **Normal**: Default state with left panel at 30% width
+- **Left-expanded**: Left panel expanded to full width, right panel collapsed
+- **Right-expanded**: Right panel expanded to full width, left panel collapsed
+
+Toggle buttons in each panel allow users to switch between these states.
 
 ### Security Considerations
 - Keep API keys secure and never commit them to version control
@@ -128,15 +138,17 @@ For detailed instructions on creating custom tools, please refer to the [tools/R
 - Follow existing patterns for tool implementation
 - Include tests for new features
 - Update documentation as needed
+- Store event handlers as class properties for proper cleanup
 
 ## Development Status
 
 ### Recent Updates ✅
+- Signal-based reactive state management implementation
+- Improved event handler management for proper cleanup
+- Fixed UI toggle functionality
+- Enhanced WorkArea component with better message display
 - X Tool integration for social media interaction
 - Enhanced GitHub integration via Octokit
-- Secure bash command execution
-- Data Store implementation
-- Chat streaming optimization
 
 ### Current Focus 🚧
 - SQL tool implementation
@@ -164,12 +176,13 @@ For detailed instructions on creating custom tools, please refer to the [tools/R
 - Data persistence layer
 - GitHub integration
 - Social media integration
+- Responsive UI layout system
 
 ### Phase 3: Current Development 🚀
 - SQL integration
-- Archive management
+- ✅ Archive management
 - Workflow automation
-- Tool configuration UI
+- ✅ Tool configuration UI
 - Enhanced security features
 
 ### Future Plans 🔮
@@ -214,3 +227,26 @@ To clone a project:
 4. Enter a name for the new project (or accept the default "Copy of [Original]")
 5. The cloned project will appear in your project list with all the same settings
 
+## Best Practices for Component Development
+
+When developing components for Tool-Bot, follow these best practices:
+
+1. **Event Handler Management**:
+   - Store event handler functions as class properties
+   - Use these stored references when both adding and removing event listeners
+   - This ensures proper cleanup and prevents memory leaks
+
+2. **State Management**:
+   - Use signals for reactive state
+   - Prefer computed signals for derived state
+   - Set up effects to respond to state changes
+
+3. **Component Lifecycle**:
+   - Initialize all resources in a consistent way
+   - Clean up all resources in the destroy method
+   - Store cleanup functions in an array for easy management
+
+4. **UI Layout Interactions**:
+   - Respect the established layout system (normal, left-expanded, right-expanded)
+   - Avoid duplicate event handlers for layout controls
+   - Use the signals from AppStore for layout state

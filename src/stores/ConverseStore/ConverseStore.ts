@@ -39,6 +39,15 @@ export class ConverseStore {
     });
   }
 
+  // Signal-based accessor methods
+  public getMessagesSignal(): Signal<MessageExtended[]> {
+    return this.messageManager.getMessagesSignal();
+  }
+
+  public getMessagesUpdatedSignal(): Signal<number> {
+    return this.messageManager.getMessagesUpdatedSignal();
+  }
+
   // In ConverseStore
   public getIsSummarizing(): Signal<boolean> {
     return this.summaryHandler.getIsSummarizing();
@@ -69,13 +78,13 @@ export class ConverseStore {
 
   public setProject(id: string | null): void {
     console.log("Setting project:", id);
-    
+
     // If the project hasn't changed, do nothing
     if (this.projectId === id) {
       console.log("Project ID unchanged, skipping update");
       return;
     }
-    
+
     this.projectId = id;
 
     if (id) {
@@ -108,7 +117,7 @@ export class ConverseStore {
           sequence: 0,
         });
       }
-      
+
       // Load project's summary state after messages are set
       this.summaryHandler.loadProjectSummary(id);
     } else {
@@ -470,8 +479,34 @@ export class ConverseStore {
       return;
     }
 
+    const messageExists = this.messageManager.getMessage(id);
+    if (!messageExists) {
+      console.warn(`Message ${id} not found, cannot delete`);
+      return;
+    }
+
     this.messageManager.deleteMessage(id);
     this.notifyMessageChange();
+
+    // Keep a minimal safety check to ensure DOM updates
+    setTimeout(() => {
+      // Check for any elements with this message ID
+      const elements = document.querySelectorAll(`[data-message-id="${id}"]`);
+      if (elements.length > 0) {
+        console.warn(
+          `Message ${id} still in DOM after deletion, forcing removal`
+        );
+        elements.forEach((element) => element.remove());
+      }
+
+      // Double check for message containers too
+      const containers = document.querySelectorAll(
+        `.message-container[data-message-id="${id}"]`
+      );
+      if (containers.length > 0) {
+        containers.forEach((container) => container.remove());
+      }
+    }, 200);
   }
 
   public deleteAllMessages(): void {
@@ -492,6 +527,7 @@ export class ConverseStore {
     return this.messageManager.getMessages();
   }
 
+  // Keep the callback-based API for backward compatibility
   public onMessagesChange(
     callback: (msgs: MessageExtended[]) => void
   ): () => void {
@@ -505,10 +541,15 @@ export class ConverseStore {
 
   private notifyMessageChange(): void {
     const messages = this.getMessages();
+
+    // Explicitly force signal update in messageManager to ensure reactivity
+    this.messageManager.updateSignalsExplicitly();
+
     console.log(
       `Notifying ${this.messageChangeCallbacks.length} listeners of message change. Messages:`,
       messages.length
     );
+
     this.messageChangeCallbacks.forEach((cb) => cb(messages));
     this.saveToStorage();
   }

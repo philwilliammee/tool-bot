@@ -396,6 +396,28 @@ export class ProjectStore {
       this.saveProjects();
     });
   }
+
+  // Add the missing showProjectManager method
+  public showProjectManager(): void {
+    console.log("Showing project manager modal");
+    const projectModal = document.getElementById('project-modal') as HTMLDialogElement;
+    if (projectModal) {
+      projectModal.showModal();
+    } else {
+      console.error("Project modal element not found");
+    }
+  }
+  
+  // Add the showNewProjectForm method
+  public showNewProjectForm(): void {
+    console.log("Showing new project form modal");
+    const projectFormModal = document.getElementById('project-form-modal') as HTMLDialogElement;
+    if (projectFormModal) {
+      projectFormModal.showModal();
+    } else {
+      console.error("Project form modal element not found");
+    }
+  }
 }
 
 // Create a singleton instance
