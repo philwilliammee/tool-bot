@@ -1,0 +1,17 @@
+---
+description: Coding best practices.
+globs: 
+---
+
+# Coding Process Best Practices
+
+- Always prefer simple solutions
+- Only make requested changes or well-understood related improvements
+- Confirm new patterns with the team before implementation
+- Keep files under 300 lines
+- Use data attributes for DOM element tracking
+- Write clear, descriptive variable and function names
+- Add appropriate error handling and logging
+- Document complex logic or non-obvious solutions
+- Follow established patterns in the codebase
+- Test changes thoroughly before submitting

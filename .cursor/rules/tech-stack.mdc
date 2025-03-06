@@ -1,0 +1,31 @@
+---
+description: Tech Stack
+globs: 
+---
+# Technical Information
+
+## Frontend Client
+- Framework: None (vanilla TypeScript/HTML/CSS)
+- Build System: Vite for TypeScript to ESM compilation
+- Entry Points:
+  - JavaScript: src/main.ts
+  - CSS: src/styles/index.css (transitioning to utility classes)
+- State Management: @preact/signals-core for reactive updates
+- Component Architecture:
+  - Class-based components
+  - Event delegation pattern
+  - DOM-based messaging
+
+## Backend Server
+- Express server (server.ts entry point)
+- Key Features:
+  - AI conversation streaming
+  - Tool execution handling
+  - No database (file-based storage)
+  - Secure API integrations
+
+## Architecture Patterns
+- Signal-based state flow
+- Component lifecycle management
+- Event-driven updates
+- Tool-based integrations
