@@ -114,6 +114,10 @@ The application features a responsive layout system with three main states:
 
 Toggle buttons in each panel allow users to switch between these states.
 
+The application also includes intelligent tab management:
+- **HTML Content Auto-switching**: When HTML content is generated in a response, the application automatically switches to the Preview tab and sets the layout to normal mode for optimal viewing
+- **Re-execute Button**: HTML content includes a re-execute button that refreshes the HTML and switches to the Preview tab
+
 ### Security Considerations
 - Keep API keys secure and never commit them to version control
 - LDAP connections should use appropriate authentication
@@ -149,6 +153,7 @@ For detailed instructions on creating custom tools, please refer to the [tools/R
 - Enhanced WorkArea component with better message display
 - X Tool integration for social media interaction
 - Enhanced GitHub integration via Octokit
+- Auto-switching to preview tab for HTML content
 
 ### Current Focus 🚧
 - SQL tool implementation

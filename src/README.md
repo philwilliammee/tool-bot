@@ -34,12 +34,12 @@ Example:
 export class ButtonSpinner {
   private generateButton: HTMLButtonElement;
   private originalContent: string;
-  
+
   constructor() {
     this.generateButton = document.querySelector(".generate-btn");
     this.originalContent = this.generateButton.innerHTML;
   }
-  
+
   public destroy(): void {
     this.hide();
   }
@@ -115,11 +115,13 @@ Modular CSS system:
    - Layout management
    - Error handling
    - Toast notifications
+   - Tab management & auto-switching
 
 2. **ConverseStore**
    - Message management
    - Chat state
    - Tool execution
+   - HTML content detection
 
 3. **ProjectStore**
    - Project settings
@@ -141,7 +143,7 @@ private cleanupFns: Array<() => void> = [];
 private setupEvents(): void {
   const handler = this.handleClick.bind(this);
   element.addEventListener("click", handler);
-  this.cleanupFns.push(() => 
+  this.cleanupFns.push(() =>
     element.removeEventListener("click", handler)
   );
 }
