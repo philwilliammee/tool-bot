@@ -223,6 +223,28 @@ function createAppStore() {
       localStorage.setItem("activeTab", tabId);
     },
 
+    /**
+     * Switches to the preview tab and sets the UI layout to normal.
+     * This is specifically used when HTML content is detected to ensure
+     * users can see the HTML render immediately.
+     */
+    setHtmlContentView() {
+      batch(() => {
+        // Switch to preview tab
+        activeTab.value = "preview";
+        localStorage.setItem("activeTab", "preview");
+
+        // Ensure UI layout is normal (not expanded on either side)
+        if (uiLayout.value !== "normal") {
+          uiLayout.value = "normal";
+          localStorage.setItem("uiLayout", "normal");
+          console.log(
+            "HTML content detected: Set layout to normal and switched to preview tab"
+          );
+        }
+      });
+    },
+
     // Other methods
     setGenerating(generating: boolean) {
       isGenerating.value = generating;

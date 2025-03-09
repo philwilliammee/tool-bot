@@ -41,18 +41,9 @@ export class ReExecuteButton {
           try {
             console.log("Re-executing HTML tool use:", htmlToolUse.toolUse);
             await htmlTool.execute(htmlToolUse.toolUse.input);
-            store.setActiveTab("preview");
 
-            // Update to use new UI layout state management
-            const currentLayout = store.uiLayout.value;
-            if (currentLayout !== "normal") {
-              // If we're in left-expanded or right-expanded, go back to normal
-              if (currentLayout === "left-expanded") {
-                store.toggleLeftPanel();
-              } else if (currentLayout === "right-expanded") {
-                store.toggleRightPanel();
-              }
-            }
+            // Use the new dedicated method instead of separate calls
+            store.setHtmlContentView();
           } catch (error) {
             console.error("Failed to re-execute HTML:", error);
             store.showToast("Failed to re-execute HTML");

@@ -230,10 +230,11 @@ export class Conversation {
         await component.update(message);
       }
 
+      // Track that this component is still in use
       currentComponents.set(message.id, component);
     }
 
-    // Cleanup old components
+    // Cleanup any components that are no longer needed
     const removedComponents: string[] = [];
     this.messageComponents.forEach((component, id) => {
       if (!currentComponents.has(id)) {

@@ -14,27 +14,33 @@ export class ConversationInput {
   private buttonSpinner: ButtonSpinner;
   private autocomplete: HybridAutocomplete | null = null;
   private cleanupFns: Array<() => void> = [];
-  
+
   // Input value signal
   private inputValue = signal<string>("");
 
   constructor(container: HTMLElement) {
     this.element = container;
-    this.promptInput = this.element.querySelector(".prompt-input") as HTMLTextAreaElement;
-    this.uploadBtn = this.element.querySelector(".data-upload-btn") as HTMLButtonElement;
-    this.fileInput = this.element.querySelector(".file-input") as HTMLInputElement;
-    
+    this.promptInput = this.element.querySelector(
+      ".prompt-input"
+    ) as HTMLTextAreaElement;
+    this.uploadBtn = this.element.querySelector(
+      ".data-upload-btn"
+    ) as HTMLButtonElement;
+    this.fileInput = this.element.querySelector(
+      ".file-input"
+    ) as HTMLInputElement;
+
     if (!this.promptInput || !this.uploadBtn || !this.fileInput) {
       throw new Error("Required input elements not found");
     }
-    
+
     // Initialize button spinner
     this.buttonSpinner = new ButtonSpinner();
     this.generateButton = this.buttonSpinner.getElement();
-    
+
     // Initialize autocomplete
     this.autocomplete = new HybridAutocomplete(this.promptInput);
-    
+
     this.initialize();
   }
 
@@ -44,7 +50,7 @@ export class ConversationInput {
     this.setupButtonHandlers();
     this.setupEffects();
   }
-  
+
   private setupPromptListeners(): void {
     const onInput = () => {
       this.inputValue.value = this.promptInput.value;
@@ -82,21 +88,21 @@ export class ConversationInput {
 
     this.promptInput.addEventListener("input", onInput);
     this.promptInput.addEventListener("keydown", onKeyDown);
-    
+
     this.cleanupFns.push(() => {
       this.promptInput.removeEventListener("input", onInput);
       this.promptInput.removeEventListener("keydown", onKeyDown);
     });
   }
-  
+
   private hasHighlightedSuggestion(): boolean {
     return this.autocomplete?.hasHighlightedSuggestion() || false;
   }
-  
+
   private setupButtonHandlers(): void {
     // Generate button handler
     this.generateButton.addEventListener("click", () => this.handleGenerate());
-    
+
     // Upload button handlers
     this.uploadBtn.addEventListener("click", () => this.fileInput.click());
     this.fileInput.addEventListener("change", async () => {
@@ -113,34 +119,51 @@ export class ConversationInput {
         console.error("Upload failed:", error);
       }
     });
-    
+
     this.cleanupFns.push(() => {
-      this.generateButton.removeEventListener("click", () => this.handleGenerate());
+      this.generateButton.removeEventListener("click", () =>
+        this.handleGenerate()
+      );
       this.uploadBtn.removeEventListener("click", () => this.fileInput.click());
       this.fileInput.removeEventListener("change", () => {});
     });
   }
-  
+
   private setupEffects(): void {
-    // Update input state based on generating status
+    // Watch for pending error prompts
     this.cleanupFns.push(
       effect(() => {
-        const isGenerating = store.isGenerating.value;
-        this.promptInput.disabled = isGenerating;
-        isGenerating ? this.buttonSpinner.show() : this.buttonSpinner.hide();
-      })
-    );
-    
-    // Handle error prompts
-    this.cleanupFns.push(
-      effect(() => {
-        const errorPrompt = store.pendingErrorPrompt.value;
-        if (errorPrompt) {
-          this.handleErrorPrompt(errorPrompt);
+        const pendingPrompt = store.pendingErrorPrompt.value;
+        if (pendingPrompt) {
+          this.handleErrorPrompt(pendingPrompt);
         }
       })
     );
-    
+
+    // Watch the isGenerating state to update UI
+    this.cleanupFns.push(
+      effect(() => {
+        const generating = store.isGenerating.value;
+        if (generating) {
+          // Only disable the generate button, not the input field
+          this.generateButton.disabled = true;
+          this.buttonSpinner.show();
+        } else {
+          this.generateButton.disabled = false;
+          this.buttonSpinner.hide();
+        }
+      })
+    );
+
+    // Update button state based on input value
+    this.cleanupFns.push(
+      effect(() => {
+        const inputValue = this.inputValue.value;
+        this.generateButton.disabled =
+          inputValue.trim() === "" || store.isGenerating.value;
+      })
+    );
+
     // Handle autocomplete suggestions
     this.cleanupFns.push(
       effect(() => {
@@ -158,14 +181,14 @@ export class ConversationInput {
       })
     );
   }
-  
+
   private getLastWord(text: string): string {
     const trimmed = text.trimEnd();
     if (!trimmed) return "";
     const parts = trimmed.split(/\\s+/);
     return parts[parts.length - 1]?.toLowerCase() ?? "";
   }
-  
+
   private getSuggestions(word: string): string[] {
     const expansions = this.autocomplete?.expansionsMap ?? {};
     const commands = Object.keys(expansions);
@@ -173,9 +196,14 @@ export class ConversationInput {
       ? expansions[word]
       : commands.filter((cmd) => cmd.startsWith(word));
   }
-  
+
   private handleGenerate(): void {
-    if (store.isGenerating.value) return;
+    // Only check isGenerating for the submission, not the input
+    if (store.isGenerating.value) {
+      // Allow collecting input for next message, but don't send yet
+      store.showToast("Please wait for the current response to complete");
+      return;
+    }
 
     const prompt = this.inputValue.value.trim();
     if (!prompt) {
@@ -193,20 +221,20 @@ export class ConversationInput {
     this.inputValue.value = "";
     this.promptInput.value = "";
   }
-  
+
   private handleErrorPrompt(prompt: string): void {
     this.inputValue.value = prompt;
     this.promptInput.value = prompt;
     store.clearPendingErrorPrompt();
   }
-  
+
   public destroy(): void {
     // Clean up autocomplete and button spinner
     this.autocomplete?.destroy();
     this.buttonSpinner?.destroy();
-    
+
     // Run cleanup functions for event listeners and effects
-    this.cleanupFns.forEach(fn => fn());
+    this.cleanupFns.forEach((fn) => fn());
     this.cleanupFns = [];
   }
 }
