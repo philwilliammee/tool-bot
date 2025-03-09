@@ -1,6 +1,7 @@
 import { clientRegistry } from "./../../../../tools/registry.client";
 import { Message, ToolResultStatus } from "@aws-sdk/client-bedrock-runtime";
 import { ToolUse } from "../../../app.types";
+import { store } from "../../../stores/AppStore";
 
 export class ToolHandler {
   private cleanCDATA(content: string): string {
@@ -23,6 +24,12 @@ export class ToolHandler {
       }
 
       const result = await tool.execute(toolUse.input);
+
+      // If this is an HTML tool execution, switch to preview tab
+      if (toolUse.name === "html") {
+        console.log("HTML tool executed, switching to preview tab");
+        store.setHtmlContentView();
+      }
 
       // Clean up CDATA if present in the result (keeping this just in case)
       // if (typeof result === "object" && result.html) {

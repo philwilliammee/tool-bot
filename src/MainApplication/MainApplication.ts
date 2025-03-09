@@ -77,15 +77,17 @@ export class MainApplication {
       throw new Error("Chat container not found");
     }
     this.conversation = new Conversation(chatContainer);
-    
+
     // Initialize WorkArea component
     if (this.workArea) {
       console.log("Initializing WorkArea component");
       this.workAreaComponent = new WorkArea(this.workArea);
     } else {
-      console.error("WorkArea element not found, cannot initialize WorkArea component");
+      console.error(
+        "WorkArea element not found, cannot initialize WorkArea component"
+      );
     }
-    
+
     // Initialize DataArea
     new DataArea();
   }
@@ -96,7 +98,7 @@ export class MainApplication {
    * - normal: Left panel at 30% width (reduced), right panel at 70%
    * - left-expanded: Left panel at 100% width, right panel collapsed
    * - right-expanded: Right panel at 100% width, left panel collapsed
-   * 
+   *
    * The toggle buttons in each panel control these state transitions:
    * - Left toggle button: Toggles between "normal" and "left-expanded"
    * - Right toggle button: Toggles between "normal" and "right-expanded"
@@ -110,14 +112,14 @@ export class MainApplication {
     if (!toggleButtons.left || !toggleButtons.right) {
       console.error("Toggle buttons not found:", {
         left: !!toggleButtons.left,
-        right: !!toggleButtons.right
+        right: !!toggleButtons.right,
       });
       throw new Error("Toggle buttons not found");
     }
 
     // Initialize stored state
     store.initializeUILayout();
-    
+
     // Apply the initial state immediately
     this.applyUILayout(store.uiLayout.value);
 
@@ -126,7 +128,7 @@ export class MainApplication {
       console.log("Left toggle button clicked");
       store.toggleLeftPanel();
     };
-    
+
     const handleRightToggle = () => {
       console.log("Right toggle button clicked");
       store.toggleRightPanel();
@@ -168,7 +170,7 @@ export class MainApplication {
     // Reset all layout classes first
     this.leftColumn.classList.remove("reduced", "expanded", "collapsed");
     this.rightColumn.classList.remove("collapsed", "expanded");
-    
+
     // Get toggle buttons for state updates
     const leftToggle = this.leftColumn.querySelector(".toggle-panel-btn");
     const rightToggle = this.rightColumn.querySelector(".toggle-panel-btn");
@@ -202,7 +204,10 @@ export class MainApplication {
 
     // Debug output to verify class application
     console.log("Left column classes after update:", this.leftColumn.className);
-    console.log("Right column classes after update:", this.rightColumn.className);
+    console.log(
+      "Right column classes after update:",
+      this.rightColumn.className
+    );
     console.log("Left toggle button classes:", leftToggle?.className);
   }
 
@@ -285,8 +290,13 @@ export class MainApplication {
   }
 
   public destroy(): void {
-    this.conversation?.destroy();
-    this.workAreaComponent?.destroy();
+    console.log("Destroying MainApplication");
+
+    // Clean up child components
+    this.conversation.destroy();
+    this.workAreaComponent.destroy();
+
+    // Clean up event listeners
     this.cleanupFns.forEach((cleanup) => cleanup());
 
     // Clean up tab buttons
@@ -298,8 +308,9 @@ export class MainApplication {
     this.workAreaScrollPosition = 0;
     localStorage.removeItem("workAreaScroll");
 
-    // Clean up UI layout state
-    localStorage.removeItem("uiLayout");
+    // We want to preserve the UI layout preference, so don't remove it
+    // localStorage.removeItem("uiLayout");
+
     this.projectManager.destroy();
   }
 }

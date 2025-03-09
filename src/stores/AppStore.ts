@@ -5,21 +5,21 @@ type TabId = "preview" | "work-area" | "data";
 
 /**
  * UI Layout State Management
- * 
+ *
  * The application has three layout states that control panel visibility:
- * 
+ *
  * 1. "normal": Default state
  *    - Left panel at 30% width (reduced)
  *    - Right panel at 70% width
- * 
+ *
  * 2. "left-expanded": Left panel expanded
  *    - Left panel at 100% width
  *    - Right panel collapsed (hidden)
- * 
+ *
  * 3. "right-expanded": Right panel expanded
  *    - Right panel at 100% width
  *    - Left panel collapsed (hidden)
- * 
+ *
  * State Transition Diagram:
  *
  *  ┌────────────┐     TOGGLE_LEFT      ┌────────────────┐
@@ -51,14 +51,14 @@ function createAppStore() {
     (localStorage.getItem("activeTab") as TabId) || "preview"
   );
 
-  // UI Layout State
-  const uiLayout = signal<UILayout>("normal");
+  // UI Layout State - Default to left-expanded
+  const uiLayout = signal<UILayout>("left-expanded");
 
   /**
    * Handles UI layout state transitions based on the current state and action
-   * 
+   *
    * State transitions follow these rules:
-   * - From "normal": 
+   * - From "normal":
    *   - TOGGLE_LEFT_PANEL → "left-expanded"
    *   - TOGGLE_RIGHT_PANEL → "right-expanded"
    * - From "left-expanded":
@@ -67,7 +67,7 @@ function createAppStore() {
    * - From "right-expanded":
    *   - TOGGLE_LEFT_PANEL → no change (stay in "right-expanded")
    *   - TOGGLE_RIGHT_PANEL → "normal"
-   * 
+   *
    * @param currentLayout The current UI layout state
    * @param action The action being performed
    * @returns The new UI layout state
@@ -144,7 +144,12 @@ function createAppStore() {
      */
     toggleLeftPanel() {
       const newLayout = reduceUILayout(uiLayout.value, "TOGGLE_LEFT_PANEL");
-      console.log("Toggle Left Panel: Changing layout from", uiLayout.value, "to", newLayout);
+      console.log(
+        "Toggle Left Panel: Changing layout from",
+        uiLayout.value,
+        "to",
+        newLayout
+      );
       uiLayout.value = newLayout;
       localStorage.setItem("uiLayout", newLayout);
     },
@@ -157,27 +162,41 @@ function createAppStore() {
      */
     toggleRightPanel() {
       const newLayout = reduceUILayout(uiLayout.value, "TOGGLE_RIGHT_PANEL");
-      console.log("Toggle Right Panel: Changing layout from", uiLayout.value, "to", newLayout);
+      console.log(
+        "Toggle Right Panel: Changing layout from",
+        uiLayout.value,
+        "to",
+        newLayout
+      );
       uiLayout.value = newLayout;
       localStorage.setItem("uiLayout", newLayout);
     },
 
     /**
-     * Initializes the UI layout state from localStorage or defaults to "normal"
+     * Initializes the UI layout state from localStorage or defaults to "left-expanded"
      * This should be called during application initialization
      */
     initializeUILayout() {
       const savedLayout = localStorage.getItem("uiLayout") as UILayout;
+
       if (
         savedLayout &&
         ["normal", "left-expanded", "right-expanded"].includes(savedLayout)
       ) {
+        // Use saved layout if valid
         uiLayout.value = savedLayout;
         console.log("UI Layout Restored:", savedLayout);
       } else {
-        console.log("Using default UI Layout: normal");
-        // Ensure we clear any old invalid layout value
+        // Set default layout to "left-expanded" and persist it
+        const defaultLayout: UILayout = "left-expanded";
+        console.log(`Setting default UI Layout: ${defaultLayout}`);
+
+        // Clear any invalid layout value
         localStorage.removeItem("uiLayout");
+
+        // Set and persist the default layout
+        uiLayout.value = defaultLayout;
+        localStorage.setItem("uiLayout", defaultLayout);
       }
     },
 
@@ -202,6 +221,28 @@ function createAppStore() {
     setActiveTab(tabId: TabId) {
       activeTab.value = tabId;
       localStorage.setItem("activeTab", tabId);
+    },
+
+    /**
+     * Switches to the preview tab and sets the UI layout to normal.
+     * This is specifically used when HTML content is detected to ensure
+     * users can see the HTML render immediately.
+     */
+    setHtmlContentView() {
+      batch(() => {
+        // Switch to preview tab
+        activeTab.value = "preview";
+        localStorage.setItem("activeTab", "preview");
+
+        // Ensure UI layout is normal (not expanded on either side)
+        if (uiLayout.value !== "normal") {
+          uiLayout.value = "normal";
+          localStorage.setItem("uiLayout", "normal");
+          console.log(
+            "HTML content detected: Set layout to normal and switched to preview tab"
+          );
+        }
+      });
     },
 
     // Other methods

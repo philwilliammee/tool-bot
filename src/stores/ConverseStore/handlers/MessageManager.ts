@@ -1,6 +1,19 @@
 import { Message } from "@aws-sdk/client-bedrock-runtime";
 import { MessageExtended } from "../../../app.types";
-import { Signal, signal } from "@preact/signals-core";
+import { Signal, signal, effect } from "@preact/signals-core";
+
+// Add these imports
+const VITE_TARGET_TOKENS = import.meta.env.VITE_TARGET_TOKENS
+  ? parseInt(import.meta.env.VITE_TARGET_TOKENS, 10)
+  : 100; // Default to 100 if not defined
+
+const VITE_MAX_TOKENS = import.meta.env.VITE_MAX_TOKENS
+  ? parseInt(import.meta.env.VITE_MAX_TOKENS, 10)
+  : 600; // Default to 600 if not defined
+
+const VITE_OVERLAP_TOKENS = import.meta.env.VITE_OVERLAP_TOKENS
+  ? parseInt(import.meta.env.VITE_OVERLAP_TOKENS, 10)
+  : 50; // Default to 50 if not defined
 
 /**
  * Configuration for managing conversation context windows based on token limits.
@@ -26,9 +39,9 @@ export class MessageManager {
 
   constructor(
     tokenConfig: TokenConfig = {
-      maxTokens: 600,
-      targetTokens: 100, // 2500
-      overlapTokens: 50,
+      maxTokens: VITE_MAX_TOKENS,
+      targetTokens: VITE_TARGET_TOKENS,
+      overlapTokens: VITE_OVERLAP_TOKENS,
     }
   ) {
     this.tokenConfig = tokenConfig;

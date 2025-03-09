@@ -284,7 +284,7 @@ export class ConverseStore {
         messagesForLLM,
         {
           onChunk: async (chunk) => {
-            console.log("callBedrockLLM -> onChunk, chunk =", chunk);
+            // console.log("callBedrockLLM -> onChunk, chunk =", chunk);
 
             // 1) If there's a contentBlockDelta with text, accumulate that
             if (chunk.contentBlockDelta?.delta?.text) {

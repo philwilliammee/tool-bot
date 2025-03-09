@@ -5,14 +5,19 @@
 /* Execute Button Loading spinner */
 .animate-spin {
   animation: spin 1s linear infinite;
+  /* Enhanced spinner styling */
+  stroke: white !important;
+  stroke-width: 2.5px !important;
+  filter: drop-shadow(0 0 2px rgba(255, 255, 255, 0.8));
+  transform-origin: center;
 }
 
 @keyframes spin {
-  from {
+  0% {
     transform: rotate(0deg);
   }
 
-  to {
+  100% {
     transform: rotate(360deg);
   }
 }
@@ -21,5 +26,59 @@
 @keyframes button-spin {
   to {
     transform: translate(-50%, -50%) rotate(360deg);
+  }
+}
+
+/* Button loading state styling */
+button:disabled:has(.animate-spin) {
+  opacity: 1 !important;
+  position: relative;
+  /* Use three-step animation for more distinct phases */
+  animation: three-step-pulse 3s ease infinite !important;
+  border: 1px solid rgba(255, 255, 255, 0.3) !important;
+  /* More pronounced shadow */
+  box-shadow: 0 0 8px rgba(34, 197, 94, 0.5) !important;
+  transform: translateZ(0); /* Force hardware acceleration */
+}
+
+/* Three-step color pulse animation for more visual interest */
+@keyframes three-step-pulse {
+  0%, 100% {
+    background-color: rgba(34, 197, 94, 0.5) !important; /* Muted green */
+  }
+  33% {
+    background-color: rgba(34, 197, 94, 0.8) !important; /* Semi-active green */
+  }
+  66% {
+    background-color: var(--success) !important; /* Full green */
+  }
+}
+
+/* Improved glow effect */
+button:disabled:has(.animate-spin)::before {
+  content: "";
+  position: absolute;
+  top: -2px;
+  left: -2px;
+  right: -2px;
+  bottom: -2px;
+  border-radius: inherit;
+  background: radial-gradient(
+    circle at center,
+    rgba(34, 197, 94, 0.4),
+    transparent 70%
+  );
+  z-index: -1;
+  animation: enhanced-glow 3s ease infinite;
+}
+
+@keyframes enhanced-glow {
+  0%, 100% {
+    opacity: 0.2;
+    transform: scale(0.95);
+  }
+  50% {
+    opacity: 0.7;
+    transform: scale(1.1);
   }
 }
