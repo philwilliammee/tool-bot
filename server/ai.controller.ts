@@ -63,6 +63,7 @@ router.post("/", async (req, res) => {
     res.end();
   } catch (error: any) {
     console.error(`${AI_CLIENT} error:`, error);
+    // This should really return a streaming response.
     res.status(error.status || 500).json({
       error: true,
       message: error.message || "Internal Server Error",

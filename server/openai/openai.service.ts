@@ -16,20 +16,12 @@ import {
   transformToBedrockStream,
   OpenaiStream,
 } from "./openai.utils.js";
-import fs from "fs/promises";
-import path from "path";
 
 // info https://platform.openai.com/docs/api-reference/streaming
 // @todo support retries
 export class OpenAIService {
   private static MAX_RETRIES = 2;
   private client!: OpenAI;
-
-  private static SESSION_KEY_PATH = path.join(
-    process.cwd(),
-    "private",
-    "openai_session_key"
-  );
 
   private static CONFIG = {
     API_KEY: process.env.OPENAI_API_KEY || "",
@@ -42,76 +34,31 @@ export class OpenAIService {
   }
 
   private async initialize() {
-    const sessionKey = await this.getOrGenerateSessionKey();
-    this.client = new OpenAI({
-      apiKey: sessionKey,
-      baseURL: OpenAIService.CONFIG.API_BASE,
+    console.log("Initializing OpenAIService");
+    console.log("OpenAI Config:", {
+      apiBase: OpenAIService.CONFIG.API_BASE,
+      apiModel: OpenAIService.CONFIG.API_MODEL,
+      hasApiKey: !!OpenAIService.CONFIG.API_KEY,
+      keyLength: OpenAIService.CONFIG.API_KEY?.length ?? 0,
     });
-  }
 
-  private async getOrGenerateSessionKey(): Promise<string> {
     try {
-      // Try to read existing session key
-      const keyFile = await fs.readFile(
-        OpenAIService.SESSION_KEY_PATH,
-        "utf-8"
-      );
-      const { key, expiresAt } = JSON.parse(keyFile);
-
-      // Check if key is expired (within 10 min buffer)
-      if (new Date(expiresAt).getTime() - Date.now() > 10 * 60 * 1000) {
-        return key;
-      }
-      // Otherwise generate new
-      return await this.generateNewSessionKey();
-    } catch (error) {
-      // If file doesn't exist or is invalid, generate new key
-      return await this.generateNewSessionKey();
-    }
-  }
-
-  private async generateNewSessionKey(): Promise<string> {
-    try {
-      const response = await fetch(
-        `${OpenAIService.CONFIG.API_BASE}/key/generate`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${OpenAIService.CONFIG.API_KEY}`,
-          },
-          body: JSON.stringify({
-            models: [OpenAIService.CONFIG.API_MODEL],
-            duration: "24h",
-          }),
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error(
-          `Failed to generate session key: ${response.statusText}`
-        );
+      if (!OpenAIService.CONFIG.API_KEY) {
+        throw new Error("OpenAI API key is required but not provided");
       }
 
-      const data = await response.json();
-      const sessionKey = data.key;
-      const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hrs
-
-      // Ensure private directory exists
-      await fs.mkdir(path.dirname(OpenAIService.SESSION_KEY_PATH), {
-        recursive: true,
+      console.log("Creating OpenAI client instance");
+      this.client = new OpenAI({
+        apiKey: OpenAIService.CONFIG.API_KEY,
+        baseURL: OpenAIService.CONFIG.API_BASE || undefined,
       });
-
-      // Save session key and expiration
-      await fs.writeFile(
-        OpenAIService.SESSION_KEY_PATH,
-        JSON.stringify({ key: sessionKey, expiresAt: expiresAt.toISOString() })
-      );
-
-      return sessionKey;
+      console.log("OpenAI client initialized successfully");
     } catch (error) {
-      console.error("Failed to generate session key:", error);
-      throw new Error("Failed to generate session key");
+      console.error("Failed to initialize OpenAIService:", error);
+      if (error instanceof Error) {
+        console.error("Error stack:", error.stack);
+      }
+      throw error; // Re-throw to allow higher-level handling
     }
   }
 

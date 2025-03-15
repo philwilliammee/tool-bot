@@ -17,16 +17,20 @@ export class ProjectManager {
   constructor() {
     this.initializeElements();
     this.setupEventListeners();
-    
+
     // Add effect to update UI when projects change
     this.cleanupFns.push(
       effect(() => {
         // This will re-run whenever allProjects signal changes
         const projects = projectStore.allProjects.value;
         this.render();
+        // Also update the project list if the modal is open
+        if (this.modal.open) {
+          this.renderProjectList();
+        }
       })
     );
-    
+
     // Add effect to update UI when active project changes
     this.cleanupFns.push(
       effect(() => {
@@ -35,7 +39,7 @@ export class ProjectManager {
         this.render();
       })
     );
-    
+
     this.render();
   }
 
@@ -68,7 +72,6 @@ export class ProjectManager {
     this.dropdown.addEventListener("change", (e) => {
       const projectId = (e.target as HTMLSelectElement).value;
       projectStore.setActiveProject(projectId);
-      // converseStore will be updated via an effect in ConverseStore
     });
 
     // New project button
@@ -95,6 +98,16 @@ export class ProjectManager {
     // Close modal button
     this.modal.querySelector(".close-btn")?.addEventListener("click", () => {
       this.modal.close();
+    });
+
+    // Modal show/hide listeners to manage project list updates
+    this.modal.addEventListener("close", () => {
+      // Clean up event listeners when modal closes
+      this.projectList.innerHTML = "";
+    });
+
+    this.modal.addEventListener("show", () => {
+      this.renderProjectList();
     });
 
     // Project form submission
@@ -130,8 +143,8 @@ export class ProjectManager {
       // Get selected tools
       const enabledTools: string[] = [];
       form
-        .querySelectorAll(".tool-checkbox")
-        .forEach((checkbox: HTMLInputElement) => {
+        .querySelectorAll<HTMLInputElement>(".tool-checkbox")
+        .forEach((checkbox) => {
           if (checkbox.checked) {
             enabledTools.push(checkbox.dataset.toolId || "");
           }
@@ -356,8 +369,8 @@ export class ProjectManager {
         // Get selected tools
         const enabledTools: string[] = [];
         item
-          .querySelectorAll(".tool-checkbox")
-          .forEach((checkbox: HTMLInputElement) => {
+          .querySelectorAll<HTMLInputElement>(".tool-checkbox")
+          .forEach((checkbox) => {
             if (checkbox.checked) {
               enabledTools.push(checkbox.dataset.toolId || "");
             }
