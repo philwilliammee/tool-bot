@@ -53,6 +53,10 @@ function createAppStore() {
 
   // UI Layout State - Default to left-expanded
   const uiLayout = signal<UILayout>("left-expanded");
+  
+  // Interrupt-related signals
+  const isToolRunning = signal(false);
+  const currentToolId = signal<string | null>(null);
 
   /**
    * Handles UI layout state transitions based on the current state and action
@@ -116,6 +120,9 @@ function createAppStore() {
     if (pendingErrorPrompt.value) return "Retrying...";
     return null;
   });
+  
+  // Interrupt-related computed values
+  const isInterruptible = computed(() => isGenerating.value || isToolRunning.value);
 
   return {
     // Expose signals
@@ -125,6 +132,8 @@ function createAppStore() {
     pendingErrorPrompt,
     activeTab,
     uiLayout,
+    isToolRunning,
+    currentToolId,
 
     // Expose computed values
     isError,
@@ -135,6 +144,7 @@ function createAppStore() {
     isLoading,
     shouldDisableInput,
     statusMessage,
+    isInterruptible,
 
     /**
      * Toggles the left panel between normal and expanded states
@@ -215,6 +225,13 @@ function createAppStore() {
     // Toast handling
     showToast(message: string) {
       toastMessage.value = message;
+      
+      // Auto-clear toast after 3 seconds
+      setTimeout(() => {
+        if (toastMessage.value === message) {
+          toastMessage.value = null;
+        }
+      }, 3000);
     },
 
     // Tab management
@@ -245,6 +262,14 @@ function createAppStore() {
       });
     },
 
+    // Tool execution status
+    setToolRunning(running: boolean, toolId: string | null = null) {
+      batch(() => {
+        isToolRunning.value = running;
+        currentToolId.value = running ? toolId : null;
+      });
+    },
+
     // Other methods
     setGenerating(generating: boolean) {
       isGenerating.value = generating;
@@ -264,6 +289,8 @@ function createAppStore() {
         toastMessage.value = null;
         pendingErrorPrompt.value = null;
         isGenerating.value = false;
+        isToolRunning.value = false;
+        currentToolId.value = null;
       });
     },
   };

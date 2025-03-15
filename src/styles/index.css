@@ -23,6 +23,8 @@
 @import 'layout-utils.css';
 @import 'project-manager.css';
 @import 'content-blocks.css';
+@import 'interrupt-button.css';
+
 /* Add to your existing CSS */
 .archive-summary-panel {
     position: relative;

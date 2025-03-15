@@ -7,6 +7,8 @@
   --primary-transparent: rgba(59, 130, 246, 0.2);
   --success: #22c55e;
   --danger: #ef4444;
+  --color-danger: #ef4444; /* Added for interrupt button */
+  --color-danger-dark: #dc2626; /* Added darker version for hover states */
   --text-primary: #1f2937;
   --border-color: #e5e7eb;
   --bg-input: #ffffff;
@@ -36,6 +38,7 @@
     --code-bg: #111827;
     --text-muted: #9ca3af;
     --border-color: #374151;
+    --color-danger-dark: #b91c1c; /* Darker red for dark mode */
     --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.5),
                  0 4px 6px -2px rgba(0, 0, 0, 0.25);
   }

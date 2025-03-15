@@ -27,10 +27,11 @@ export interface MessageMetadata {
   userRating?: number;
   isStreaming?: boolean;
   error?: boolean;
+  interrupted?: boolean;
 }
 
 export interface MessageExtended extends Message {
   id: string;
-  projectId?: string; 
+  projectId?: string;
   metadata: MessageMetadata; // Note: not optional
 }

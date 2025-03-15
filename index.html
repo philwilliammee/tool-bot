@@ -64,6 +64,7 @@
                             <textarea class="prompt-input" placeholder="Enter your message..." rows="5"
                                 cols="33"></textarea>
                             <div class="prompt-actions">
+
                                 <input type="file" id="data-upload" class="file-input" accept=".csv,.json"
                                     style="display: none;">
                                 <button type="button" class="btn btn-blue data-upload-btn" title="Upload Data">
@@ -81,6 +82,12 @@
                                         <polygon points="21 12 9 18 9 6 21 12"></polygon>
                                     </svg>
                                 </button>
+                                <button type="button" class="btn btn-danger interrupt-btn" title="Interrupt Tool" disabled>
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                      <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                                    </svg>
+                                    <span>Interrupt</span>
+                                  </button>
                             </div>
                         </div>
                     </div>
@@ -427,22 +434,14 @@
 
                     <div class="config-item">
                         <label for="new-project-system-prompt">System Prompt:</label>
-                        <textarea
-                            id="new-project-system-prompt"
-                            class="form-textarea"
-                            placeholder="Custom instructions for the AI..."
-                            rows="3"
-                        ></textarea>
+                        <textarea id="new-project-system-prompt" class="form-textarea"
+                            placeholder="Custom instructions for the AI..." rows="3"></textarea>
                     </div>
 
                     <div class="config-item">
                         <label for="new-project-persistent-message">Persistent User Message:</label>
-                        <textarea
-                            id="new-project-persistent-message"
-                            class="form-textarea"
-                            placeholder="Message to include in every conversation..."
-                            rows="3"
-                        ></textarea>
+                        <textarea id="new-project-persistent-message" class="form-textarea"
+                            placeholder="Message to include in every conversation..." rows="3"></textarea>
                     </div>
 
                     <!-- Tool Selection Section -->

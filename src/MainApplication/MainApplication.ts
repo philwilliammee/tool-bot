@@ -6,6 +6,7 @@ import { effect } from "@preact/signals-core";
 import { ProjectManager } from "../components/ProjectManager/ProjectManager";
 import { DataArea } from "../components/DataArea/DataArea";
 import { WorkArea } from "../components/WorkArea/WorkArea";
+import { InterruptButton } from "../components/InterruptButton/InterruptButton";
 
 type TabId = "preview" | "work-area" | "data";
 
@@ -29,6 +30,7 @@ export class MainApplication {
   private leftColumn!: HTMLElement;
   private rightColumn!: HTMLElement;
   private projectManager: ProjectManager;
+  private interruptButton: InterruptButton;
 
   constructor() {
     console.log("Initializing MainApplication");
@@ -38,6 +40,7 @@ export class MainApplication {
     this.initializeUILayout();
     new Toast();
     this.projectManager = new ProjectManager();
+    this.interruptButton = new InterruptButton();
   }
 
   /**
@@ -295,6 +298,7 @@ export class MainApplication {
     // Clean up child components
     this.conversation.destroy();
     this.workAreaComponent.destroy();
+    this.interruptButton.destroy();
 
     // Clean up event listeners
     this.cleanupFns.forEach((cleanup) => cleanup());
