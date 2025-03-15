@@ -56,13 +56,36 @@ export const BASH_CONFIG = {
       "npm", // Allow raw npm command for additional arguments
       "ng",
     ] as string[],
-    general: ["pwd", "node", "npx", "tsc", "ng"] as string[],
+    general: [
+      "pwd",
+      "node",
+      "npx",
+      "tsc",
+      "ng",
+      "grep",
+      "find",
+      "tail",
+      "head",
+      "wc",
+      "sort",
+      "uniq",
+      "awk",
+      "sed",
+      "xargs",
+      "diff",
+      "tr",
+      "cut",
+      "less",
+      "jq",
+      "cat",
+      "echo",
+    ] as string[],
   },
   MAX_TIMEOUT: 300000, // 5 minutes
   DEFAULT_TIMEOUT: 30000, // 30 seconds
   BLOCKED_PATTERNS: [
-    /\.\./, // No directory traversal
-    /[&|;]/, // No command chaining
+    /\.\.\//, // Block parent directory traversal but allow .. in other contexts
+    /[&;]/, // Block command chaining with & and ; but allow pipes |
     />[^"']\s*\//, // No output redirection to files
     /rm\s+.+\s+-rf/, // No recursive force remove
   ] as readonly RegExp[],

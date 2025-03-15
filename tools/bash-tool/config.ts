@@ -11,7 +11,7 @@ Supported operations:
 - File operations: ls, cat, grep, find, mkdir, touch, rm, cp, mv, echo
 - Git operations: init, add, commit, status, log, branch, checkout, pull, push, etc.
 - NPM operations: install, uninstall, run, start, test, build, update, etc.
-- General: pwd, node, npx, tsc`,
+- General: pwd, node, npx, tsc, ng, grep, find, tail, head, wc, sort, uniq, awk, sed, xargs, diff, tr, cut, less, jq`,
         inputSchema: {
           json: {
             type: "object",
