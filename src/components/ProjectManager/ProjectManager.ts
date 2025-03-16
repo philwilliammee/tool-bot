@@ -20,6 +20,7 @@ export class ProjectManager {
     this.initializeElements();
     this.setupEventListeners();
     this.setupImportHandler();
+    this.setupScrollHandler();
 
     // Add effect to update UI when projects change
     this.cleanupFns.push(
@@ -98,10 +99,13 @@ export class ProjectManager {
         this.renderProjectList();
       });
 
-    // Close modal button
-    this.modal.querySelector(".close-btn")?.addEventListener("click", () => {
-      this.modal.close();
-    });
+    // Close modal button in header
+    const headerCloseBtn = this.modal.querySelector(".modal-header .close-btn");
+    if (headerCloseBtn) {
+      headerCloseBtn.addEventListener("click", () => {
+        this.modal.close();
+      });
+    }
 
     // Modal show/hide listeners to manage project list updates
     this.modal.addEventListener("close", () => {
@@ -179,6 +183,30 @@ export class ProjectManager {
       form.reset();
       this.formModal.close();
     });
+  }
+
+  private setupScrollHandler(): void {
+    // Add scroll event listener to add shadow to header when scrolled
+    const handleScroll = () => {
+      const modalHeader = this.modal.querySelector('.modal-header');
+      if (modalHeader && this.projectList) {
+        if (this.projectList.scrollTop > 0) {
+          modalHeader.classList.add('scrolled');
+        } else {
+          modalHeader.classList.remove('scrolled');
+        }
+      }
+    };
+    
+    // Add the scroll event listener to the project list
+    if (this.projectList) {
+      this.projectList.addEventListener('scroll', handleScroll);
+      this.cleanupFns.push(() => {
+        if (this.projectList) {
+          this.projectList.removeEventListener('scroll', handleScroll);
+        }
+      });
+    }
   }
 
   private setupImportHandler(): void {
