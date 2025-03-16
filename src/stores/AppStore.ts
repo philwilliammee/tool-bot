@@ -41,6 +41,9 @@ type UILayout = "normal" | "left-expanded" | "right-expanded";
 // Explicit Action Types
 type UIAction = "TOGGLE_LEFT_PANEL" | "TOGGLE_RIGHT_PANEL";
 
+// Interrupt operation types
+type InterruptType = "tool" | "generation" | "none";
+
 function createAppStore() {
   // Core signals
   const toastMessage = signal<string | null>(null);
@@ -123,6 +126,11 @@ function createAppStore() {
   
   // Interrupt-related computed values
   const isInterruptible = computed(() => isGenerating.value || isToolRunning.value);
+  const interruptType = computed((): InterruptType => {
+    if (isToolRunning.value) return "tool";
+    if (isGenerating.value) return "generation";
+    return "none";
+  });
 
   return {
     // Expose signals
@@ -145,6 +153,7 @@ function createAppStore() {
     shouldDisableInput,
     statusMessage,
     isInterruptible,
+    interruptType,
 
     /**
      * Toggles the left panel between normal and expanded states

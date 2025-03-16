@@ -6,17 +6,29 @@
   align-items: center;
   gap: 8px;
   transition: all 0.2s ease-in-out;
-  opacity: 0.7;
+  opacity: 0.5; /* Start with low opacity when disabled */
 }
 
 .interrupt-btn:disabled {
   cursor: not-allowed;
-  opacity: 0.5;
 }
 
 .interrupt-btn:not(:disabled) {
   opacity: 1;
   cursor: pointer;
+  animation: attention 2s infinite;
+}
+
+@keyframes attention {
+  0% {
+    box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.4);
+  }
+  70% {
+    box-shadow: 0 0 0 6px rgba(220, 53, 69, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(220, 53, 69, 0);
+  }
 }
 
 .interrupt-btn:not(:disabled):hover {

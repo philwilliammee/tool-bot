@@ -400,14 +400,29 @@ export class ConverseStore {
 
           onError: (error) => {
             console.error("callBedrockLLM -> onError:", error);
-            this.messageManager.updateMessage(tempMessage.id, {
-              content: [{ text: "Error: Failed to generate response" }],
-              metadata: {
-                ...tempMessage.metadata,
-                isStreaming: false,
-                error: true,
-              },
-            });
+            
+            // Check if this was an interruption (AbortError)
+            if (error.name === "AbortError") {
+              this.messageManager.updateMessage(tempMessage.id, {
+                content: [{ text: accumulatedText + "\n\n*Message generation interrupted by user*" }],
+                metadata: {
+                  ...tempMessage.metadata,
+                  isStreaming: false,
+                  interrupted: true,
+                },
+              });
+            } else {
+              // For other errors, show the standard error message
+              this.messageManager.updateMessage(tempMessage.id, {
+                content: [{ text: "Error: Failed to generate response" }],
+                metadata: {
+                  ...tempMessage.metadata,
+                  isStreaming: false,
+                  error: true,
+                },
+              });
+            }
+            
             this.notifyMessageChange();
             store.setGenerating(false);
           },

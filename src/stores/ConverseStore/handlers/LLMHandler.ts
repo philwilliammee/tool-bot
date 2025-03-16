@@ -1,6 +1,7 @@
 import { Message, ConverseStreamOutput } from "@aws-sdk/client-bedrock-runtime";
 import { MessageExtended } from "../../../app.types";
 import { converseAgentConfig } from "../../../agents/converseAgent";
+import { signal } from "@preact/signals-core";
 
 export interface StreamCallbacks {
   onStart?: () => void;
@@ -13,12 +14,33 @@ export class LLMHandler {
   // Rename to make it clear this is a fallback
   private defaultModelId = import.meta.env.VITE_DEFAULT_MODEL_ID;
 
+  // Track the current stream's AbortController
+  private currentStreamController = signal<AbortController | null>(null);
+
+  // Method to interrupt the current stream
+  public interruptStream(): boolean {
+    const controller = this.currentStreamController.value;
+    if (controller) {
+      controller.abort();
+      this.currentStreamController.value = null;
+      return true;
+    }
+    return false;
+  }
+
   public async callLLMStream(
     messages: MessageExtended[],
     callbacks: StreamCallbacks,
     enabledTools?: string[],
     modelId?: string
   ): Promise<Message> {
+    // Create a new AbortController for this stream
+    const controller = new AbortController();
+    this.currentStreamController.value = controller;
+
+    // Move the declaration outside the try block
+    const accumulatedContent: any[] = [];
+
     try {
       // Ensure we have a valid model ID
       if (!modelId) {
@@ -26,6 +48,11 @@ export class LLMHandler {
           "No model ID provided, using default model:",
           this.defaultModelId
         );
+      }
+
+      // Notify that we're starting to stream
+      if (callbacks.onStart) {
+        callbacks.onStart();
       }
 
       const response = await fetch("/api/ai", {
@@ -37,6 +64,7 @@ export class LLMHandler {
           systemPrompt: converseAgentConfig.systemPrompt,
           enabledTools,
         }),
+        signal: controller.signal, // Add abort signal to the fetch request
       });
 
       if (!response.ok) {
@@ -50,16 +78,22 @@ export class LLMHandler {
 
       const decoder = new TextDecoder();
       let buffer = "";
-      const accumulatedContent: any[] = [];
 
       while (true) {
         const { done, value } = await reader.read();
         if (done) {
           // Stream ended
-          return {
+          const finalMessage: Message = {
             role: "assistant",
             content: accumulatedContent,
           };
+
+          // Notify that we've completed the stream
+          if (callbacks.onComplete) {
+            callbacks.onComplete(finalMessage);
+          }
+
+          return finalMessage;
         }
 
         // Decode partial chunk
@@ -132,19 +166,46 @@ export class LLMHandler {
         // Keep trailing partial line
         buffer = lines[lines.length - 1];
       }
-    } catch (error) {
-      callbacks.onError?.(error);
-      throw error;
+    } catch (error: any) {
+      // Check if this was an interruption
+      const isInterrupted =
+        error.name === "AbortError" ||
+        error.message?.includes("aborted") ||
+        error.message?.includes("interrupted");
+
+      if (isInterrupted) {
+        console.log("Stream interrupted by user");
+
+        // Create a message with the partial content
+        const interruptedMessage: MessageExtended = {
+          id: `interrupted_${Date.now()}`,
+          role: "assistant",
+          content:
+            accumulatedContent.length > 0
+              ? accumulatedContent
+              : [{ text: "Message generation interrupted." }],
+          // Add metadata to indicate this was interrupted
+          metadata: {
+            createdAt: Date.now(),
+            updatedAt: Date.now(),
+            interrupted: true,
+          },
+        };
+
+        // Notify of the interruption
+        callbacks.onError?.(error);
+
+        return interruptedMessage;
+      } else {
+        // For other errors, pass through to the error handler
+        callbacks.onError?.(error);
+        throw error;
+      }
+    } finally {
+      // Always clean up the controller reference
+      this.currentStreamController.value = null;
     }
   }
-
-  // Old method for backward compat
-  // public async callLLM(
-  //   messages: MessageExtended[],
-  //   enabledTools?: string[]
-  // ): Promise<Message> {
-  //   return this.callLLMStream(messages, {}, enabledTools);
-  // }
 
   // Update the invoke method to also accept a modelId parameter
   public async invoke(
