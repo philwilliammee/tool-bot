@@ -2,9 +2,11 @@
 import { effect, batch } from "@preact/signals-core";
 import { converseStore } from "../../stores/ConverseStore/ConverseStore";
 import { projectStore } from "../../stores/ProjectStore/ProjectStore";
+import { store } from "../../stores/AppStore";
 import { converseAgentConfig } from "../../agents/converseAgent";
 import { getGroupedModelOptions } from "../../utils/modelOptions";
 import { clientRegistry } from "../../../tools/registry.client";
+import { Project } from "../../stores/ProjectStore/ProjectStore.types";
 
 export class ProjectManager {
   private dropdown!: HTMLSelectElement;
@@ -17,6 +19,7 @@ export class ProjectManager {
   constructor() {
     this.initializeElements();
     this.setupEventListeners();
+    this.setupImportHandler();
 
     // Add effect to update UI when projects change
     this.cleanupFns.push(
@@ -178,6 +181,55 @@ export class ProjectManager {
     });
   }
 
+  private setupImportHandler(): void {
+    const importBtn = document.querySelector('.import-project-btn');
+    const importFileInput = document.getElementById('import-project-file') as HTMLInputElement;
+    
+    if (importBtn && importFileInput) {
+      const handleImportClick = () => {
+        importFileInput.click();
+      };
+      
+      importBtn.addEventListener('click', handleImportClick);
+      this.cleanupFns.push(() => importBtn.removeEventListener('click', handleImportClick));
+      
+      const handleFileChange = (event: Event) => {
+        const target = event.target as HTMLInputElement;
+        if (target.files && target.files[0]) {
+          const reader = new FileReader();
+          
+          reader.onload = (e) => {
+            try {
+              const jsonData = JSON.parse(e.target?.result as string);
+              const newProjectId = projectStore.importProject(jsonData);
+              
+              // Select the newly imported project
+              projectStore.setActiveProject(newProjectId);
+              
+              // Close the modal
+              const modal = document.getElementById('project-modal') as HTMLDialogElement;
+              if (modal) modal.close();
+              
+              // Show success message
+              store.showToast(`Project "${jsonData.name}" successfully imported`);
+              
+              // Reset the file input
+              target.value = '';
+            } catch (error) {
+              console.error('Error importing project:', error);
+              store.showToast(`Error importing project: ${error instanceof Error ? error.message : 'Invalid format'}`);
+            }
+          };
+          
+          reader.readAsText(target.files[0]);
+        }
+      };
+      
+      importFileInput.addEventListener('change', handleFileChange);
+      this.cleanupFns.push(() => importFileInput.removeEventListener('change', handleFileChange));
+    }
+  }
+
   private render(): void {
     // Update dropdown options using signals
     const projects = projectStore.allProjects.value;
@@ -198,6 +250,9 @@ export class ProjectManager {
   }
 
   private renderProjectList(): void {
+    // Clear existing project items
+    this.projectList.innerHTML = '';
+    
     // Use signals for reactive data
     const projects = projectStore.allProjects.value;
     const groupedModelOptions = getGroupedModelOptions();
@@ -206,145 +261,212 @@ export class ProjectManager {
     const toolsRegistry = clientRegistry.getAllTools();
     const availableTools = Object.keys(toolsRegistry).map((id) => ({
       id,
-      name: id, // Use the ID as the name if no name property exists
-      description: "Tool", // Default description
+      name: id,
+      description: "Tool",
     }));
 
-    this.projectList.innerHTML = projects
-      .map(
-        (project) => `
-      <div class="project-item" data-id="${project.id}">
-        <div class="project-header">
-          <div class="project-info">
-            <h3>${project.name}</h3>
-            <p class="project-meta">
-              ${project.messages.length} messages ·
-              Last updated: ${new Date(project.updatedAt).toLocaleDateString()}
-            </p>
-            ${
-              project.description
-                ? `<p class="project-description">${project.description}</p>`
-                : ""
-            }
-          </div>
-          <div class="project-actions">
-            <button class="btn btn-small btn-blue select-btn">Select</button>
-            <button class="btn btn-small btn-green clone-btn">Clone</button>
-            <button class="btn btn-small btn-danger delete-btn">Delete</button>
-          </div>
+    // Iterate through projects and create items from template
+    projects.forEach(project => {
+      // Clone the template
+      const template = document.getElementById('project-item-template') as HTMLTemplateElement;
+      const projectItem = template.content.cloneNode(true) as DocumentFragment;
+      const projectElement = projectItem.querySelector('.project-item') as HTMLElement;
+      
+      if (!projectElement) return;
+      
+      // Set project ID
+      projectElement.dataset.id = project.id;
+      
+      // Set project info
+      const nameElement = projectElement.querySelector('.project-name');
+      if (nameElement) nameElement.textContent = project.name;
+      
+      const metaElement = projectElement.querySelector('.project-meta');
+      if (metaElement) {
+        metaElement.textContent = `${project.messages.length} messages · Last updated: ${new Date(project.updatedAt).toLocaleDateString()}`;
+      }
+      
+      const descriptionElement = projectElement.querySelector('.project-description');
+      if (descriptionElement) {
+        if (project.description) {
+          descriptionElement.textContent = project.description;
+        } else {
+          descriptionElement.remove();
+        }
+      }
+      
+      // Add rename button (the only button not in the template)
+      const actionsElement = projectElement.querySelector('.project-actions');
+      if (actionsElement) {
+        const renameBtn = document.createElement('button');
+        renameBtn.className = 'btn btn-small btn-blue rename-btn';
+        renameBtn.textContent = 'Rename';
+        
+        // Insert after clone button and before export button
+        const exportBtn = actionsElement.querySelector('.export-btn');
+        if (exportBtn) {
+          actionsElement.insertBefore(renameBtn, exportBtn);
+        } else {
+          actionsElement.appendChild(renameBtn);
+        }
+      }
+      
+      // Get the config section from the template
+      const configSection = projectElement.querySelector('.project-config-section');
+      if (configSection) {
+        // Keep the heading that's already in the template
+        const heading = configSection.querySelector('h4');
+        
+        // Clear any placeholder content after the heading
+        configSection.innerHTML = '';
+        
+        if (heading) {
+          configSection.appendChild(heading);
+        } else {
+          const newHeading = document.createElement('h4');
+          newHeading.textContent = 'Project Configuration';
+          configSection.appendChild(newHeading);
+        }
+        
+        // Add model selection using template literals for readability
+        const modelConfigItem = document.createElement('div');
+        modelConfigItem.className = 'config-item';
+        modelConfigItem.innerHTML = `
+          <label for="model-select-${project.id}">AI Model:</label>
+          <select id="model-select-${project.id}" class="model-select" data-project-id="${project.id}">
+            ${this.renderModelOptionsHtml(groupedModelOptions, project.config?.model)}
+          </select>
+        `;
+        configSection.appendChild(modelConfigItem);
+        
+        // Add system prompt using template literals
+        const systemPromptItem = document.createElement('div');
+        systemPromptItem.className = 'config-item';
+        systemPromptItem.innerHTML = `
+          <label for="system-prompt-${project.id}">System Prompt:</label>
+          <textarea
+            id="system-prompt-${project.id}"
+            class="system-prompt"
+            data-project-id="${project.id}"
+            placeholder="Custom instructions for the AI..."
+            rows="2"
+          >${project.config?.systemPrompt || ""}</textarea>
+        `;
+        configSection.appendChild(systemPromptItem);
+        
+        // Add persistent message using template literals
+        const persistentMessageItem = document.createElement('div');
+        persistentMessageItem.className = 'config-item';
+        persistentMessageItem.innerHTML = `
+          <label for="persistent-message-${project.id}">Persistent User Message:</label>
+          <textarea
+            id="persistent-message-${project.id}"
+            class="persistent-message"
+            data-project-id="${project.id}"
+            placeholder="Message to include in every conversation..."
+            rows="2"
+          >${project.config?.persistentUserMessage || ""}</textarea>
+        `;
+        configSection.appendChild(persistentMessageItem);
+        
+        // Add tool selection
+        configSection.appendChild(this.renderToolOptionsHtml(project, availableTools));
+        
+        // Add save button
+        const saveBtn = document.createElement('button');
+        saveBtn.className = 'btn btn-small btn-blue save-config-btn';
+        saveBtn.dataset.projectId = project.id;
+        saveBtn.textContent = 'Save Configuration';
+        configSection.appendChild(saveBtn);
+      }
+      
+      // Append to project list
+      this.projectList.appendChild(projectElement);
+      
+      // Set up event handlers for this project item
+      this.setupProjectItemEventHandlers(projectElement, project);
+    });
+  }
+
+  /**
+   * Generates HTML string for model options
+   */
+  private renderModelOptionsHtml(groupedModelOptions: Record<string, any[]>, selectedModelId?: string): string {
+    return Object.entries(groupedModelOptions)
+      .map(([provider, models]) => `
+        <optgroup label="${provider}">
+          ${models.map((model: { id: string; name: string; }) => `
+            <option value="${model.id}" ${selectedModelId === model.id ? "selected" : ""}>
+              ${model.name}
+            </option>
+          `).join('')}
+        </optgroup>
+      `).join('');
+  }
+
+  /**
+   * Creates tool options container using template literals for readability
+   */
+  private renderToolOptionsHtml(project: Project, availableTools: Array<{id: string, name: string, description: string}>): HTMLDivElement {
+    const toolSelectionItem = document.createElement('div');
+    toolSelectionItem.className = 'config-item';
+    
+    // Use template literal for the label
+    toolSelectionItem.innerHTML = '<label>Enabled Tools:</label>';
+    
+    // Create tool selection container
+    const toolSelection = document.createElement('div');
+    toolSelection.className = 'tool-selection';
+    
+    // Use template literals for the tool options for better readability
+    const toolOptionsHtml = availableTools.map(tool => {
+      const isChecked = project.config?.enabledTools?.includes(tool.id) || !project.config?.enabledTools;
+      
+      return `
+        <div class="tool-option">
+          <input
+            type="checkbox"
+            id="tool-${project.id}-${tool.id}"
+            class="tool-checkbox"
+            data-tool-id="${tool.id}"
+            ${isChecked ? "checked" : ""}
+          >
+          <label for="tool-${project.id}-${tool.id}" class="tool-label">
+            ${tool.name}
+            <span class="tool-description">${tool.description}</span>
+          </label>
         </div>
+      `;
+    }).join('');
+    
+    // Set the HTML for the tool selection
+    toolSelection.innerHTML = toolOptionsHtml;
+    
+    // Add the tool selection to the container
+    toolSelectionItem.appendChild(toolSelection);
+    
+    return toolSelectionItem;
+  }
 
-        <!-- Project Configuration Section -->
-        <div class="project-config-section">
-          <h4>Project Configuration</h4>
-          <div class="config-item">
-            <label for="model-select-${project.id}">AI Model:</label>
-            <select id="model-select-${
-              project.id
-            }" class="model-select" data-project-id="${project.id}">
-              ${Object.entries(groupedModelOptions)
-                .map(
-                  ([provider, models]) => `
-                <optgroup label="${provider}">
-                  ${models
-                    .map(
-                      (model: {
-                        id: string;
-                        name: string;
-                        provider: string;
-                        apiType: string;
-                      }) => `
-                    <option value="${model.id}" ${
-                        project.config?.model === model.id ? "selected" : ""
-                      }>
-                      ${model.name}
-                    </option>
-                  `
-                    )
-                    .join("")}
-                </optgroup>
-              `
-                )
-                .join("")}
-            </select>
-          </div>
+  /**
+   * Set up event handlers for a project item
+   */
+  private setupProjectItemEventHandlers(projectElement: HTMLElement, project: Project): void {
+    const id = project.id;
 
-          <div class="config-item">
-            <label for="system-prompt-${project.id}">System Prompt:</label>
-            <textarea
-              id="system-prompt-${project.id}"
-              class="system-prompt"
-              data-project-id="${project.id}"
-              placeholder="Custom instructions for the AI..."
-              rows="2"
-            >${project.config?.systemPrompt || ""}</textarea>
-          </div>
-
-          <div class="config-item">
-            <label for="persistent-message-${
-              project.id
-            }">Persistent User Message:</label>
-            <textarea
-              id="persistent-message-${project.id}"
-              class="persistent-message"
-              data-project-id="${project.id}"
-              placeholder="Message to include in every conversation..."
-              rows="2"
-            >${project.config?.persistentUserMessage || ""}</textarea>
-          </div>
-
-          <!-- Tool Configuration -->
-          <div class="config-item">
-            <label>Enabled Tools:</label>
-            <div class="tool-selection">
-              ${availableTools
-                .map(
-                  (tool) => `
-                <div class="tool-option">
-                  <input
-                    type="checkbox"
-                    id="tool-${project.id}-${tool.id}"
-                    class="tool-checkbox"
-                    data-tool-id="${tool.id}"
-                    ${
-                      project.config?.enabledTools?.includes(tool.id) ||
-                      !project.config?.enabledTools
-                        ? "checked"
-                        : ""
-                    }
-                  >
-                  <label for="tool-${project.id}-${tool.id}" class="tool-label">
-                    ${tool.name}
-                    <span class="tool-description">${tool.description}</span>
-                  </label>
-                </div>
-              `
-                )
-                .join("")}
-            </div>
-          </div>
-
-          <button class="btn btn-small btn-blue save-config-btn" data-project-id="${
-            project.id
-          }">
-            Save Configuration
-          </button>
-        </div>
-      </div>
-    `
-      )
-      .join("");
-
-    // Add event listeners to project items
-    this.projectList.querySelectorAll(".project-item").forEach((item) => {
-      const id = item.getAttribute("data-id")!;
-
-      item.querySelector(".select-btn")?.addEventListener("click", () => {
+    // Select button
+    const selectBtn = projectElement.querySelector(".select-btn");
+    if (selectBtn) {
+      selectBtn.addEventListener("click", () => {
         projectStore.setActiveProject(id);
         this.modal.close();
       });
+    }
 
-      item.querySelector(".delete-btn")?.addEventListener("click", () => {
+    // Delete button
+    const deleteBtn = projectElement.querySelector(".delete-btn");
+    if (deleteBtn) {
+      deleteBtn.addEventListener("click", () => {
         if (confirm("Are you sure you want to delete this project?")) {
           try {
             projectStore.deleteProject(id);
@@ -353,76 +475,149 @@ export class ProjectManager {
           }
         }
       });
+    }
 
-      // Add event listener for saving configuration
-      item.querySelector(".save-config-btn")?.addEventListener("click", () => {
-        const modelSelect = item.querySelector(
-          `.model-select`
-        ) as HTMLSelectElement;
-        const systemPrompt = item.querySelector(
-          `.system-prompt`
-        ) as HTMLTextAreaElement;
-        const persistentMessage = item.querySelector(
-          `.persistent-message`
-        ) as HTMLTextAreaElement;
+    // Rename button
+    const renameBtn = projectElement.querySelector(".rename-btn");
+    if (renameBtn) {
+      renameBtn.addEventListener("click", () => {
+        this.handleRenameProject(id);
+      });
+    }
 
-        // Get selected tools
-        const enabledTools: string[] = [];
-        item
-          .querySelectorAll<HTMLInputElement>(".tool-checkbox")
-          .forEach((checkbox) => {
-            if (checkbox.checked) {
-              enabledTools.push(checkbox.dataset.toolId || "");
-            }
-          });
+    // Export button
+    const exportBtn = projectElement.querySelector(".export-btn");
+    if (exportBtn) {
+      exportBtn.addEventListener("click", () => {
+        try {
+          projectStore.exportProject(id);
+          store.showToast(`Project exported successfully`);
+        } catch (error) {
+          console.error("Export project error:", error);
+          store.showToast(`Failed to export project: ${error instanceof Error ? error.message : "Unknown error"}`);
+        }
+      });
+    }
 
-        projectStore.updateProjectConfig(id, {
-          model: modelSelect.value,
-          systemPrompt: systemPrompt.value,
-          persistentUserMessage: persistentMessage.value,
-          enabledTools: enabledTools,
-        });
+    // Clone button
+    const cloneBtn = projectElement.querySelector(".clone-btn");
+    if (cloneBtn) {
+      cloneBtn.addEventListener("click", () => {
+        this.handleCloneProject(id);
+      });
+    }
 
-        // Show a simple alert for configuration saving
-        alert("Configuration saved successfully!");
+    // Save config button
+    const saveConfigBtn = projectElement.querySelector(".save-config-btn");
+    if (saveConfigBtn) {
+      saveConfigBtn.addEventListener("click", () => {
+        this.handleSaveConfig(id, projectElement);
+      });
+    }
+  }
+
+  /**
+   * Handle saving project configuration
+   */
+  private handleSaveConfig(id: string, projectElement: HTMLElement): void {
+    const modelSelect = projectElement.querySelector(
+      `.model-select`
+    ) as HTMLSelectElement;
+    const systemPrompt = projectElement.querySelector(
+      `.system-prompt`
+    ) as HTMLTextAreaElement;
+    const persistentMessage = projectElement.querySelector(
+      `.persistent-message`
+    ) as HTMLTextAreaElement;
+
+    // Get selected tools
+    const enabledTools: string[] = [];
+    projectElement
+      .querySelectorAll<HTMLInputElement>(".tool-checkbox")
+      .forEach((checkbox) => {
+        if (checkbox.checked) {
+          enabledTools.push(checkbox.dataset.toolId || "");
+        }
       });
 
-      // Add event listener for clone button
-      item.querySelector(".clone-btn")?.addEventListener("click", () => {
-        // Fetch the project from the store
-        const sourceProject = projectStore.getProject(id);
+    projectStore.updateProjectConfig(id, {
+      model: modelSelect.value,
+      systemPrompt: systemPrompt.value,
+      persistentUserMessage: persistentMessage.value,
+      enabledTools: enabledTools,
+    });
 
-        if (!sourceProject) {
-          console.error("Could not find project to clone");
-          return;
+    // Show a toast notification for configuration saving
+    store.showToast("Configuration saved successfully!");
+  }
+
+  /**
+   * Handle renaming a project
+   * @param projectId The ID of the project to rename
+   */
+  private handleRenameProject(projectId: string): void {
+    const project = projectStore.getProject(projectId);
+    if (!project) {
+      console.error("Could not find project to rename");
+      return;
+    }
+
+    // Ask for a new name
+    const newName = prompt("Enter a new name for the project:", project.name);
+    
+    if (newName && newName.trim() !== "") {
+      try {
+        const success = projectStore.renameProject(projectId, newName);
+        if (success) {
+          store.showToast(`Project renamed to "${newName}"`);
+        } else {
+          store.showToast("Failed to rename project");
         }
+      } catch (error) {
+        console.error("Failed to rename project:", error);
+        store.showToast(`Failed to rename project: ${error instanceof Error ? error.message : "Unknown error"}`);
+      }
+    }
+  }
 
-        // Ask for a new name
-        const projectName = prompt(
-          "Enter a name for the cloned project:",
-          `Copy of ${sourceProject.name}`
+  /**
+   * Handle cloning a project
+   */
+  private handleCloneProject(id: string): void {
+    // Fetch the project from the store
+    const sourceProject = projectStore.getProject(id);
+
+    if (!sourceProject) {
+      console.error("Could not find project to clone");
+      return;
+    }
+
+    // Ask for a new name
+    const projectName = prompt(
+      "Enter a name for the cloned project:",
+      `Copy of ${sourceProject.name}`
+    );
+
+    if (projectName) {
+      try {
+        // Ask if messages should be cloned
+        const cloneMessages = confirm(
+          "Would you like to clone the messages as well? Click OK to include messages, or Cancel to create an empty project."
         );
 
-        if (projectName) {
-          try {
-            // Ask if messages should be cloned
-            const cloneMessages = confirm(
-              "Would you like to clone the messages as well? Click OK to include messages, or Cancel to create an empty project."
-            );
-
-            // Clone the project with the provided name and message preference
-            const newProjectId = projectStore.cloneProject(
-              id,
-              projectName,
-              cloneMessages
-            );
-            console.log(`Project cloned successfully: ${newProjectId}`);
-          } catch (error) {
-            console.error("Failed to clone project:", error);
-          }
-        }
-      });
-    });
+        // Clone the project with the provided name and message preference
+        const newProjectId = projectStore.cloneProject(
+          id,
+          projectName,
+          cloneMessages
+        );
+        console.log(`Project cloned successfully: ${newProjectId}`);
+        store.showToast(`Project cloned successfully`);
+      } catch (error) {
+        console.error("Failed to clone project:", error);
+        store.showToast(`Failed to clone project: ${error instanceof Error ? error.message : "Unknown error"}`);
+      }
+    }
   }
 
   private showProjectForm(): void {
@@ -470,7 +665,7 @@ export class ProjectManager {
       // Clear existing tool options
       toolsContainer.innerHTML = "";
 
-      // Add tool checkboxes
+      // Add tool checkboxes using template literals for readability
       availableTools.forEach((tool) => {
         const toolOption = document.createElement("div");
         toolOption.className = "tool-option";

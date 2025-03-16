@@ -90,7 +90,7 @@ export class WorkArea {
         // This effect will run whenever the active project changes
         const project = projectStore.activeProject.value;
         if (project && store.activeTab.value === "work-area") {
-          console.log("Active project changed, updating WorkArea");
+          // console.log("Active project changed, updating WorkArea");
           this.updateDynamicContent();
           this.updateArchiveSummaryDisplay().catch(console.error);
         }
@@ -115,7 +115,7 @@ export class WorkArea {
 
     // Legacy listener for compatibility
     converseStore.onMessagesChange((messages) => {
-      console.log("Messages changed via callback, count:", messages.length);
+      // console.log("Messages changed via callback, count:", messages.length);
       this.updateDynamicContent();
     });
   }
@@ -213,7 +213,7 @@ export class WorkArea {
       // Use the active project messages signal
       const messages = projectStore.activeProjectMessages.value;
       countElement.textContent = `${messages.length} messages`;
-      console.log("Updated message count to", messages.length);
+      // console.log("Updated message count to", messages.length);
     }
   }
 

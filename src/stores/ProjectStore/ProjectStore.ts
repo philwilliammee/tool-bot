@@ -1,15 +1,15 @@
 import { signal, computed, batch } from "@preact/signals-core";
 import { MessageExtended } from "../../app.types";
-import { Project, ProjectUpdate } from "./ProjectStore.types";
+import { Project, ProjectUpdate, isValidProject } from "./ProjectStore.types";
 
 export class ProjectStore {
   private static STORAGE_KEY = "projects";
   private static DEFAULT_PROJECT_KEY = "default_project_id";
-  
+
   // Core signals
   private projectsSignal = signal<Record<string, Project>>({});
   private activeProjectIdSignal = signal<string | null>(null);
-  
+
   constructor() {
     console.log("Initializing ProjectStore with signals");
     this.loadProjects();
@@ -20,7 +20,7 @@ export class ProjectStore {
   private get projects(): Record<string, Project> {
     return this.projectsSignal.value;
   }
-  
+
   private set projects(value: Record<string, Project>) {
     this.projectsSignal.value = value;
   }
@@ -36,7 +36,7 @@ export class ProjectStore {
       (a, b) => b.updatedAt - a.updatedAt
     );
   });
-  
+
   public readonly activeProjectConfig = computed(() => {
     const project = this.activeProject.value;
     return project?.config || {};
@@ -46,18 +46,20 @@ export class ProjectStore {
     const project = this.activeProject.value;
     return project?.messages || [];
   });
-  
+
   public readonly hasProjects = computed(() => {
     return Object.keys(this.projects).length > 0;
   });
-  
+
   public readonly activeProjectArchiveSummary = computed(() => {
     const project = this.activeProject.value;
-    return project?.archiveSummary || {
-      summary: null,
-      lastSummarizedMessageIds: [],
-      lastSummarization: 0,
-    };
+    return (
+      project?.archiveSummary || {
+        summary: null,
+        lastSummarizedMessageIds: [],
+        lastSummarization: 0,
+      }
+    );
   });
 
   private initializeDefaultProject(): void {
@@ -161,6 +163,39 @@ export class ProjectStore {
     });
   }
 
+  /**
+   * Renames a project
+   * @param id ID of the project to rename
+   * @param newName New name for the project
+   * @returns boolean indicating success
+   */
+  public renameProject(id: string, newName: string): boolean {
+    if (!this.projects[id]) {
+      console.warn(`Attempted to rename non-existent project: ${id}`);
+      return false;
+    }
+
+    if (!newName || newName.trim() === "") {
+      console.warn("Cannot rename project to an empty name");
+      return false;
+    }
+
+    console.log(`Renaming project ${id} to "${newName}"`);
+
+    batch(() => {
+      const newProjects = { ...this.projects };
+      newProjects[id] = {
+        ...newProjects[id],
+        name: newName.trim(),
+        updatedAt: Date.now(),
+      };
+      this.projectsSignal.value = newProjects;
+      this.saveProjects();
+    });
+
+    return true;
+  }
+
   public deleteProject(id: string): void {
     // Don't allow deletion of last project
     if (Object.keys(this.projects).length <= 1) {
@@ -213,7 +248,7 @@ export class ProjectStore {
       return;
     }
 
-    console.log(`Updating ${messages.length} messages for project ${id}`);
+    // console.log(`Updating ${messages.length} messages for project ${id}`);
 
     batch(() => {
       const newProjects = { ...this.projects };
@@ -225,8 +260,8 @@ export class ProjectStore {
       this.projectsSignal.value = newProjects;
       this.saveProjects();
     });
-    
-    console.log(`Successfully updated messages for project ${id}`);
+
+    // console.log(`Successfully updated messages for project ${id}`);
   }
 
   // Storage Operations
@@ -288,7 +323,7 @@ export class ProjectStore {
 
     batch(() => {
       const newProjects = { ...this.projects };
-      
+
       // Create config object if it doesn't exist
       if (!newProjects[id].config) {
         newProjects[id].config = {};
@@ -341,7 +376,7 @@ export class ProjectStore {
     // Create a new project with the same properties as the source
     const newId = crypto.randomUUID();
     const now = Date.now();
-    
+
     batch(() => {
       const newProjects = { ...this.projects };
       newProjects[newId] = {
@@ -368,19 +403,21 @@ export class ProjectStore {
 
     return newId;
   }
-  
+
   // Utility method to update archive summary for a project
   public updateProjectArchiveSummary(
-    id: string, 
+    id: string,
     summary: string | null,
     lastSummarizedMessageIds: string[] = [],
     lastSummarization: number = Date.now()
   ): void {
     if (!this.projects[id]) {
-      console.warn(`Attempted to update archive summary for non-existent project: ${id}`);
+      console.warn(
+        `Attempted to update archive summary for non-existent project: ${id}`
+      );
       return;
     }
-    
+
     batch(() => {
       const newProjects = { ...this.projects };
       newProjects[id] = {
@@ -388,9 +425,9 @@ export class ProjectStore {
         archiveSummary: {
           summary,
           lastSummarizedMessageIds,
-          lastSummarization
+          lastSummarization,
         },
-        updatedAt: Date.now()
+        updatedAt: Date.now(),
       };
       this.projectsSignal.value = newProjects;
       this.saveProjects();
@@ -400,23 +437,105 @@ export class ProjectStore {
   // Add the missing showProjectManager method
   public showProjectManager(): void {
     console.log("Showing project manager modal");
-    const projectModal = document.getElementById('project-modal') as HTMLDialogElement;
+    const projectModal = document.getElementById(
+      "project-modal"
+    ) as HTMLDialogElement;
     if (projectModal) {
       projectModal.showModal();
     } else {
       console.error("Project modal element not found");
     }
   }
-  
+
   // Add the showNewProjectForm method
   public showNewProjectForm(): void {
     console.log("Showing new project form modal");
-    const projectFormModal = document.getElementById('project-form-modal') as HTMLDialogElement;
+    const projectFormModal = document.getElementById(
+      "project-form-modal"
+    ) as HTMLDialogElement;
     if (projectFormModal) {
       projectFormModal.showModal();
     } else {
       console.error("Project form modal element not found");
     }
+  }
+
+  /**
+   * Exports a project to a JSON file that can be downloaded
+   * @param id ID of the project to export
+   */
+  public exportProject(id: string): void {
+    const project = this.getProject(id);
+    if (!project) {
+      console.error(`Cannot export non-existent project: ${id}`);
+      throw new Error(`Project not found: ${id}`);
+    }
+
+    // Create a copy of the project for export
+    const exportData = {
+      ...project,
+      exportedAt: Date.now(),
+      exportVersion: 1,
+    };
+
+    // Convert to JSON and create a Blob
+    const jsonStr = JSON.stringify(exportData, null, 2);
+    const blob = new Blob([jsonStr], { type: "application/json" });
+
+    // Create a download link and trigger it
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${project.name
+      .replace(/[^a-z0-9]/gi, "_")
+      .toLowerCase()}_export.json`;
+    document.body.appendChild(a);
+    a.click();
+
+    // Clean up
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
+  /**
+   * Imports a project from a JSON file
+   * @param jsonData The parsed JSON data from the import file
+   * @returns ID of the newly created project
+   */
+  public importProject(jsonData: any): string {
+    // Validate the imported data
+    if (!isValidProject(jsonData)) {
+      console.error("Invalid project data format");
+      throw new Error("The imported file does not contain a valid project");
+    }
+
+    // Generate a new ID for the imported project
+    const newId = crypto.randomUUID();
+    const now = Date.now();
+
+    // Create a new project based on the imported data
+    batch(() => {
+      const newProjects = { ...this.projects };
+      newProjects[newId] = {
+        ...jsonData,
+        id: newId,
+        name: `${jsonData.name} (Imported)`,
+        createdAt: now,
+        updatedAt: now,
+        messages: jsonData.messages || [],
+        // Make sure we have proper structure
+        archiveSummary: jsonData.archiveSummary || {
+          summary: null,
+          lastSummarizedMessageIds: [],
+          lastSummarization: 0,
+        },
+        config: jsonData.config || {},
+      };
+      this.projectsSignal.value = newProjects;
+      this.saveProjects();
+    });
+
+    return newId;
   }
 }
 

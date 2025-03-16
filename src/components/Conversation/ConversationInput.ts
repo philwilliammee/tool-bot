@@ -112,7 +112,7 @@ export class ConversationInput {
       try {
         const id = await dataStore.addFromFile(file);
         store.showToast(`Data uploaded: ${file.name}`);
-        console.log("Data available with ID:", id);
+        // console.log("Data available with ID:", id);
         this.fileInput.value = "";
       } catch (error: any) {
         store.showToast(`Upload failed: ${error.message}`);

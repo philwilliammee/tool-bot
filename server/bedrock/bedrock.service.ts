@@ -101,11 +101,11 @@ export class BedrockService {
     // Get filtered tool configuration
     const toolConfig = this.getFilteredToolConfig(enabledTools);
 
-    console.log(
-      `[BEDROCK] Using ${
-        toolConfig?.tools?.length || 0
-      } tools for model ${modelId}`
-    );
+    // console.log(
+    //   `[BEDROCK] Using ${
+    //     toolConfig?.tools?.length || 0
+    //   } tools for model ${modelId}`
+    // );
 
     const input: ConverseStreamCommandInput = {
       modelId,

@@ -56,7 +56,7 @@ function createAppStore() {
 
   // UI Layout State - Default to left-expanded
   const uiLayout = signal<UILayout>("left-expanded");
-  
+
   // Interrupt-related signals
   const isToolRunning = signal(false);
   const currentToolId = signal<string | null>(null);
@@ -123,9 +123,11 @@ function createAppStore() {
     if (pendingErrorPrompt.value) return "Retrying...";
     return null;
   });
-  
+
   // Interrupt-related computed values
-  const isInterruptible = computed(() => isGenerating.value || isToolRunning.value);
+  const isInterruptible = computed(
+    () => isGenerating.value || isToolRunning.value
+  );
   const interruptType = computed((): InterruptType => {
     if (isToolRunning.value) return "tool";
     if (isGenerating.value) return "generation";
@@ -204,7 +206,7 @@ function createAppStore() {
       ) {
         // Use saved layout if valid
         uiLayout.value = savedLayout;
-        console.log("UI Layout Restored:", savedLayout);
+        // console.log("UI Layout Restored:", savedLayout);
       } else {
         // Set default layout to "left-expanded" and persist it
         const defaultLayout: UILayout = "left-expanded";
@@ -234,7 +236,7 @@ function createAppStore() {
     // Toast handling
     showToast(message: string) {
       toastMessage.value = message;
-      
+
       // Auto-clear toast after 3 seconds
       setTimeout(() => {
         if (toastMessage.value === message) {

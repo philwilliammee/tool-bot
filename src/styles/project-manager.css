@@ -348,3 +348,44 @@
   outline: none;
   box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.5);
 }
+
+.import-project-container {
+  margin-right: auto;
+  margin-left: 0.5rem;
+  display: flex;
+  align-items: center;
+}
+
+.import-project-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.import-project-btn svg {
+  transform: rotate(180deg);
+}
+
+.export-btn, .rename-btn {
+  margin-left: 0.25rem;
+}
+
+/* Improved button layout for project actions */
+.project-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: flex-end;
+}
+
+/* Make sure buttons don't shrink too much on small screens */
+@media (max-width: 768px) {
+  .project-header {
+    flex-direction: column;
+  }
+  
+  .project-actions {
+    margin-top: 1rem;
+    justify-content: flex-start;
+  }
+}

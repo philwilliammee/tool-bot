@@ -45,10 +45,10 @@ export class Conversation {
       ".left-column > header"
     ) as HTMLElement;
 
-    console.log("Chat messages element:", this.chatMessages);
-    console.log("Scroll button element:", this.scrollButton);
-    console.log("Header container element:", this.headerContainer);
-    console.log("Input container element:", this.inputContainer);
+    // console.log("Chat messages element:", this.chatMessages);
+    // console.log("Scroll button element:", this.scrollButton);
+    // console.log("Header container element:", this.headerContainer);
+    // console.log("Input container element:", this.inputContainer);
 
     // Check required elements with improved error messages
     if (!this.chatMessages) {

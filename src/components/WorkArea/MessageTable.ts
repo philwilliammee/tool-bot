@@ -76,7 +76,7 @@ export class MessageTable {
     this.setupFilterListeners();
 
     const chatCleanup = converseStore.onMessagesChange(() => {
-      console.log("Messages changed, updating table");
+      // console.log("Messages changed, updating table");
       this.updateContent();
     });
 
