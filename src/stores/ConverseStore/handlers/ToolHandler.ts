@@ -47,9 +47,28 @@ export class ToolHandler {
   }
 
   async executeTool(toolUse: ToolUse): Promise<ToolResultMessage> {
+    console.log(`WORKFLOW-DEBUG: Starting tool execution ${toolUse.toolUseId} (${toolUse.name})`);
+    console.log(`WORKFLOW-DEBUG: Current generating state: ${store.isGenerating.value}`);
+    console.log(`WORKFLOW-DEBUG: Current toolRunning state: ${store.isToolRunning.value}`);
+
     const tool = clientRegistry.getTool(toolUse.name);
     if (!tool) {
       throw new Error(`Unknown tool requested: ${toolUse.name}`);
+    }
+
+    // Check if another tool is already running - this shouldn't happen
+    // but could in edge cases with rapid chained tool calls
+    if (this.currentToolExecution.value) {
+      console.warn(
+        `Starting new tool execution (${toolUse.toolUseId}) while another tool is still running (${this.currentToolExecution.value.toolUseId}). Cleaning up previous execution.`
+      );
+      // Force cleanup of previous execution
+      this.currentToolExecution.value.controller.abort();
+      // Give a short delay to ensure the previous tool has time to clean up
+      await new Promise(resolve => setTimeout(resolve, 50));
+      // Ensure the state is reset
+      this.currentToolExecution.value = null;
+      store.setToolRunning(false);
     }
 
     try {
@@ -63,6 +82,7 @@ export class ToolHandler {
       };
 
       // Update the AppStore with tool running status
+      console.log(`Tool execution started: ${toolUse.name} (${toolUse.toolUseId})`);
       store.setToolRunning(true, toolUse.toolUseId);
 
       // Clean CDATA from HTML input if present
@@ -74,10 +94,13 @@ export class ToolHandler {
       const inputWithSignal = {
         ...toolUse.input,
         signal: controller.signal,
+        toolUseId: toolUse.toolUseId, // Pass the tool ID through for logging
       };
 
       // Execute the tool with the abort signal
+      console.log(`WORKFLOW-DEBUG: Executing tool ${toolUse.name}`);
       const result = await tool.execute(inputWithSignal);
+      console.log(`WORKFLOW-DEBUG: Tool execution completed, got result`);
 
       // If this is an HTML tool execution, switch to preview tab
       if (toolUse.name === "html") {
@@ -86,7 +109,7 @@ export class ToolHandler {
       }
 
       // Return the result in the correct format for Bedrock
-      return {
+      const toolResultMessage: ToolResultMessage = {
         role: "user",
         content: [
           {
@@ -98,8 +121,12 @@ export class ToolHandler {
           },
         ],
       };
+
+      console.log(`WORKFLOW-DEBUG: Returning tool result message for ${toolUse.toolUseId}`);
+      return toolResultMessage;
     } catch (error: any) {
       console.error(`Tool execution failed: ${error.message}`);
+      console.log(`WORKFLOW-DEBUG: Tool execution failed: ${error.message}`);
 
       // Check if this was an interruption
       const isInterrupted =
@@ -130,10 +157,18 @@ export class ToolHandler {
       return message;
     } finally {
       // Always clean up and update state when done
-      this.currentToolExecution.value = null;
+      console.log(`Tool execution completed: ${toolUse.name} (${toolUse.toolUseId})`);
 
-      // Update the AppStore
-      store.setToolRunning(false);
+      // Only clear if this is still the current execution
+      // This prevents race conditions in chained tool calls
+      if (this.currentToolExecution.value?.toolUseId === toolUse.toolUseId) {
+        this.currentToolExecution.value = null;
+        // Update the AppStore
+        store.setToolRunning(false);
+        console.log(`WORKFLOW-DEBUG: Reset tool state for ${toolUse.toolUseId}, isToolRunning: ${store.isToolRunning.value}`);
+      } else {
+        console.log(`Tool state already changed, not clearing for ${toolUse.toolUseId}`);
+      }
     }
   }
 }
