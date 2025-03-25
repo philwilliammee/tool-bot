@@ -11,6 +11,8 @@ import { ldapTool } from "./ldap-tool/client/ldap.client.js";
 import { fileTreeTool } from "./file-tree-tool/client/file-tree.client.js";
 import { projectReaderTool } from "./project-reader-tool/client/project-reader.client.js";
 import { octokitTool } from "./octokit-tool/client/octokit.client.js";
+import { dataRowReaderTool } from "./data-row-reader/client/data-row-reader.client.js";
+
 // Make dataStore available globally for tools
 // @todo have a tool-data-store that the client can subscribe to.
 declare global {
@@ -35,6 +37,7 @@ class ToolRegistry {
     this.registerTool(dataStoreTool);
     this.registerTool(bashTool);
     this.registerTool(xTool);
+    this.registerTool(dataRowReaderTool);
   }
 
   private registerTool(tool: ClientTool): void {
