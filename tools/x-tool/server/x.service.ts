@@ -5,26 +5,26 @@ import { XInput, XOutput } from "../types.js";
 import { TwitterApi } from "twitter-api-v2";
 
 // Check required credentials
-if (
-  !process.env.X_CONSUMER_KEY ||
-  !process.env.X_CONSUMER_SECRET ||
-  !process.env.X_ACCESS_TOKEN ||
-  !process.env.X_ACCESS_SECRET ||
-  !process.env.X_BEARER_TOKEN
-) {
-  throw new Error("X API credentials are required");
-}
+// if (
+//   !process.env.X_CONSUMER_KEY ||
+//   !process.env.X_CONSUMER_SECRET ||
+//   !process.env.X_ACCESS_TOKEN ||
+//   !process.env.X_ACCESS_SECRET ||
+//   !process.env.X_BEARER_TOKEN
+// ) {
+//   throw new Error("X API credentials are required");
+// }
 
 // Client for write operations (posting)
 const writeClient = new TwitterApi({
-  appKey: process.env.X_CONSUMER_KEY,
-  appSecret: process.env.X_CONSUMER_SECRET,
-  accessToken: process.env.X_ACCESS_TOKEN,
-  accessSecret: process.env.X_ACCESS_SECRET,
+  appKey: process.env.X_CONSUMER_KEY || "",
+  appSecret: process.env.X_CONSUMER_SECRET || "",
+  accessToken: process.env.X_ACCESS_TOKEN || "",
+  accessSecret: process.env.X_ACCESS_SECRET || "",
 });
 
 // Read-only client using Bearer token
-const readOnlyClient = new TwitterApi(process.env.X_BEARER_TOKEN);
+const readOnlyClient = new TwitterApi(process.env.X_BEARER_TOKEN || "");
 
 export const xTool: ServerTool = {
   name: "x",

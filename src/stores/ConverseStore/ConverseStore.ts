@@ -400,29 +400,14 @@ export class ConverseStore {
 
           onError: (error) => {
             console.error("callBedrockLLM -> onError:", error);
-            
-            // Check if this was an interruption (AbortError)
-            if (error.name === "AbortError") {
-              this.messageManager.updateMessage(tempMessage.id, {
-                content: [{ text: accumulatedText + "\n\n*Message generation interrupted by user*" }],
-                metadata: {
-                  ...tempMessage.metadata,
-                  isStreaming: false,
-                  interrupted: true,
-                },
-              });
-            } else {
-              // For other errors, show the standard error message
-              this.messageManager.updateMessage(tempMessage.id, {
-                content: [{ text: "Error: Failed to generate response" }],
-                metadata: {
-                  ...tempMessage.metadata,
-                  isStreaming: false,
-                  error: true,
-                },
-              });
-            }
-            
+            this.messageManager.updateMessage(tempMessage.id, {
+              content: [{ text: "Error: Failed to generate response" }],
+              metadata: {
+                ...tempMessage.metadata,
+                isStreaming: false,
+                error: true,
+              },
+            });
             this.notifyMessageChange();
             store.setGenerating(false);
           },
@@ -560,10 +545,10 @@ export class ConverseStore {
     // Explicitly force signal update in messageManager to ensure reactivity
     this.messageManager.updateSignalsExplicitly();
 
-    console.log(
-      `Notifying ${this.messageChangeCallbacks.length} listeners of message change. Messages:`,
-      messages.length
-    );
+    // console.log(
+    //   `Notifying ${this.messageChangeCallbacks.length} listeners of message change. Messages:`,
+    //   messages.length
+    // );
 
     this.messageChangeCallbacks.forEach((cb) => cb(messages));
     this.saveToStorage();
