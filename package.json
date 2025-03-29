@@ -23,6 +23,7 @@
     "@types/compression": "^1.7.5",
     "@types/express": "^5.0.0",
     "@types/node": "^22.10.5",
+    "@types/papaparse": "^5.3.15",
     "concurrently": "^9.1.2",
     "nodemon": "^3.1.9",
     "typescript": "~5.6.2",
@@ -40,6 +41,7 @@
     "mathjs": "^14.0.1",
     "octokit": "^4.1.0",
     "openai": "^4.86.2",
+    "papaparse": "^5.5.2",
     "twitter-api-v2": "^1.19.1"
   },
   "engines": {

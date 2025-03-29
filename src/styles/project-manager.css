@@ -145,11 +145,46 @@
 #project-modal .modal-content {
   width: 100%;
   /* Removed max-width to allow full container width */
+  display: flex;
+  flex-direction: column;
+  max-height: 90vh;
 }
 
 #project-form-modal .modal-content {
   width: 100%;
   /* Removed max-width to allow full container width */
+}
+
+/* Sticky modal header */
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem;
+  border-bottom: 1px solid #e5e7eb;
+  background-color: white;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+/* Add shadow when scrolled */
+.modal-header.scrolled {
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* Make project list scrollable */
+.project-list {
+  overflow-y: auto;
+  padding: 1rem;
+  flex: 1;
+}
+
+.modal-header h2 {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #111827;
 }
 
 .project-form .form-group {
@@ -310,23 +345,7 @@
   margin-top: 0.25rem;
 }
 
-/* Modal header styling */
-.modal-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 1rem;
-  border-bottom: 1px solid #e5e7eb;
-  margin-bottom: 1rem;
-}
-
-.modal-header h2 {
-  margin: 0;
-  font-size: 1.25rem;
-  font-weight: 600;
-  color: #111827;
-}
-
+/* Close button styling */
 .close-btn {
   background: none;
   border: none;
@@ -349,9 +368,9 @@
   box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.5);
 }
 
+/* Import project container - now that it's the only item in modal-actions */
 .import-project-container {
-  margin-right: auto;
-  margin-left: 0.5rem;
+  margin: 0;
   display: flex;
   align-items: center;
 }
@@ -368,6 +387,17 @@
 
 .export-btn, .rename-btn {
   margin-left: 0.25rem;
+}
+
+/* Sticky modal footer - now contains only the import button */
+.modal-actions {
+  display: flex;
+  padding: 1rem;
+  border-top: 1px solid #e5e7eb;
+  background-color: white;
+  position: sticky;
+  bottom: 0;
+  z-index: 10;
 }
 
 /* Improved button layout for project actions */

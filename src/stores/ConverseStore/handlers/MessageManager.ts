@@ -93,7 +93,7 @@ export class MessageManager {
 
   private createMessage(message: Partial<Message>): MessageExtended {
     const id = this.getNextId();
-    console.log("Creating new message with ID:", id);
+    // console.log("Creating new message with ID:", id);
 
     const hasToolUse = message.content?.some((block) => block.toolUse) || false;
     const hasToolResult =
@@ -121,7 +121,7 @@ export class MessageManager {
     let totalTokens = 0;
     let newThreshold = messages.length;
 
-    console.log(`Updating threshold based on ${messages.length} messages`);
+    // console.log(`Updating threshold based on ${messages.length} messages`);
 
     // Start from most recent messages
     for (let i = messages.length - 1; i >= 0; i--) {
@@ -156,21 +156,21 @@ export class MessageManager {
       );
     }
 
-    console.log(
-      `Total tokens: ${totalTokens}, Overlap tokens: ${overlappingMessages} -> New threshold: ${newThreshold}`
-    );
+    // console.log(
+    //   `Total tokens: ${totalTokens}, Overlap tokens: ${overlappingMessages} -> New threshold: ${newThreshold}`
+    // );
 
     if (this.threshold !== newThreshold) {
-      console.log(
-        `Adjusting threshold from ${this.threshold} to ${newThreshold} based on token count`
-      );
+      // console.log(
+      //   `Adjusting threshold from ${this.threshold} to ${newThreshold} based on token count`
+      // );
       this.threshold = newThreshold;
       this.updateArchiveStatus();
     }
   }
 
   public addMessage(message: Partial<MessageExtended>) {
-    console.log("Adding message:", message);
+    // console.log("Adding message:", message);
     const newMessage = this.createMessage(message);
     this.messages.set(newMessage.id, newMessage);
     this.messageOrder.push(newMessage.id);
@@ -200,7 +200,7 @@ export class MessageManager {
     id: string,
     update: Partial<MessageExtended>
   ): MessageExtended {
-    console.log(`Updating message ${id}:`, update);
+    // console.log(`Updating message ${id}:`, update);
     const message = this.messages.get(id);
     if (!message) {
       throw new Error(`Message with id ${id} not found`);
@@ -228,15 +228,15 @@ export class MessageManager {
   public upsertMessage(
     idOrMessage: string | Partial<MessageExtended>
   ): MessageExtended {
-    console.log("Upserting message:", idOrMessage);
+    // console.log("Upserting message:", idOrMessage);
 
     if (typeof idOrMessage === "string") {
       const existingMessage = this.messages.get(idOrMessage);
       if (existingMessage) {
-        console.log("Found existing message:", existingMessage);
+        // console.log("Found existing message:", existingMessage);
         return existingMessage;
       }
-      console.log("Creating new message for ID:", idOrMessage);
+      // console.log("Creating new message for ID:", idOrMessage);
       return this.addMessage({ role: "user", content: [] });
     }
 
@@ -246,7 +246,7 @@ export class MessageManager {
       : null;
 
     if (existingMessage) {
-      console.log("Updating existing message:", existingMessage.id);
+      // console.log("Updating existing message:", existingMessage.id);
       const updatedMessage: MessageExtended = {
         ...existingMessage,
         ...messageToUpsert,
@@ -283,7 +283,7 @@ export class MessageManager {
   }
 
   public clear(): void {
-    console.log("Clearing all messages");
+    // console.log("Clearing all messages");
     this.messages.clear();
     this.messageOrder = [];
     this.sequence = 0;
@@ -294,9 +294,9 @@ export class MessageManager {
 
   private updateArchiveStatus(): void {
     const activeIds = this.messageOrder.slice(-this.threshold);
-    console.log(
-      `Updating archive status. Active messages: ${activeIds.length}`
-    );
+    // console.log(
+    //   `Updating archive status. Active messages: ${activeIds.length}`
+    // );
 
     let hasChanges = false;
     this.messages.forEach((message, id) => {
@@ -320,12 +320,12 @@ export class MessageManager {
       sequence: this.sequence,
       messages: this.getMessages(),
     };
-    console.log("Getting state:", state);
+    // console.log("Getting state:", state);
     return state;
   }
 
   public setState(state: { sequence: number; messages: MessageExtended[] }) {
-    console.log("Setting state:", state);
+    // console.log("Setting state:", state);
 
     if (!state || !Array.isArray(state.messages)) {
       console.error("Invalid state provided:", state);
@@ -355,7 +355,7 @@ export class MessageManager {
       }
     });
 
-    console.log(`Restored ${this.messageOrder.length} messages`);
+    // console.log(`Restored ${this.messageOrder.length} messages`);
     this.updateThresholdBasedOnTokens();
 
     // Update signals after setting state

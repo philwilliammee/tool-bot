@@ -25,6 +25,7 @@ import { fileTreeConfig } from "./file-tree-tool/config.js";
 import { fileWriterConfig } from "./file-writer/config.js";
 import { projectReaderConfig } from "./project-reader-tool/config.js";
 import { codeExecutorConfig } from "./code-executor/config.js";
+import { dataRowReaderConfig } from "./data-row-reader/config.js";
 
 class ToolRegistry {
   private tools: ServerToolRegistry = {};
@@ -62,6 +63,7 @@ class ToolRegistry {
         ...(dataStoreConfig.tools || []),
         ...(bashToolConfig.tools || []),
         ...(xToolConfig.tools || []),
+        ...(dataRowReaderConfig.tools || []),
       ],
     };
   }

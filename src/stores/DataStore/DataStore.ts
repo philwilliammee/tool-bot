@@ -1,27 +1,56 @@
 // src/stores/DataStore/DataStore.ts
 import { signal } from "@preact/signals-core";
 import { DataObject } from "./DataStore.types";
+import Papa from 'papaparse';
 
 export function createDataStore() {
   // Store both current view data and managed data objects
   const dataMap = signal<Map<string, DataObject>>(new Map());
   const currentData = signal<DataObject | null>(null);
 
+  /**
+   * Enhanced CSV Parser using Papa Parse
+   * Handles quoted fields, escaped characters, and other CSV complexities
+   */
   const parseCSV = (content: string): { headers: string[]; data: any[] } => {
-    const lines = content
-      .split(/\r?\n/) // Be safe with CRLF as well
-      .filter((line) => line.trim() !== ""); // Drop empty lines
-
-    const headers = lines[0].split(",").map((h) => h.trim());
-    const data = lines.slice(1).map((line) => {
-      const values = line.split(",").map((v) => v.trim());
-      return headers.reduce((obj, header, i) => {
-        obj[header] = values[i];
-        return obj;
-      }, {} as Record<string, any>);
+    // Parse CSV using Papa Parse
+    const parseResult = Papa.parse(content, {
+      header: true,          // First row is headers
+      skipEmptyLines: true,  // Skip empty lines
+      dynamicTyping: true,   // Convert to appropriate types
+      transformHeader: (header) => {
+        // Remove quotes from header names if present
+        return header.replace(/^["']|["']$/g, '');
+      }
     });
 
-    return { headers, data };
+    // Clean up the data by:
+    // 1. Removing escaped characters from JSON stringification
+    // 2. Ensuring consistent field names without quotes
+    const cleanData = parseResult.data.map(row => {
+      const cleanRow: Record<string, any> = {};
+
+      // Process each field
+      Object.entries(row).forEach(([key, value]) => {
+        // Clean up the key by removing any quotes
+        const cleanKey = key.replace(/^["']|["']$/g, '');
+
+        // Handle string values with potential escape characters
+        if (typeof value === 'string') {
+          // Remove escaped quotes
+          cleanRow[cleanKey] = value.replace(/\\"/g, '"');
+        } else {
+          cleanRow[cleanKey] = value;
+        }
+      });
+
+      return cleanRow;
+    });
+
+    return {
+      headers: parseResult.meta.fields?.map(field => field.replace(/^["']|["']$/g, '')) || [],
+      data: cleanData
+    };
   };
 
   return {
@@ -57,7 +86,7 @@ export function createDataStore() {
       dataMap.value.set(id, dataObject);
       currentData.value = dataObject;
 
-      // @todo store this Make data available for iframe/tools
+      // Make data available for iframe/tools
       window.availableData = dataObject.data;
 
       return id;
@@ -93,16 +122,18 @@ export function createDataStore() {
       return id;
     },
 
-    // Add new private method to create data context block
+    // Create data context block
     getDataContextText(): string | null {
       const data = currentData.value;
       if (!data) return "";
+
       const sampleData = Array.isArray(data.data) ? data.data[0] : data.data;
+
+      // Categorize fields by data type
       const fields = Object.entries(sampleData).reduce(
         (acc, [key, value]) => {
-          const numValue = Number(value);
-          if (!isNaN(numValue)) {
-            acc[Number.isInteger(numValue) ? "integer" : "float"].push(key);
+          if (typeof value === 'number') {
+            acc[Number.isInteger(value) ? "integer" : "float"].push(key);
           } else {
             acc["string"].push(key);
           }
@@ -115,6 +146,7 @@ export function createDataStore() {
         ? data.data.slice(0, 5)
         : [data.data];
 
+      // Format the data nicely for display
       return `### Data Structure Overview
       Total Records: ${Array.isArray(data.data) ? data.data.length : "N/A"}
 
@@ -125,7 +157,7 @@ export function createDataStore() {
 
       ### Sample Data (First 5 Records)
       \`\`\`json
-      ${JSON.stringify(sampleRecords)}
+      ${JSON.stringify(sampleRecords, null, 2)}
       \`\`\`
 
       ### How to access the available data

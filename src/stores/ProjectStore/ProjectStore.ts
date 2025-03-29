@@ -278,7 +278,7 @@ export class ProjectStore {
   }
 
   private saveProjects(): void {
-    console.log("Saving projects");
+    // console.log("Saving projects");
     localStorage.setItem(
       ProjectStore.STORAGE_KEY,
       JSON.stringify(this.projects)

@@ -140,16 +140,27 @@ export class ConversationInput {
       })
     );
 
-    // Watch the isGenerating state to update UI
+    // Watch the processing state to update UI
     this.cleanupFns.push(
       effect(() => {
+        const processing = store.isProcessing.value;
         const generating = store.isGenerating.value;
-        if (generating) {
-          // Only disable the generate button, not the input field
-          this.generateButton.disabled = true;
+        const toolRunning = store.isToolRunning.value;
+
+        // Always disable button during any processing
+        this.generateButton.disabled = processing;
+
+        // Show or hide spinner based on processing state
+        if (processing) {
           this.buttonSpinner.show();
+
+          // Optionally, we could add different spinner styles for different states
+          // if (toolRunning) {
+          //   this.buttonSpinner.setVariant('tool');
+          // } else if (generating) {
+          //   this.buttonSpinner.setVariant('generating');
+          // }
         } else {
-          this.generateButton.disabled = false;
           this.buttonSpinner.hide();
         }
       })
@@ -160,7 +171,7 @@ export class ConversationInput {
       effect(() => {
         const inputValue = this.inputValue.value;
         this.generateButton.disabled =
-          inputValue.trim() === "" || store.isGenerating.value;
+          inputValue.trim() === "" || store.isProcessing.value;
       })
     );
 
@@ -198,10 +209,16 @@ export class ConversationInput {
   }
 
   private handleGenerate(): void {
-    // Only check isGenerating for the submission, not the input
-    if (store.isGenerating.value) {
-      // Allow collecting input for next message, but don't send yet
-      store.showToast("Please wait for the current response to complete");
+    // Block submission when either generating or running tools
+    if (store.isProcessing.value) {
+      // Create a more specific message based on what's happening
+      let message = "Please wait for the current process to complete";
+      if (store.isGenerating.value) {
+        message = "Please wait for the current response to complete";
+      } else if (store.isToolRunning.value) {
+        message = "Please wait for the current tool to complete";
+      }
+      store.showToast(message);
       return;
     }
 

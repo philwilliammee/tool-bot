@@ -61,7 +61,7 @@ export class WorkArea {
     this.cleanupFns.push(
       effect(() => {
         const isActive = store.activeTab.value === "work-area";
-        console.log("WorkArea tab active:", isActive);
+        // console.log("WorkArea tab active:", isActive);
 
         // Update visibility
         this.element.style.display = isActive ? "block" : "none";
@@ -102,11 +102,11 @@ export class WorkArea {
       effect(() => {
         const messages = projectStore.activeProjectMessages.value;
         if (store.activeTab.value === "work-area") {
-          console.log(
-            "Messages updated, updating WorkArea with",
-            messages.length,
-            "messages"
-          );
+            // console.log(
+            //   "Messages updated, updating WorkArea with",
+            //   messages.length,
+            //   "messages"
+            // );
           this.updateMessageCount();
           this.updateButtonStates();
         }
@@ -201,7 +201,7 @@ export class WorkArea {
   // Rest of existing methods remain, but with signal-based updates
   private updateDynamicContent(): void {
     if (store.activeTab.value === "work-area") {
-      console.log("Updating WorkArea dynamic content");
+      // console.log("Updating WorkArea dynamic content");
       this.updateMessageCount();
       this.updateButtonStates();
     }

@@ -190,7 +190,7 @@ export class MessageTable {
   }
 
   private async updateContent(): Promise<void> {
-    console.log("UpdateContent called");
+    // console.log("UpdateContent called");
 
     if (!this.tbody) {
       console.error("Table body not found");

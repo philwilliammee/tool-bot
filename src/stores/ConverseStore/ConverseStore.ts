@@ -335,11 +335,6 @@ export class ConverseStore {
               currentToolUse &&
               accumulatedToolInput
             ) {
-              // console.log(
-              //   "callBedrockLLM -> tool_use stop, final tool input:",
-              //   accumulatedToolInput
-              // );
-
               try {
                 const parsedInput = JSON.parse(accumulatedToolInput);
                 const toolUse = {
@@ -348,8 +343,6 @@ export class ConverseStore {
                   input: parsedInput,
                 };
 
-                // console.log("callBedrockLLM -> About to execute tool:", toolUse);
-
                 // Update the assistant message to include both text and the final toolUse block
                 this.messageManager.updateMessage(tempMessage.id, {
                   content: [{ text: accumulatedText }, { toolUse }],
@@ -357,12 +350,19 @@ export class ConverseStore {
                 });
                 this.notifyMessageChange();
 
-                // Execute the tool, then add the result as a new message
-                const result = await this.toolHandler.executeTool(toolUse);
-                // console.log("callBedrockLLM -> Tool execution result:", result);
-                this.addMessage(result);
+                // Set the current tool ID in the store before execution
+                store.setCurrentToolId(toolUse.toolUseId);
 
-                // Reset the tool state, so we're ready for future tool calls
+                try {
+                  // Execute the tool, then add the result as a new message
+                  const result = await this.toolHandler.executeTool(toolUse);
+                  this.addMessage(result);
+                } finally {
+                  // Clear the current tool ID after execution (success or failure)
+                  store.setCurrentToolId(null);
+                }
+
+                // Reset the tool state
                 currentToolUse = null;
                 accumulatedToolInput = "";
               } catch (error) {
@@ -385,8 +385,12 @@ export class ConverseStore {
             const current = this.messageManager.getMessage(tempMessage.id);
             if (current) {
               this.messageManager.updateMessage(tempMessage.id, {
-                content: current.content,
-                metadata: { ...current.metadata, isStreaming: false },
+                content: finalMessage?.content || current.content,
+                metadata: {
+                  ...current.metadata,
+                  isStreaming: false,
+                  interrupted: finalMessage?.metadata?.interrupted
+                },
               });
               this.notifyMessageChange();
             }
@@ -400,29 +404,14 @@ export class ConverseStore {
 
           onError: (error) => {
             console.error("callBedrockLLM -> onError:", error);
-            
-            // Check if this was an interruption (AbortError)
-            if (error.name === "AbortError") {
-              this.messageManager.updateMessage(tempMessage.id, {
-                content: [{ text: accumulatedText + "\n\n*Message generation interrupted by user*" }],
-                metadata: {
-                  ...tempMessage.metadata,
-                  isStreaming: false,
-                  interrupted: true,
-                },
-              });
-            } else {
-              // For other errors, show the standard error message
-              this.messageManager.updateMessage(tempMessage.id, {
-                content: [{ text: "Error: Failed to generate response" }],
-                metadata: {
-                  ...tempMessage.metadata,
-                  isStreaming: false,
-                  error: true,
-                },
-              });
-            }
-            
+            this.messageManager.updateMessage(tempMessage.id, {
+              content: [{ text: "Error: Failed to generate response" }],
+              metadata: {
+                ...tempMessage.metadata,
+                isStreaming: false,
+                error: true,
+              },
+            });
             this.notifyMessageChange();
             store.setGenerating(false);
           },
@@ -560,10 +549,10 @@ export class ConverseStore {
     // Explicitly force signal update in messageManager to ensure reactivity
     this.messageManager.updateSignalsExplicitly();
 
-    console.log(
-      `Notifying ${this.messageChangeCallbacks.length} listeners of message change. Messages:`,
-      messages.length
-    );
+    // console.log(
+    //   `Notifying ${this.messageChangeCallbacks.length} listeners of message change. Messages:`,
+    //   messages.length
+    // );
 
     this.messageChangeCallbacks.forEach((cb) => cb(messages));
     this.saveToStorage();
@@ -585,6 +574,41 @@ export class ConverseStore {
     this.messageChangeCallbacks = [];
     this.messageManager.clear();
     // No need to clean up summary state as it's handled by SummaryHandler
+  }
+
+  /**
+   * Interrupts the currently running tool if one exists.
+   * Updates UI state and shows appropriate feedback.
+   *
+   * @returns boolean - True if a tool was interrupted, false otherwise
+   */
+  public interruptCurrentTool(): boolean {
+    const currentToolId = store.currentToolId.value;
+    if (this.toolHandler && currentToolId) {
+      const interrupted = this.toolHandler.interruptTool(currentToolId);
+      if (interrupted) {
+        store.showToast("Tool execution interrupted");
+      }
+      return interrupted;
+    }
+    return false;
+  }
+
+  /**
+   * Interrupts all currently running tools.
+   * Updates UI state and shows appropriate feedback.
+   *
+   * @returns boolean - True if any tools were interrupted, false otherwise
+   */
+  public interruptAllTools(): boolean {
+    if (this.toolHandler) {
+      const interrupted = this.toolHandler.interruptAllTools();
+      if (interrupted) {
+        store.showToast("All Tool executions interrupted");
+      }
+      return interrupted;
+    }
+    return false;
   }
 }
 

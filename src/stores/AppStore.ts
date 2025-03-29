@@ -1,5 +1,5 @@
 // src/stores/AppStore.ts
-import { signal, computed, batch } from "@preact/signals-core";
+import { signal, computed, batch, effect as signalEffect } from "@preact/signals-core";
 
 type TabId = "preview" | "work-area" | "data";
 
@@ -112,14 +112,18 @@ function createAppStore() {
   const hasPendingError = computed(() => pendingErrorPrompt.value !== null);
   const isPreviewTab = computed(() => activeTab.value === "preview");
   const isLoading = computed(
-    () => isGenerating.value || pendingErrorPrompt.value !== null
+    () => isGenerating.value || pendingErrorPrompt.value !== null || isToolRunning.value
   );
   const shouldDisableInput = computed(
-    () => isGenerating.value || isError.value
+    () => isGenerating.value || isError.value || isToolRunning.value
+  );
+  const isProcessing = computed(
+    () => isGenerating.value || isToolRunning.value || pendingErrorPrompt.value !== null
   );
   const statusMessage = computed(() => {
     if (isError.value) return error.value;
     if (isGenerating.value) return "Generating...";
+    if (isToolRunning.value) return "Running tool...";
     if (pendingErrorPrompt.value) return "Retrying...";
     return null;
   });
@@ -133,6 +137,12 @@ function createAppStore() {
     if (isGenerating.value) return "generation";
     return "none";
   });
+
+  // Tool-related methods
+  const setCurrentToolId = (id: string | null) => {
+    currentToolId.value = id;
+    isToolRunning.value = id !== null;
+  };
 
   return {
     // Expose signals
@@ -153,6 +163,7 @@ function createAppStore() {
     isPreviewTab,
     isLoading,
     shouldDisableInput,
+    isProcessing,
     statusMessage,
     isInterruptible,
     interruptType,
@@ -275,10 +286,15 @@ function createAppStore() {
 
     // Tool execution status
     setToolRunning(running: boolean, toolId: string | null = null) {
+      // console.log(`WORKFLOW-DEBUG: Setting isToolRunning to ${running}${toolId ? ` for tool ${toolId}` : ''}`);
+      // console.log(`WORKFLOW-DEBUG: Current state before change - isToolRunning: ${isToolRunning.value}, isGenerating: ${isGenerating.value}`);
+
       batch(() => {
         isToolRunning.value = running;
         currentToolId.value = running ? toolId : null;
       });
+
+      console.log(`WORKFLOW-DEBUG: State after change - isToolRunning: ${isToolRunning.value}, isGenerating: ${isGenerating.value}`);
     },
 
     // Other methods
@@ -303,6 +319,14 @@ function createAppStore() {
         isToolRunning.value = false;
         currentToolId.value = null;
       });
+    },
+
+    // Tool-related methods
+    setCurrentToolId,
+
+    // Effect helper
+    effect: (fn: () => void) => {
+      return signalEffect(fn);
     },
   };
 }

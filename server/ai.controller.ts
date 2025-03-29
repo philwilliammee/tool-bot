@@ -23,10 +23,10 @@ router.post("/", async (req, res) => {
       `[ROUTER] POST request with messages count: ${messages.length} using ${AI_CLIENT}`
     );
 
-    console.log(
-      `[ROUTER] Enabled tools: ${enabledTools ? enabledTools.length : "all"}`
-    );
-    console.debug("messages:", JSON.stringify(messages, null, 2));
+    // console.log(
+    //   `[ROUTER] Enabled tools: ${enabledTools ? enabledTools.length : "all"}`
+    // );
+    // console.debug("messages:", JSON.stringify(messages, null, 2));
 
     // Call the streaming method on whichever service we're using
     const response = await aiService.converseStream(

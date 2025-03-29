@@ -116,10 +116,10 @@ export class ConversationHeader {
     // Set initial value if there's an active project
     const activeProject = projectStore.activeProject.value;
     if (activeProject) {
-      console.log("Setting active project in selector:", activeProject.id);
+      // console.log("Setting active project in selector:", activeProject.id);
       this.projectSelector.value = activeProject.id;
     } else {
-      console.log("No active project, using first option");
+      // console.log("No active project, using first option");
       this.projectSelector.selectedIndex = 0;
     }
 
@@ -136,7 +136,7 @@ export class ConversationHeader {
       effect(() => {
         // Use allProjects computed signal instead of projects
         const projects = projectStore.allProjects.value;
-        console.log("Projects updated in store:", projects.length);
+        // console.log("Projects updated in store:", projects.length);
         this.updateProjectOptions(projects);
       })
     );
@@ -145,7 +145,7 @@ export class ConversationHeader {
     this.cleanupFns.push(
       effect(() => {
         const activeProject = projectStore.activeProject.value;
-        console.log("Active project changed:", activeProject?.id);
+        // console.log("Active project changed:", activeProject?.id);
         if (activeProject && this.projectSelector.value !== activeProject.id) {
           this.projectSelector.value = activeProject.id;
         } else if (!activeProject) {
@@ -159,7 +159,7 @@ export class ConversationHeader {
     this.cleanupFns.push(
       effect(() => {
         const layout = store.uiLayout.value;
-        console.log("UI layout changed:", layout);
+        // console.log("UI layout changed:", layout);
         this.togglePanelBtn.classList.toggle(
           "active",
           layout === "left-expanded"
@@ -171,7 +171,7 @@ export class ConversationHeader {
   private updateProjectOptions(
     projects: Array<{ id: string; name: string }>
   ): void {
-    console.log("Updating project options:", projects.length);
+    // console.log("Updating project options:", projects.length);
 
     // Keep the first placeholder option
     while (this.projectSelector.options.length > 1) {
