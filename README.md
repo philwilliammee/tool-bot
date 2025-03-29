@@ -19,6 +19,7 @@ An AI-powered chat bot that can help with various tasks through natural language
 - File system operations and management
 - Comprehensive tool integration system
 - Responsive UI with collapsible panels
+- Robust interrupt system for tools and text generation
 
 ### Available Tools
 - **LDAP Tool**: Directory services integration and user search
@@ -105,6 +106,7 @@ An AI-powered chat bot that can help with various tasks through natural language
 - **Data Store**: Persistent storage for projects and data
 - **Error Handling**: Robust error recovery system
 - **UI State Management**: Signal-based reactive state management
+- **Interrupt System**: Manages interruption of tools and text generation
 
 ### UI Layout System
 The application features a responsive layout system with three main states:
@@ -124,6 +126,25 @@ The application also includes intelligent tab management:
 - Code execution is sandboxed but should be used cautiously
 - Review tool permissions before deployment
 - Validate all inputs in server-side tools
+
+### Interrupt System
+The application features a comprehensive interrupt system that allows users to:
+- Interrupt specific running tools by their ID
+- Interrupt all running tools at once
+- Interrupt text generation
+- Get immediate feedback on interrupt status
+
+The interrupt system is implemented with:
+- AbortController for clean cancellation
+- Proper resource cleanup
+- UI state synchronization
+- Consistent user feedback messages
+
+The interrupt button intelligently handles different scenarios:
+1. If a specific tool is running: Interrupts that tool
+2. If multiple tools are running: Interrupts all tools
+3. If text is being generated: Interrupts the generation
+4. Provides clear feedback through toast messages
 
 ## Creating Custom Tools
 
@@ -158,6 +179,7 @@ For detailed instructions on creating custom tools, please refer to the [tools/R
 - X Tool integration for social media interaction
 - Enhanced GitHub integration via Octokit
 - Auto-switching to preview tab for HTML content
+- Added robust tool and text generation interrupt system
 
 ### Current Focus 🚧
 - Code and test coverage optimization
