@@ -138,7 +138,7 @@ export class ProjectStore {
       return null;
     }
     console.log(
-      `Loaded project with ${project.messages.length} messages for id ${id}`
+      `Loaded project with ${project?.messages?.length} messages for id ${id}`
     );
     return project;
   }
