@@ -394,8 +394,9 @@ export class ProjectManager {
 
       const metaElement = projectElement.querySelector('.project-meta');
       if (metaElement) {
-        // messages may not exist yet
-        metaElement.textContent = `${project?.messages?.length || 0} messages · Last updated: ${new Date(project?.updatedAt || 0).toLocaleDateString()}`;
+        // Get message count from the store instead of using project.messages
+        const messageCount = projectStore.projectMessageCount(project.id);
+        metaElement.textContent = `${messageCount} messages · Last updated: ${new Date(project?.updatedAt || 0).toLocaleDateString()}`;
       }
 
       const descriptionElement = projectElement.querySelector('.project-description');

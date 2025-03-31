@@ -17,6 +17,8 @@ export class ProjectStore {
   private activeProjectIdSignal = signal<string | null>(null);
   private initializedSignal = signal<boolean>(false);
   private loadingSignal = signal<boolean>(true);
+  private messageCountsSignal = signal<Record<string, number>>({});
+  private messagesMapSignal = signal<Record<string, MessageExtended[]>>({});
 
   constructor() {
     console.log("Initializing ProjectStore with IndexedDB");
@@ -77,8 +79,53 @@ export class ProjectStore {
    */
   public readonly activeProjectMessages = computed(() => {
     const project = this.activeProject.value;
-    return project?.messages || [];
+    if (!project) return [];
+
+    const projectId = project.id;
+    // Return messages from the messages map if available
+    if (this.messagesMapSignal.value[projectId]) {
+      return this.messagesMapSignal.value[projectId];
+    }
+
+    // If not available, start loading them (but return empty array for now)
+    this.loadProjectMessagesInternal(projectId);
+    return [];
   });
+
+  /**
+   * Get the message count for a project
+   * This is reactive and will update when messages are loaded
+   */
+  public projectMessageCount(id: string): number {
+    // Check if we already have a count
+    if (this.messageCountsSignal.value[id] !== undefined) {
+      return this.messageCountsSignal.value[id];
+    }
+
+    // If no count is available and the project exists, try to load it
+    if (this.projects[id]) {
+      // Asynchronously load the count but return 0 for now
+      this.loadProjectMessageCount(id);
+    }
+
+    return 0;
+  }
+
+  /**
+   * Load the message count for a project and update messageCountsSignal
+   */
+  private async loadProjectMessageCount(id: string): Promise<void> {
+    try {
+      const count = await dbService.getMessageCountForProject(id);
+      this.messageCountsSignal.value = {
+        ...this.messageCountsSignal.value,
+        [id]: count
+      };
+      console.log(`Loaded message count for project ${id}: ${count}`);
+    } catch (error) {
+      console.error(`Error loading message count for project ${id}:`, error);
+    }
+  }
 
   /**
    * Initialize the store by loading projects from IndexedDB
@@ -102,7 +149,10 @@ export class ProjectStore {
       });
       this.projectsSignal.value = projectsRecord;
 
-      // Step 4: Handle project selection
+      // Step 4: Preload message counts for all projects
+      await this.preloadMessageCounts(projects.map(p => p.id));
+
+      // Step 5: Handle project selection
       if (projects.length === 0) {
         await this.handleNoProjects();
       } else {
@@ -442,6 +492,9 @@ export class ProjectStore {
 
     if (id) {
       localStorage.setItem(ProjectStore.ACTIVE_PROJECT_KEY, id);
+
+      // Load messages for this project
+      this.loadProjectMessagesInternal(id);
     } else {
       localStorage.removeItem(ProjectStore.ACTIVE_PROJECT_KEY);
     }
@@ -473,6 +526,28 @@ export class ProjectStore {
   }
 
   /**
+   * Internal method to load messages for a project and update the messagesMapSignal
+   * This is used by the activeProjectMessages computed property
+   */
+  private loadProjectMessagesInternal(id: string): void {
+    // Don't await, just start the loading process
+    this.loadProjectMessages(id).then(messages => {
+      // Update the messages map and message counts
+      this.messagesMapSignal.value = {
+        ...this.messagesMapSignal.value,
+        [id]: messages
+      };
+      this.messageCountsSignal.value = {
+        ...this.messageCountsSignal.value,
+        [id]: messages.length
+      };
+      console.log(`Loaded ${messages.length} messages for project ${id}`);
+    }).catch(error => {
+      console.error(`Error loading messages for project ${id}:`, error);
+    });
+  }
+
+  /**
    * Update messages for a project
    */
   public async updateProjectMessages(id: string, messages: MessageExtended[]): Promise<void> {
@@ -491,6 +566,18 @@ export class ProjectStore {
 
     // Save messages to IndexedDB
     await dbService.saveMessages(messagesWithProjectId);
+
+    // Update local signal cache
+    this.messagesMapSignal.value = {
+      ...this.messagesMapSignal.value,
+      [id]: messagesWithProjectId
+    };
+
+    // Update message count signal
+    this.messageCountsSignal.value = {
+      ...this.messageCountsSignal.value,
+      [id]: messagesWithProjectId.length
+    };
 
     // Update project's updatedAt timestamp
     await this.updateProject(id, { updatedAt: Date.now() });
@@ -791,6 +878,12 @@ export class ProjectStore {
           ...this.projectsSignal.value,
           [newId]: importedProject
         };
+
+        // Update message count for the imported project
+        this.messageCountsSignal.value = {
+          ...this.messageCountsSignal.value,
+          [newId]: messages.length
+        };
       }
 
       console.log(`Project imported with ID ${newId} and ${messages.length} messages`);
@@ -851,6 +944,13 @@ export class ProjectStore {
     }
 
     console.log("DEBUG: ProjectStore force initialized");
+  }
+
+  // Helper method to preload message counts for multiple projects
+  private async preloadMessageCounts(projectIds: string[]): Promise<void> {
+    for (const id of projectIds) {
+      await this.loadProjectMessageCount(id);
+    }
   }
 }
 
