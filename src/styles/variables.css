@@ -21,11 +21,12 @@
   --popover-bg: #ffffff;
   --code-bg: #f9fafb;
   --text-muted: #6b7280;
-  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1),
                0 4px 6px -2px rgba(0, 0, 0, 0.05);
 
   /* Layout */
   --header-height: 64px;
+  --color-background: #f9fafb;
 }
 
 /* Dark mode variables if needed */

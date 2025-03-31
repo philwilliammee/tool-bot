@@ -26,6 +26,7 @@ import { fileWriterConfig } from "./file-writer/config.js";
 import { projectReaderConfig } from "./project-reader-tool/config.js";
 import { codeExecutorConfig } from "./code-executor/config.js";
 import { dataRowReaderConfig } from "./data-row-reader/config.js";
+import { projectSearchConfig } from "./project-search-tool/config.js";
 
 class ToolRegistry {
   private tools: ServerToolRegistry = {};
@@ -35,13 +36,13 @@ class ToolRegistry {
     this.router = Router();
     // Register Server tools here
     this.registerTool(fetchTool);
-    this.registerTool(ldapTool);
+    // this.registerTool(ldapTool);
     this.registerTool(fileTreeTool);
     this.registerTool(projectReaderTool);
     this.registerTool(fileWriterTool);
     this.registerTool(octokitTool);
     this.registerTool(bashTool);
-    this.registerTool(xTool);
+    // this.registerTool(xTool);
 
     // end of register
 
@@ -52,18 +53,19 @@ class ToolRegistry {
     return {
       tools: [
         ...(fetchToolConfig.tools || []),
-        ...(ldapToolConfig.tools || []),
+        // ...(ldapToolConfig.tools || []),
         ...(htmlToolConfig.tools || []),
         ...(mathToolConfig.tools || []),
         ...(fileTreeConfig.tools || []),
         ...(projectReaderConfig.tools || []),
         ...(fileWriterConfig.tools || []),
-        ...(codeExecutorConfig.tools || []),
+        // ...(codeExecutorConfig.tools || []),
         ...(octokitConfig.tools || []),
-        ...(dataStoreConfig.tools || []),
+        // ...(dataStoreConfig.tools || []),
         ...(bashToolConfig.tools || []),
-        ...(xToolConfig.tools || []),
+        // ...(xToolConfig.tools || []),
         ...(dataRowReaderConfig.tools || []),
+        ...(projectSearchConfig.tools || []), // Add our new project search tool config
       ],
     };
   }

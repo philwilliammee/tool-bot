@@ -24,6 +24,10 @@
 @import 'project-manager.css';
 @import 'content-blocks.css';
 @import 'interrupt-button.css';
+@import 'search.css';
+@import 'debug.css';
+@import 'debug-launcher.css';
+@import 'project-search.css';
 
 /* Add to your existing CSS */
 .archive-summary-panel {
