@@ -7,6 +7,8 @@ import { ProjectManager } from "../components/ProjectManager/ProjectManager";
 import { DataArea } from "../components/DataArea/DataArea";
 import { WorkArea } from "../components/WorkArea/WorkArea";
 import { InterruptButton } from "../components/InterruptButton/InterruptButton";
+import { DebugLauncher } from "../components/Debug/DebugLauncher";
+import { dbService } from "../stores/Database/DatabaseService";
 
 type TabId = "preview" | "work-area" | "data";
 
@@ -29,18 +31,110 @@ export class MainApplication {
   private mainContent!: HTMLElement;
   private leftColumn!: HTMLElement;
   private rightColumn!: HTMLElement;
-  private projectManager: ProjectManager;
-  private interruptButton: InterruptButton;
+  private projectManager!: ProjectManager;
+  private interruptButton!: InterruptButton;
+  private debugLauncher!: DebugLauncher;
+  private initPromise: Promise<void>;
 
   constructor() {
     console.log("Initializing MainApplication");
-    this.initializeDOMElements();
-    this.initializeComponents();
-    this.initializeTabs();
-    this.initializeUILayout();
-    new Toast();
-    this.projectManager = new ProjectManager();
-    this.interruptButton = new InterruptButton();
+    // Start the initialization process but don't block the constructor
+    this.initPromise = this.initialize().catch(error => {
+      console.error("Critical error in MainApplication initialization:", error);
+      throw error;
+    });
+  }
+
+  /**
+   * Main initialization method that coordinates all initialization steps in sequence
+   */
+  private async initialize(): Promise<void> {
+    try {
+      // Step 1: Initialize DOM elements
+      this.initializeDOMElements();
+
+      // Step 2: Initialize the database first (and await it)
+      await this.initializeDatabase();
+      console.log("Database initialization completed, proceeding with component initialization");
+
+      // Step 3: Explicitly initialize and wait for ProjectStore
+      console.log("Initializing ProjectStore...");
+      const projectStore = (await import("../stores/ProjectStore/ProjectStore")).projectStore;
+      if (!projectStore.isInitialized.value) {
+        console.log("Waiting for ProjectStore initialization...");
+        await new Promise<void>((resolve) => {
+          const timeout = setTimeout(() => {
+            console.warn("ProjectStore initialization timed out, forcing initialization state");
+            if (!projectStore.isInitialized.value) {
+              console.log("Forcing ProjectStore initialization state to true");
+              // Force the initialization state if needed
+              projectStore.debugInitialize();
+            }
+            resolve();
+          }, 5000);
+
+          const unsubscribe = effect(() => {
+            if (projectStore.isInitialized.value) {
+              clearTimeout(timeout);
+              unsubscribe();
+              console.log("ProjectStore initialization completed");
+              resolve();
+            }
+          });
+        });
+      } else {
+        console.log("ProjectStore already initialized");
+      }
+
+      // Step 4: Initialize components in sequence once DB & ProjectStore are ready
+      this.initializeComponents();
+      this.initializeTabs();
+      this.initializeUILayout();
+
+      // Step 5: Initialize utility components
+      new Toast();
+      this.projectManager = new ProjectManager();
+      this.interruptButton = new InterruptButton();
+
+      // Step 6: Initialize debug launcher
+      this.debugLauncher = new DebugLauncher(document.body);
+
+      console.log("MainApplication initialization completed successfully");
+    } catch (error) {
+      console.error("MainApplication initialization failed:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * Returns a promise that resolves when initialization is complete
+   * This can be used by external code to wait for the application to be ready
+   */
+  public async waitForInitialization(): Promise<void> {
+    return this.initPromise;
+  }
+
+  /**
+   * Initialize the IndexedDB database
+   */
+  private async initializeDatabase(): Promise<void> {
+    try {
+      console.log("Initializing IndexedDB database");
+      await dbService.init();
+      console.log("IndexedDB database initialized successfully");
+
+      // Test the database connection
+      console.log("Testing database connection...");
+      const testResult = await dbService.testDatabaseConnection();
+
+      if (testResult.success) {
+        console.log("Database test successful:", testResult.message);
+      } else {
+        console.error("Database test failed:", testResult.message);
+      }
+    } catch (error) {
+      console.error("Failed to initialize IndexedDB database:", error);
+    }
   }
 
   /**
@@ -299,6 +393,7 @@ export class MainApplication {
     this.conversation.destroy();
     this.workAreaComponent.destroy();
     this.interruptButton.destroy();
+    this.debugLauncher.destroy();
 
     // Clean up event listeners
     this.cleanupFns.forEach((cleanup) => cleanup());

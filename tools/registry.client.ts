@@ -12,6 +12,7 @@ import { fileTreeTool } from "./file-tree-tool/client/file-tree.client.js";
 import { projectReaderTool } from "./project-reader-tool/client/project-reader.client.js";
 import { octokitTool } from "./octokit-tool/client/octokit.client.js";
 import { dataRowReaderTool } from "./data-row-reader/client/data-row-reader.client.js";
+import { projectSearchTool } from "./project-search-tool/client/project-search.client.js";
 
 // Make dataStore available globally for tools
 // @todo have a tool-data-store that the client can subscribe to.
@@ -28,16 +29,17 @@ class ToolRegistry {
     this.registerTool(htmlTool);
     this.registerTool(mathTool);
     this.registerTool(fetchTool);
-    this.registerTool(ldapTool);
+    // this.registerTool(ldapTool);
     this.registerTool(fileTreeTool);
     this.registerTool(projectReaderTool);
     this.registerTool(fileWriterTool);
-    this.registerTool(codeExecutorTool);
+    // this.registerTool(codeExecutorTool);
     this.registerTool(octokitTool);
-    this.registerTool(dataStoreTool);
+    // this.registerTool(dataStoreTool);
     this.registerTool(bashTool);
-    this.registerTool(xTool);
+    // this.registerTool(xTool);
     this.registerTool(dataRowReaderTool);
+    this.registerTool(projectSearchTool); // Add our new project search tool
   }
 
   private registerTool(tool: ClientTool): void {

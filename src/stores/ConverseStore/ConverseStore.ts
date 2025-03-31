@@ -3,6 +3,7 @@ import { MessageExtended, ToolUse } from "../../app.types";
 import { store } from "../AppStore";
 import { dataStore } from "../DataStore/DataStore";
 import { projectStore } from "../ProjectStore/ProjectStore";
+import { dbService } from "../Database/DatabaseService";
 import { LLMHandler } from "./handlers/LLMHandler";
 import { MessageManager } from "./handlers/MessageManager";
 import { SummaryHandler } from "./handlers/SummaryHandler";
@@ -10,6 +11,31 @@ import { ToolHandler } from "./handlers/ToolHandler";
 import { determineActiveMessageRange } from "./utils/messageUtils";
 import { Signal, computed, effect } from "@preact/signals-core";
 
+/**
+ * Utility function for debouncing operations
+ */
+function debounce(func: Function, wait: number) {
+  let timeout: number | null = null;
+
+  return function executedFunction(...args: any[]) {
+    const later = () => {
+      timeout = null;
+      func(...args);
+    };
+
+    if (timeout !== null) {
+      clearTimeout(timeout);
+    }
+    timeout = setTimeout(later, wait) as unknown as number;
+  };
+}
+
+/**
+ * ConverseStore - Manages conversation state and interactions with the LLM
+ *
+ * This store handles message management, LLM interactions, and tool execution.
+ * It uses IndexedDB for efficient persistent storage of messages.
+ */
 export class ConverseStore {
   private messageManager: MessageManager;
   private llmHandler: LLMHandler;
@@ -18,11 +44,51 @@ export class ConverseStore {
   private messageChangeCallbacks: Array<(msgs: MessageExtended[]) => void> = [];
   private projectId: string | null = null;
 
+  // Storage optimization
+  private pendingStorageSave: boolean = false;
+  private saveToStorageDebounced: Function;
+
+  // Performance tracking
+  private metrics = {
+    messagesSaved: 0,
+    storageOperations: 0,
+    lastSaveTime: 0
+  };
+
   constructor() {
     this.messageManager = new MessageManager();
     this.llmHandler = new LLMHandler();
     this.toolHandler = new ToolHandler();
     this.summaryHandler = new SummaryHandler(this.llmHandler);
+
+    // Initialize debounced storage save
+    this.saveToStorageDebounced = debounce(async () => {
+      if (this.projectId && this.pendingStorageSave) {
+        const startTime = performance.now();
+        const messages = this.messageManager.getMessages();
+
+        try {
+          // Save messages directly to IndexedDB
+          await dbService.saveMessages(
+            messages.map(msg => ({ ...msg, projectId: this.projectId }))
+          );
+
+          // Update metrics
+          this.metrics.messagesSaved += messages.length;
+          this.metrics.storageOperations++;
+          this.metrics.lastSaveTime = performance.now() - startTime;
+
+          this.pendingStorageSave = false;
+
+          // Log performance for significant operations
+          if (messages.length > 10 || this.metrics.lastSaveTime > 100) {
+            console.log(`Saved ${messages.length} messages in ${this.metrics.lastSaveTime.toFixed(2)}ms`);
+          }
+        } catch (error) {
+          console.error("Failed to save messages:", error);
+        }
+      }
+    }, 1000); // 1 second debounce
 
     // Set up effect to sync with the active project from projectStore
     effect(() => {
@@ -61,6 +127,18 @@ export class ConverseStore {
     );
   }
 
+  /**
+   * Get performance metrics
+   */
+  public getMetrics(): typeof this.metrics & { averageSaveTime: number } {
+    return {
+      ...this.metrics,
+      averageSaveTime: this.metrics.storageOperations > 0
+        ? this.metrics.lastSaveTime / this.metrics.storageOperations
+        : 0
+    };
+  }
+
   private async updateSummary(): Promise<void> {
     if (!this.projectId) return;
 
@@ -76,7 +154,7 @@ export class ConverseStore {
     );
   }
 
-  public setProject(id: string | null): void {
+  public async setProject(id: string | null): Promise<void> {
     console.log("Setting project:", id);
 
     // If the project hasn't changed, do nothing
@@ -85,24 +163,42 @@ export class ConverseStore {
       return;
     }
 
+    // Save any pending changes for the current project before switching
+    if (this.projectId && this.pendingStorageSave) {
+      // Force immediate save instead of debounced
+      const messages = this.messageManager.getMessages();
+      try {
+        await dbService.saveMessages(
+          messages.map(msg => ({ ...msg, projectId: this.projectId }))
+        );
+        this.pendingStorageSave = false;
+      } catch (error) {
+        console.error("Failed to save messages before project switch:", error);
+      }
+    }
+
     this.projectId = id;
 
     if (id) {
-      const project = projectStore.getProject(id);
-      console.log("Loaded project data:", project);
+      console.log(`Loading project ${id} messages`);
 
-      // Load project's messages first
-      if (project?.messages) {
-        const messages = Array.isArray(project.messages)
-          ? project.messages
-          : [];
-        const maxSequence =
-          messages.length > 0
-            ? Math.max(
-                ...messages.map((m) => parseInt(m.id.split("_")[1] || "0")),
-                0
-              )
-            : 0;
+      // Initialize with empty messages first for faster UI response
+      this.messageManager.setState({
+        messages: [],
+        sequence: 0,
+      });
+
+      try {
+        // Load messages from IndexedDB
+        const startTime = performance.now();
+        const messages = await dbService.getMessagesForProject(id);
+        const loadTime = performance.now() - startTime;
+
+        console.log(`Loaded ${messages.length} messages in ${loadTime.toFixed(2)}ms`);
+
+        const maxSequence = messages.length > 0
+          ? Math.max(...messages.map((m) => parseInt(m.id.split("_")[1] || "0")), 0)
+          : 0;
 
         console.log("Initializing message manager with sequence:", maxSequence);
 
@@ -110,16 +206,12 @@ export class ConverseStore {
           messages: messages,
           sequence: maxSequence,
         });
-      } else {
-        console.log("Initializing empty project state");
-        this.messageManager.setState({
-          messages: [],
-          sequence: 0,
-        });
-      }
 
-      // Load project's summary state after messages are set
-      this.summaryHandler.loadProjectSummary(id);
+        // Load project's summary state after messages are set
+        this.summaryHandler.loadProjectSummary(id);
+      } catch (error) {
+        console.error("Error loading project messages:", error);
+      }
     } else {
       console.log("Clearing message manager - no project selected");
       this.messageManager.clear();
@@ -148,9 +240,7 @@ export class ConverseStore {
       projectId: this.projectId, // Add project ID to message
     });
 
-    // Handle LLM call for user messages. There is an issue if it is a fast toolcall and its generating.
-    // if (newMessage.role === "user" && !store.isGenerating.value) {
-    // should this be and if is not streaming?
+    // Handle LLM call for user messages
     if (newMessage.role === "user") {
       this.callLLM();
     }
@@ -160,9 +250,12 @@ export class ConverseStore {
 
   private async handleToolUse(toolUse: ToolUse): Promise<void> {
     try {
+      store.setToolRunning(true, toolUse.toolUseId);
       const result = await this.toolHandler.executeTool(toolUse);
+      store.setToolRunning(false);
       this.addMessage(result);
     } catch (error: any) {
+      store.setToolRunning(false);
       this.addMessage({
         role: "user",
         content: [{ text: `Tool execution failed: ${error.message}` }],
@@ -262,12 +355,13 @@ export class ConverseStore {
         }
       }
 
-      console.log("callBedrockLLM -> Sending to LLM:", messagesForLLM);
-      console.log("callBedrockLLM -> Enabled tools:", enabledTools);
-      console.log(
-        "callBedrockLLM -> Persistent message:",
-        persistentUserMessage
-      );
+      // Use logger debug if we want to kkepp this.
+      // console.log("callLLM -> Sending to LLM:", messagesForLLM);
+      // console.log("callLLM -> Enabled tools:", enabledTools);
+      // console.log(
+      //   "callLLM -> Persistent message:",
+      //   persistentUserMessage
+      // );
 
       let currentToolUse: Partial<ToolUse> | null = null;
       let accumulatedToolInput = "";
@@ -277,19 +371,17 @@ export class ConverseStore {
       const tempMessage = this.messageManager.addMessage({
         role: "assistant",
         content: [{ text: "" }],
+        projectId: this.projectId,
       });
-      console.log("callBedrockLLM -> tempMessage created:", tempMessage.id);
+      console.log("callLLM -> tempMessage created:", tempMessage.id);
 
       await this.llmHandler.callLLMStream(
         messagesForLLM,
         {
           onChunk: async (chunk) => {
-            // console.log("callBedrockLLM -> onChunk, chunk =", chunk);
-
             // 1) If there's a contentBlockDelta with text, accumulate that
             if (chunk.contentBlockDelta?.delta?.text) {
               const newText = chunk.contentBlockDelta.delta.text;
-              // console.log("callBedrockLLM -> text chunk:", newText);
               accumulatedText += newText;
 
               // Update the temporary assistant message with the new text so the UI sees it
@@ -303,10 +395,6 @@ export class ConverseStore {
             //    starting a tool call. This is where we set up currentToolUse.
             else if (chunk.contentBlockStart?.start?.toolUse) {
               const { name, toolUseId } = chunk.contentBlockStart.start.toolUse;
-              // console.log("callBedrockLLM -> tool use started:", {
-              //   name,
-              //   toolUseId,
-              // });
 
               currentToolUse = {
                 name,
@@ -321,10 +409,6 @@ export class ConverseStore {
               if (currentToolUse) {
                 const partialInput =
                   chunk.contentBlockDelta.delta.toolUse.input ?? "";
-                // console.log(
-                //   "callBedrockLLM -> partial toolUse input:",
-                //   partialInput
-                // );
                 accumulatedToolInput += partialInput;
               }
             }
@@ -350,24 +434,16 @@ export class ConverseStore {
                 });
                 this.notifyMessageChange();
 
-                // Set the current tool ID in the store before execution
-                store.setCurrentToolId(toolUse.toolUseId);
+                // Execute the tool, then add the result as a new message
+                const result = await this.toolHandler.executeTool(toolUse);
+                this.addMessage(result);
 
-                try {
-                  // Execute the tool, then add the result as a new message
-                  const result = await this.toolHandler.executeTool(toolUse);
-                  this.addMessage(result);
-                } finally {
-                  // Clear the current tool ID after execution (success or failure)
-                  store.setCurrentToolId(null);
-                }
-
-                // Reset the tool state
+                // Reset the tool state, so we're ready for future tool calls
                 currentToolUse = null;
                 accumulatedToolInput = "";
               } catch (error) {
                 console.error(
-                  "callBedrockLLM -> Failed to parse/execute tool:",
+                  "callLLM -> Failed to parse/execute tool:",
                   error
                 );
                 this.addMessage({
@@ -379,18 +455,14 @@ export class ConverseStore {
           },
           onComplete: (finalMessage) => {
             console.log(
-              "callBedrockLLM -> onComplete with finalMessage:",
+              "callLLM -> onComplete with finalMessage:",
               finalMessage
             );
             const current = this.messageManager.getMessage(tempMessage.id);
             if (current) {
               this.messageManager.updateMessage(tempMessage.id, {
-                content: finalMessage?.content || current.content,
-                metadata: {
-                  ...current.metadata,
-                  isStreaming: false,
-                  interrupted: finalMessage?.metadata?.interrupted
-                },
+                content: current.content,
+                metadata: { ...current.metadata, isStreaming: false },
               });
               this.notifyMessageChange();
             }
@@ -403,7 +475,7 @@ export class ConverseStore {
           },
 
           onError: (error) => {
-            console.error("callBedrockLLM -> onError:", error);
+            console.error("callLLM -> onError:", error);
             this.messageManager.updateMessage(tempMessage.id, {
               content: [{ text: "Error: Failed to generate response" }],
               metadata: {
@@ -420,7 +492,7 @@ export class ConverseStore {
         modelId
       );
     } catch (error) {
-      console.error("callBedrockLLM -> LLM call failed:", error);
+      console.error("callLLM -> LLM call failed:", error);
       store.setGenerating(false);
       throw error;
     }
@@ -513,14 +585,24 @@ export class ConverseStore {
     }, 200);
   }
 
-  public deleteAllMessages(): void {
+  public async deleteAllMessages(): Promise<void> {
     if (!this.projectId) {
       console.warn("Attempted to delete all messages with no active project");
       return;
     }
 
-    this.messageManager.clear();
-    this.notifyMessageChange();
+    try {
+      // Delete all messages from IndexedDB
+      await dbService.deleteMessagesForProject(this.projectId);
+
+      // Clear local message state
+      this.messageManager.clear();
+      this.notifyMessageChange();
+
+      console.log(`All messages deleted for project ${this.projectId}`);
+    } catch (error) {
+      console.error("Error deleting all messages:", error);
+    }
   }
 
   public getMessage(id: string): MessageExtended | undefined {
@@ -549,66 +631,29 @@ export class ConverseStore {
     // Explicitly force signal update in messageManager to ensure reactivity
     this.messageManager.updateSignalsExplicitly();
 
-    // console.log(
-    //   `Notifying ${this.messageChangeCallbacks.length} listeners of message change. Messages:`,
-    //   messages.length
-    // );
-
     this.messageChangeCallbacks.forEach((cb) => cb(messages));
-    this.saveToStorage();
-  }
 
-  private saveToStorage(): void {
-    if (this.projectId) {
-      const messages = this.messageManager.getMessages();
-      // Use direct update method from projectStore
-      projectStore.updateProjectMessages(this.projectId, messages);
-    } else {
-      console.warn("Attempted to save messages with no active project");
-    }
+    // Mark that we have pending changes and schedule a debounced save
+    this.pendingStorageSave = true;
+    this.saveToStorageDebounced();
   }
 
   public destroy(): void {
     console.log("Destroying ConverseStore");
-    this.saveToStorage();
+
+    // Save any pending changes immediately
+    if (this.projectId && this.pendingStorageSave) {
+      const messages = this.messageManager.getMessages();
+      dbService.saveMessages(
+        messages.map(msg => ({ ...msg, projectId: this.projectId }))
+      ).catch(error => {
+        console.error("Failed to save messages during destroy:", error);
+      });
+    }
+
     this.messageChangeCallbacks = [];
     this.messageManager.clear();
     // No need to clean up summary state as it's handled by SummaryHandler
-  }
-
-  /**
-   * Interrupts the currently running tool if one exists.
-   * Updates UI state and shows appropriate feedback.
-   *
-   * @returns boolean - True if a tool was interrupted, false otherwise
-   */
-  public interruptCurrentTool(): boolean {
-    const currentToolId = store.currentToolId.value;
-    if (this.toolHandler && currentToolId) {
-      const interrupted = this.toolHandler.interruptTool(currentToolId);
-      if (interrupted) {
-        store.showToast("Tool execution interrupted");
-      }
-      return interrupted;
-    }
-    return false;
-  }
-
-  /**
-   * Interrupts all currently running tools.
-   * Updates UI state and shows appropriate feedback.
-   *
-   * @returns boolean - True if any tools were interrupted, false otherwise
-   */
-  public interruptAllTools(): boolean {
-    if (this.toolHandler) {
-      const interrupted = this.toolHandler.interruptAllTools();
-      if (interrupted) {
-        store.showToast("All Tool executions interrupted");
-      }
-      return interrupted;
-    }
-    return false;
   }
 }
 

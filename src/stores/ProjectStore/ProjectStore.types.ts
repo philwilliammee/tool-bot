@@ -25,8 +25,14 @@ export interface Project {
   /** Version for data migrations */
   version?: number;
 
-  /** Messages belonging to this project */
-  messages: MessageExtended[];
+  /**
+   * Messages belonging to this project
+   * Note: This field is primarily for import/export compatibility.
+   * In normal operation, messages are stored separately in IndexedDB
+   * and loaded on demand via dbService.getMessagesForProject.
+   * UI components should use ProjectStore.activeProjectMessages computed property.
+   */
+  messages?: MessageExtended[];
 
   /** Project summary state */
   archiveSummary?: {

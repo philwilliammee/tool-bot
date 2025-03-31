@@ -17,7 +17,7 @@ export class WorkArea {
   private cleanupFns: Array<() => void> = [];
 
   constructor(private element: HTMLElement) {
-    console.log("WorkArea component initialized with element:", element);
+    // console.log("WorkArea component initialized with element:", element);
 
     // Initialize message table with handlers
     this.messageTable = new MessageTable(

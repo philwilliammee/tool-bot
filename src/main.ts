@@ -7,24 +7,44 @@ import { effect } from "@preact/signals-core";
 declare global {
   interface Window {
     availableData?: Record<string, any>[];
+    app?: MainApplication;
   }
 }
 
 document.addEventListener("DOMContentLoaded", () => {
-  try {
-    const app = new MainApplication();
+  const initializeApp = async () => {
+    try {
+      console.log(`Attempting initialization ${new Date().toString()}`);
 
-    // Keep window.availableData in sync with dataStore
-    effect(() => {
-      window.availableData = dataStore.getIframeData();
-    });
+      // Create the application
+      const app = new MainApplication();
 
-    // Optional: Store the instance for cleanup
-    window.addEventListener("unload", () => {
-      app.destroy();
-      window.availableData = undefined;
-    });
-  } catch (error) {
-    console.error("Failed to initialize application:", error);
-  }
+      // Store app instance globally for debugging and cleanup
+      window.app = app;
+
+      // Wait for complete initialization
+      await app.waitForInitialization();
+
+      console.log("Application fully initialized, setting up effects and event listeners");
+
+      // Keep window.availableData in sync with dataStore
+      effect(() => {
+        window.availableData = dataStore.getIframeData();
+      });
+
+      // Optional: Store the instance for cleanup
+      window.addEventListener("unload", () => {
+        app.destroy();
+        window.app = undefined;
+        window.availableData = undefined;
+      });
+
+      console.log("Application ready");
+    } catch (error) {
+      console.error("Failed to initialize application:", error);
+    }
+  };
+
+  // Start the initialization process
+  initializeApp();
 });

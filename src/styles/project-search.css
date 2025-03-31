@@ -1,0 +1,65 @@
+/* Project Search Demo Styles */
+.project-search-container {
+  width: 100%;
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 15px;
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.highlight-search-result {
+  animation: highlight-pulse 2s ease-in-out;
+}
+
+@keyframes highlight-pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(52, 152, 219, 0.7);
+  }
+  50% {
+    box-shadow: 0 0 0 10px rgba(52, 152, 219, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(52, 152, 219, 0);
+  }
+}
+
+/* Add styles for the project search results */
+project-search-demo .result-item {
+  transition: background-color 0.3s ease;
+}
+
+project-search-demo .result-item:hover {
+  background-color: #f7f9fc;
+}
+
+project-search-demo .go-to-result:hover {
+  background-color: #1e88e5;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  project-search-demo .search-container {
+    flex-direction: column;
+  }
+  
+  project-search-demo .search-input {
+    width: 100%;
+    margin-bottom: 10px;
+  }
+  
+  project-search-demo .search-button {
+    width: 100%;
+    margin-left: 0;
+  }
+  
+  project-search-demo .filter-row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  project-search-demo .filter-label {
+    margin-bottom: 5px;
+  }
+}

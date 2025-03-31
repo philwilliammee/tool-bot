@@ -24,10 +24,10 @@ export class Conversation {
 
   constructor(container: HTMLElement) {
     this.element = container;
-    console.log(
-      "Initializing Conversation component with container:",
-      container
-    );
+    // console.log(
+    //   "Initializing Conversation component with container:",
+    //   container
+    // );
 
     // Find elements within the chat container
     this.chatMessages = this.element.querySelector(

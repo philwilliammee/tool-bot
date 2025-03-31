@@ -27,3 +27,4 @@ dist-ssr
 *.code-workspace
 dist-server
 private
+1-performance-improvements/
