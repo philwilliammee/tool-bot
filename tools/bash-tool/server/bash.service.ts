@@ -1,76 +1,74 @@
-// tools/bash_tool/server/bash.service.ts
 import { ServerTool } from "../../server/tool.interface.js";
 import { Request, Response } from "express";
-import { BashInput, BashOutput, CommandType } from "../types.js";
+import { BashInput, BashOutput } from "../types.js";
 import { BASH_CONFIG } from "../bash.config.js";
-import { WORKING_DIRECTORY, gitHelpers, npmHelpers } from "./bash.types.js";
 import { exec } from "child_process";
 import { promisify } from "util";
+import path from "path";
 
 const execAsync = promisify(exec);
 
 class BashService {
-  private isCommandAllowed(command: string, type: CommandType): boolean {
-    const baseCommand = command.split(" ")[0];
-    const fullCommand = command.split(" ").slice(0, 2).join(" ");
-
-    return BASH_CONFIG.ALLOWED_COMMANDS[type].some(
-      (allowed) => baseCommand === allowed || fullCommand === allowed
-    );
+  private isCommandAllowed(fullCommand: string): boolean {
+    // Check if the base command is in the allowed list
+    const baseCommand = fullCommand.trim().split(' ')[0];
+    return BASH_CONFIG.ALLOWED_COMMANDS.includes(baseCommand) || baseCommand === 'cd';
   }
 
-  private validateGitCommand(command: string, args: string[] = []): void {
-    const hasBlockedArg = args.some((arg) => gitHelpers.isBlockedArg(arg));
-    if (hasBlockedArg) {
-      throw new Error("Blocked git argument detected");
+  private validateCommand(command: string, cwd: string): void {
+    // Prevent sudo commands
+    if (command.includes('sudo')) {
+      throw new Error('Sudo commands are not allowed');
     }
 
-    if (command.includes("git remote") || command.includes("git clone")) {
-      const url = args.find((arg) => arg.includes("://"));
-      if (url && !gitHelpers.isAllowedOrigin(url)) {
-        throw new Error("Git operation not allowed for this remote origin");
+    // Resolve the current working directory to an absolute path
+    const resolvedCwd = path.resolve(cwd);
+
+    // Special handling for cd command
+    const cdMatch = command.match(/cd\s+(.+)/);
+    if (cdMatch) {
+      const targetDir = cdMatch[1].trim();
+      const resolvedTarget = path.resolve(resolvedCwd, targetDir);
+
+      // Ensure the target directory is within or equal to the current working directory
+      if (!resolvedTarget.startsWith(resolvedCwd)) {
+        throw new Error('Cannot change directory outside the current working directory');
       }
     }
-  }
 
-  private validateNpmCommand(command: string, args: string[] = []): void {
-    const hasBlockedPackage = args.some((arg) =>
-      npmHelpers.isBlockedPackage(arg)
-    );
-    if (hasBlockedPackage) {
-      throw new Error("Blocked npm package detected");
-    }
-
-    if (command.includes("npm run")) {
-      const script = args[0];
-      if (!npmHelpers.isAllowedScript(script)) {
-        throw new Error(`npm script '${script}' not in allowed list`);
+    // Allow pipes and command chaining, but with restrictions
+    const chainedCommands = command.split(/[|;]/);
+    for (const subCommand of chainedCommands) {
+      const baseCommand = subCommand.trim().split(' ')[0];
+      
+      // Validate each command in the chain
+      if (!BASH_CONFIG.ALLOWED_COMMANDS.includes(baseCommand) && 
+          baseCommand !== 'cd') {
+        throw new Error(`Command not allowed: ${baseCommand}`);
       }
     }
   }
 
   async execute(input: BashInput): Promise<BashOutput> {
     try {
-      const type = (input.type || "general") as CommandType;
-
-      if (!this.isCommandAllowed(input.command, type)) {
-        throw new Error(`Command not allowed: ${input.command}`);
-      }
-
-      if (type === "git") {
-        this.validateGitCommand(input.command, input.args);
-      } else if (type === "npm") {
-        this.validateNpmCommand(input.command, input.args);
-      }
-
-      const command = input.args
-        ? `${input.command} ${input.args.join(" ")}`
+      const workingDir = input.cwd || process.cwd();
+      const fullCommand = input.args 
+        ? `${input.command} ${input.args.join(' ')}` 
         : input.command;
 
-      const { stdout, stderr } = await execAsync(command, {
-        cwd: input.cwd || WORKING_DIRECTORY,
+      // Validate command before execution
+      this.validateCommand(fullCommand, workingDir);
+
+      // Check if command is allowed
+      if (!this.isCommandAllowed(fullCommand)) {
+        throw new Error(`Command not allowed: ${fullCommand}`);
+      }
+
+      // Execute command
+      const { stdout, stderr } = await execAsync(fullCommand, {
+        cwd: workingDir,
         timeout: Math.min(
-          input.timeout || BASH_CONFIG.DEFAULT_TIMEOUT,
+          input.timeout || BASH_CONFIG.DEFAULT_TIMEOUT, 
           BASH_CONFIG.MAX_TIMEOUT
         ),
         env: {
@@ -84,16 +82,14 @@ class BashService {
         stdout: stdout.trim(),
         stderr: stderr.trim(),
         exitCode: 0,
-        command,
       };
     } catch (error: any) {
       return {
-        stdout: "",
-        stderr: error.stderr || "",
+        stdout: '',
+        stderr: error.stderr || '',
         exitCode: error.code || 1,
         error: true,
         message: error.message,
-        command: input.command,
       };
     }
   }
@@ -110,11 +106,11 @@ export const bashTool: ServerTool = {
       res.json(result);
     } catch (error: any) {
       res.status(500).json({
-        stdout: "",
-        stderr: "",
+        stdout: '',
+        stderr: '',
         exitCode: 1,
         error: true,
-        message: error.message || "Command execution failed",
+        message: error.message || 'Command execution failed',
       });
     }
   },

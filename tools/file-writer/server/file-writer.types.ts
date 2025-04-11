@@ -16,6 +16,7 @@ export const FILE_WRITER_CONFIG = {
     ".gitignore",
     ".scss",
     ".mdc", // Added .mdc extension
+    ".py", // Added .py extension
     "", // Allow no extension
   ],
   MAX_FILE_SIZE: 1024 * 1024, // 1MB max file size

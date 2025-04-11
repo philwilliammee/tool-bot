@@ -1,113 +1,24 @@
-// tools/bash_tool/config.ts
-type GitConfig = {
-  ALLOWED_ORIGINS: readonly string[];
-  BLOCKED_ARGS: readonly string[];
-};
-
-type NpmConfig = {
-  BLOCKED_PACKAGES: readonly string[];
-  ALLOWED_SCRIPTS: readonly string[];
-};
-
 export const BASH_CONFIG = {
-  ALLOWED_COMMANDS: {
-    file: [
-      "ls",
-      "cat",
-      "grep",
-      "find",
-      "mkdir",
-      "touch",
-      "rm",
-      "cp",
-      "mv",
-      "echo",
-    ] as string[],
-    git: [
-      "git init",
-      "git add",
-      "git commit",
-      "git status",
-      "git log",
-      "git branch",
-      "git checkout",
-      "git pull",
-      "git push",
-      "git fetch",
-      "git merge",
-      "git diff",
-      "git stash",
-      "git reset",
-      "git clean",
-      "git", // Allow raw git command for multi-part operations
-    ] as string[],
-    npm: [
-      "npm install",
-      "npm uninstall",
-      "npm run",
-      "npm start",
-      "npm test",
-      "npm build",
-      "npm update",
-      "npm audit",
-      "npm list",
-      "npm outdated",
-      "npm init",
-      "npm", // Allow raw npm command for additional arguments
-      "ng",
-    ] as string[],
-    general: [
-      "pwd",
-      "node",
-      "npx",
-      "tsc",
-      "ng",
-      "grep",
-      "find",
-      "tail",
-      "head",
-      "wc",
-      "sort",
-      "uniq",
-      "awk",
-      "sed",
-      "xargs",
-      "diff",
-      "tr",
-      "cut",
-      "less",
-      "jq",
-      "cat",
-      "echo",
-    ] as string[],
-  },
-  MAX_TIMEOUT: 300000, // 5 minutes
+  ALLOWED_COMMANDS: [
+    // Basic file and system inspection commands
+    'pwd', 'ls', 'cat', 'echo', 'grep', 'find',
+    // Node and package management
+    'node', 'npm', 'npx', 'tsc', 'ng',
+    // Text processing
+    'head', 'tail', 'wc', 'sort', 'uniq', 'awk', 'sed',
+    // Development helpers
+    'jq', 'python', 'pip', 'curl', 'wget', 'python3',
+    // Additional useful commands
+    'touch', 'mkdir', 'rm', 'cp', 'mv',
+    // Version and info commands
+    'node --version', 'npm --version', 'python --version', 'python3 --version',
+    // Compression
+    'tar', 'gzip', 'gunzip', 'unzip',
+    // Git commands
+    'git', 'git init', 'git add', 'git commit', 'git status', 'git log',
+    'git branch', 'git checkout', 'git pull', 'git push', 'git merge',
+    'git clone', 'git remote', 'git diff'
+  ],
   DEFAULT_TIMEOUT: 30000, // 30 seconds
-  BLOCKED_PATTERNS: [
-    /\.\.\//, // Block parent directory traversal but allow .. in other contexts
-    /[&;]/, // Block command chaining with & and ; but allow pipes |
-    />[^"']\s*\//, // No output redirection to files
-    /rm\s+.+\s+-rf/, // No recursive force remove
-  ] as readonly RegExp[],
-  GIT_CONFIG: {
-    ALLOWED_ORIGINS: ["github.com", "gitlab.com", "bitbucket.org"],
-    BLOCKED_ARGS: ["--force", "-f", "--delete", "--remove"],
-  } satisfies GitConfig,
-  NPM_CONFIG: {
-    BLOCKED_PACKAGES: ["malicious-package", "suspicious-module"],
-    ALLOWED_SCRIPTS: [
-      "start",
-      "build",
-      "test",
-      "dev",
-      "lint",
-      // Add any additional npm scripts that should be allowed
-    ],
-  } satisfies NpmConfig,
-} as const;
-
-// Helper type to extract allowed args from config
-export type BlockedGitArgs =
-  (typeof BASH_CONFIG.GIT_CONFIG.BLOCKED_ARGS)[number];
-export type AllowedNpmScripts =
-  (typeof BASH_CONFIG.NPM_CONFIG.ALLOWED_SCRIPTS)[number];
+  MAX_TIMEOUT: 300000 // 5 minutes
+};
