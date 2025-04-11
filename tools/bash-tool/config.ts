@@ -6,12 +6,28 @@ export const bashToolConfig: ToolConfiguration = {
     {
       toolSpec: {
         name: "bash",
-        description: `Execute shell commands in a controlled environment.
-Supported operations:
-- File operations: ls, cat, grep, find, mkdir, touch, rm, cp, mv, echo
-- Git operations: init, add, commit, status, log, branch, checkout, pull, push, etc.
-- NPM operations: install, uninstall, run, start, test, build, update, etc.
-- General: pwd, node, npx, tsc, ng, grep, find, tail, head, wc, sort, uniq, awk, sed, xargs, diff, tr, cut, less, jq`,
+        description: `Controlled shell command execution with strict security model.
+
+Capabilities:
+- Whitelist-based command execution
+- Supports file, text, and development operations
+- Restricted environment with timeout mechanisms
+
+Domains:
+- File management
+- Text processing
+- Development tool invocation
+- System inspection
+
+Constraints:
+- No root/sudo access
+- Limited to predefined command set
+- Working directory restricted
+- Max 5-minute execution time
+
+Best Practices:
+- Use for lightweight, non-destructive tasks
+- Leverage built-in safety mechanisms`,
         inputSchema: {
           json: {
             type: "object",

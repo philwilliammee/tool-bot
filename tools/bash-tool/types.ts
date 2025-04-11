@@ -1,12 +1,8 @@
-// tools/bash_tool/types.ts
-export type CommandType = "file" | "git" | "npm" | "general";
-
 export interface BashInput {
   command: string;
+  args?: string[];
   cwd?: string;
   timeout?: number;
-  args?: string[];
-  type?: CommandType;
 }
 
 export interface BashOutput {
@@ -15,5 +11,4 @@ export interface BashOutput {
   exitCode: number;
   error?: boolean;
   message?: string;
-  command?: string;
 }

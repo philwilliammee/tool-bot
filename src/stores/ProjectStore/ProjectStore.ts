@@ -1,19 +1,28 @@
-import { signal, computed, batch } from "@preact/signals-core";
+import { signal, computed, batch, effect } from "@preact/signals-core";
 import { MessageExtended } from "../../app.types";
 import { Project, ProjectUpdate, isValidProject } from "./ProjectStore.types";
+import { dbService } from "../Database/DatabaseService";
 
+/**
+ * ProjectStore - Manages projects and their metadata
+ *
+ * This store handles project operations and maintains the active project state.
+ * It uses IndexedDB for persistent storage via the DatabaseService.
+ */
 export class ProjectStore {
-  private static STORAGE_KEY = "projects";
-  private static DEFAULT_PROJECT_KEY = "default_project_id";
+  private static ACTIVE_PROJECT_KEY = "active_project_id";
 
   // Core signals
   private projectsSignal = signal<Record<string, Project>>({});
   private activeProjectIdSignal = signal<string | null>(null);
+  private initializedSignal = signal<boolean>(false);
+  private loadingSignal = signal<boolean>(true);
+  private messageCountsSignal = signal<Record<string, number>>({});
+  private messagesMapSignal = signal<Record<string, MessageExtended[]>>({});
 
   constructor() {
-    console.log("Initializing ProjectStore with signals");
-    this.loadProjects();
-    this.initializeDefaultProject();
+    console.log("Initializing ProjectStore with IndexedDB");
+    this.initialize();
   }
 
   // Computed properties
@@ -42,13 +51,16 @@ export class ProjectStore {
     return project?.config || {};
   });
 
-  public readonly activeProjectMessages = computed(() => {
-    const project = this.activeProject.value;
-    return project?.messages || [];
-  });
-
   public readonly hasProjects = computed(() => {
     return Object.keys(this.projects).length > 0;
+  });
+
+  public readonly isInitialized = computed(() => {
+    return this.initializedSignal.value;
+  });
+
+  public readonly isLoading = computed(() => {
+    return this.loadingSignal.value;
   });
 
   public readonly activeProjectArchiveSummary = computed(() => {
@@ -62,114 +74,364 @@ export class ProjectStore {
     );
   });
 
-  private initializeDefaultProject(): void {
-    console.log(
-      "Checking for default project. Current projects:",
-      this.projects
-    );
+  /**
+   * Computed property for accessing the active project's messages
+   */
+  public readonly activeProjectMessages = computed(() => {
+    const project = this.activeProject.value;
+    if (!project) return [];
 
-    // Check if we have any projects
-    if (Object.keys(this.projects).length === 0) {
-      console.log("No projects found, creating default project");
-      const defaultId = this.createProject(
+    const projectId = project.id;
+    // Return messages from the messages map if available
+    if (this.messagesMapSignal.value[projectId]) {
+      return this.messagesMapSignal.value[projectId];
+    }
+
+    // If not available, start loading them (but return empty array for now)
+    this.loadProjectMessagesInternal(projectId);
+    return [];
+  });
+
+  /**
+   * Get the message count for a project
+   * This is reactive and will update when messages are loaded
+   */
+  public projectMessageCount(id: string): number {
+    // Check if we already have a count
+    if (this.messageCountsSignal.value[id] !== undefined) {
+      return this.messageCountsSignal.value[id];
+    }
+
+    // If no count is available and the project exists, try to load it
+    if (this.projects[id]) {
+      // Asynchronously load the count but return 0 for now
+      this.loadProjectMessageCount(id);
+    }
+
+    return 0;
+  }
+
+  /**
+   * Load the message count for a project and update messageCountsSignal
+   */
+  private async loadProjectMessageCount(id: string): Promise<void> {
+    try {
+      const count = await dbService.getMessageCountForProject(id);
+      this.messageCountsSignal.value = {
+        ...this.messageCountsSignal.value,
+        [id]: count
+      };
+      console.log(`Loaded message count for project ${id}: ${count}`);
+    } catch (error) {
+      console.error(`Error loading message count for project ${id}:`, error);
+    }
+  }
+
+  /**
+   * Initialize the store by loading projects from IndexedDB
+   */
+  private async initialize(): Promise<void> {
+    console.log("Initializing ProjectStore");
+    this.loadingSignal.value = true;
+
+    try {
+      // Step 1: Initialize the database
+      await dbService.init();
+
+      // Step 2: Load all projects from IndexedDB
+      const projects = await dbService.getAllProjects();
+      console.log(`Loaded ${projects.length} projects from IndexedDB`);
+
+      // Step 3: Convert array to record and update state
+      const projectsRecord: Record<string, Project> = {};
+      projects.forEach(project => {
+        projectsRecord[project.id] = project;
+      });
+      this.projectsSignal.value = projectsRecord;
+
+      // Step 4: Preload message counts for all projects
+      await this.preloadMessageCounts(projects.map(p => p.id));
+
+      // Step 5: Handle project selection
+      if (projects.length === 0) {
+        await this.handleNoProjects();
+      } else {
+        this.setInitialActiveProject();
+      }
+    } catch (error) {
+      console.error("Error initializing ProjectStore:", error);
+      await this.recoverFromInitializationError();
+    } finally {
+      // Always mark as initialized to prevent blocking the application
+      this.initializedSignal.value = true;
+      this.loadingSignal.value = false;
+      console.log("ProjectStore initialization complete (signals updated)");
+    }
+  }
+
+  /**
+   * Handle the case when no projects exist
+   */
+  private async handleNoProjects(): Promise<void> {
+    console.log("No projects found, creating default project");
+    try {
+      const defaultId = await this.createProject(
         "Default Project",
         "Auto-generated default project"
       );
       this.setActiveProject(defaultId);
-    }
-
-    // If no active project, set to last used or first available
-    if (!this.activeProjectIdSignal.value) {
-      const lastUsedId = localStorage.getItem(ProjectStore.DEFAULT_PROJECT_KEY);
-      console.log("Last used project ID:", lastUsedId);
-
-      if (lastUsedId && this.projects[lastUsedId]) {
-        this.setActiveProject(lastUsedId);
-      } else {
-        const firstProject = Object.keys(this.projects)[0];
-        if (firstProject) {
-          this.setActiveProject(firstProject);
-        }
-      }
+    } catch (error) {
+      console.error("Failed to create default project:", error);
+      this.createFallbackProject();
     }
   }
 
+  /**
+   * Set the initial active project based on localStorage or first available
+   */
+  private setInitialActiveProject(): void {
+    // If no active project, set to last used or first available
+    const lastUsedId = localStorage.getItem(ProjectStore.ACTIVE_PROJECT_KEY);
+    console.log("Last used project ID:", lastUsedId);
+
+    const projectIds = Object.keys(this.projectsSignal.value);
+    if (lastUsedId && this.projectsSignal.value[lastUsedId]) {
+      this.setActiveProject(lastUsedId);
+    } else if (projectIds.length > 0) {
+      this.setActiveProject(projectIds[0]);
+    }
+  }
+
+  /**
+   * Create an in-memory fallback project as a last resort
+   */
+  private createFallbackProject(): void {
+    const fallbackId = crypto.randomUUID();
+    const now = Date.now();
+
+    const fallbackProject: Project = {
+      id: fallbackId,
+      name: "Default Project (Fallback)",
+      description: "Emergency fallback project",
+      createdAt: now,
+      updatedAt: now,
+      status: "active",
+      version: 1,
+      messages: [],
+      archiveSummary: {
+        summary: null,
+        lastSummarizedMessageIds: [],
+        lastSummarization: 0,
+      },
+      config: {
+        model: "default",
+        systemPrompt: "",
+        persistentUserMessage: "",
+      },
+    };
+
+    // Add to memory only without waiting for IndexedDB
+    this.projectsSignal.value = {
+      ...this.projectsSignal.value,
+      [fallbackId]: fallbackProject,
+    };
+
+    this.setActiveProject(fallbackId);
+    console.log("Created fallback project in memory:", fallbackId);
+  }
+
+  /**
+   * Attempt to recover from initialization errors
+   */
+  private async recoverFromInitializationError(): Promise<void> {
+    // Don't try to recover from localStorage, just create a fallback project
+    console.log("Error during initialization, creating fallback project");
+    this.createFallbackProject();
+  }
+
+  /**
+   * Wait for the store to be initialized
+   * Useful for async operations that depend on the store being ready
+   */
+  public async waitForInitialization(): Promise<void> {
+    if (this.initializedSignal.value) return Promise.resolve();
+
+    // Add a timeout to prevent waiting indefinitely
+    return new Promise(resolve => {
+      // Maximum time to wait for initialization (5 seconds)
+      const maxWaitTime = 5000;
+      const startTime = Date.now();
+
+      // Check immediately first
+      if (this.initializedSignal.value) {
+        resolve();
+        return;
+      }
+
+      // Set up an effect to watch for initialization
+      const unsubscribe = effect(() => {
+        if (this.initializedSignal.value || (Date.now() - startTime > maxWaitTime)) {
+          unsubscribe();
+
+          // If timeout occurred but we're still not initialized, force it
+          if (!this.initializedSignal.value) {
+            console.warn("Initialization timed out after 5 seconds, forcing initialization state");
+            this.initializedSignal.value = true;
+          }
+
+          resolve();
+        }
+      });
+    });
+  }
+
   // CRUD Operations
-  public createProject(name: string, description?: string): string {
+  /**
+   * Create a new project
+   * @param name Project name
+   * @param description Optional project description
+   * @param forceCreate If true, bypass waiting for initialization
+   */
+  public async createProject(name: string, description?: string, forceCreate = false): Promise<string> {
+    console.log("createProject: Waiting for initialization");
+
+    // Only wait for initialization if not forcing creation
+    if (!forceCreate) {
+      await this.waitForInitialization();
+    } else {
+      console.log("createProject: Skipping initialization wait (force mode)");
+      // Force initialization to true if it's still false
+      if (!this.initializedSignal.value) {
+        console.warn("createProject: Forcing initialization signal to true");
+
+        // Try to force initialize the database as a last resort
+        try {
+          console.log("Attempting to force initialize the database");
+          await dbService.forceInit();
+          console.log("Force database initialization successful");
+        } catch (forceInitError) {
+          console.error("Force database initialization failed:", forceInitError);
+          // Continue anyway - we'll work with in-memory data
+        }
+
+        // Mark as initialized so we can continue
+        this.initializedSignal.value = true;
+      }
+    }
+
     const id = crypto.randomUUID();
     const now = Date.now();
 
     console.log(`Creating new project: ${name} (${id})`);
 
-    // Use batch to prevent multiple renders
-    batch(() => {
-      const newProjects = { ...this.projects };
-      newProjects[id] = {
-        id,
-        name,
-        description,
-        createdAt: now,
-        updatedAt: now,
-        status: "active",
-        version: 1,
-        messages: [],
-        archiveSummary: {
-          summary: null,
-          lastSummarizedMessageIds: [],
-          lastSummarization: 0,
-        },
-        config: {
-          model: "default", // Default model
-          systemPrompt: "", // Empty by default
-          persistentUserMessage: "", // Empty by default
-        },
-      };
-      this.projectsSignal.value = newProjects;
-      this.saveProjects();
-    });
+    const newProject: Project = {
+      id,
+      name,
+      description,
+      createdAt: now,
+      updatedAt: now,
+      status: "active",
+      version: 1,
+      messages: [],
+      archiveSummary: {
+        summary: null,
+        lastSummarizedMessageIds: [],
+        lastSummarization: 0,
+      },
+      config: {
+        model: "default", // Default model
+        systemPrompt: "", // Empty by default
+        persistentUserMessage: "", // Empty by default
+      },
+    };
+
+    // Save to IndexedDB
+    console.log("createProject: About to save to IndexedDB:", { id, name });
+    try {
+      await dbService.saveProject(newProject);
+      console.log("createProject: Successfully saved to IndexedDB");
+    } catch (dbError) {
+      console.error("createProject: Failed to save to IndexedDB:", dbError);
+      // Continue with in-memory operation despite DB error
+    }
+
+    // Update local state regardless of IndexedDB success
+    console.log("createProject: Updating local state with new project");
+    this.projectsSignal.value = {
+      ...this.projectsSignal.value,
+      [id]: newProject,
+    };
+    console.log("createProject: Local state updated");
 
     return id;
   }
 
-  public getProject(id: string): Project | null {
-    const project = this.projects[id];
-    if (!project) {
-      console.log(`No project found for id ${id}`);
-      return null;
+  /**
+   * Get a project by ID
+   */
+  public async getProject(id: string): Promise<Project | null> {
+    await this.waitForInitialization();
+
+    // Check if project exists in memory
+    if (this.projects[id]) {
+      return this.projects[id];
     }
-    console.log(
-      `Loaded project with ${project?.messages?.length} messages for id ${id}`
-    );
+
+    // If not in memory, try to load from IndexedDB
+    const project = await dbService.getProject(id);
+
+    if (project) {
+      // Update the projects signal with the loaded project
+      this.projectsSignal.value = {
+        ...this.projectsSignal.value,
+        [id]: project
+      };
+      console.log(`Loaded project from IndexedDB: ${project.name} (${id})`);
+    } else {
+      console.log(`No project found for id ${id}`);
+    }
+
     return project;
   }
 
-  public updateProject(id: string, updates: ProjectUpdate): void {
-    if (!this.projects[id]) {
+  /**
+   * Update a project
+   */
+  public async updateProject(id: string, updates: ProjectUpdate): Promise<void> {
+    await this.waitForInitialization();
+
+    // Get current project
+    const project = await this.getProject(id);
+    if (!project) {
       console.warn(`Attempted to update non-existent project: ${id}`);
       return;
     }
 
     console.log(`Updating project ${id}:`, updates);
 
-    batch(() => {
-      const newProjects = { ...this.projects };
-      newProjects[id] = {
-        ...newProjects[id],
-        ...updates,
-        updatedAt: Date.now(),
-      };
-      this.projectsSignal.value = newProjects;
-      this.saveProjects();
-    });
+    // Create updated project
+    const updatedProject = {
+      ...project,
+      ...updates,
+      updatedAt: Date.now()
+    };
+
+    // Save to IndexedDB
+    await dbService.saveProject(updatedProject);
+
+    // Update signal
+    this.projectsSignal.value = {
+      ...this.projectsSignal.value,
+      [id]: updatedProject
+    };
   }
 
   /**
-   * Renames a project
-   * @param id ID of the project to rename
-   * @param newName New name for the project
-   * @returns boolean indicating success
+   * Rename a project
    */
-  public renameProject(id: string, newName: string): boolean {
+  public async renameProject(id: string, newName: string): Promise<boolean> {
+    await this.waitForInitialization();
+
     if (!this.projects[id]) {
       console.warn(`Attempted to rename non-existent project: ${id}`);
       return false;
@@ -182,21 +444,16 @@ export class ProjectStore {
 
     console.log(`Renaming project ${id} to "${newName}"`);
 
-    batch(() => {
-      const newProjects = { ...this.projects };
-      newProjects[id] = {
-        ...newProjects[id],
-        name: newName.trim(),
-        updatedAt: Date.now(),
-      };
-      this.projectsSignal.value = newProjects;
-      this.saveProjects();
-    });
-
+    await this.updateProject(id, { name: newName.trim() });
     return true;
   }
 
-  public deleteProject(id: string): void {
+  /**
+   * Delete a project and all its messages
+   */
+  public async deleteProject(id: string): Promise<void> {
+    await this.waitForInitialization();
+
     // Don't allow deletion of last project
     if (Object.keys(this.projects).length <= 1) {
       console.warn("Attempted to delete the last project");
@@ -205,21 +462,25 @@ export class ProjectStore {
 
     console.log(`Deleting project ${id}`);
 
-    batch(() => {
-      const newProjects = { ...this.projects };
-      delete newProjects[id];
-      this.projectsSignal.value = newProjects;
-      this.saveProjects();
+    // Delete from IndexedDB
+    await dbService.deleteProject(id);
 
-      // If active project was deleted, switch to another project
-      if (this.activeProjectIdSignal.value === id) {
-        const firstAvailable = Object.keys(newProjects)[0];
-        console.log(`Active project deleted, switching to ${firstAvailable}`);
-        this.setActiveProject(firstAvailable);
-      }
-    });
+    // Update local state
+    const newProjects = { ...this.projects };
+    delete newProjects[id];
+    this.projectsSignal.value = newProjects;
+
+    // If active project was deleted, switch to another project
+    if (this.activeProjectIdSignal.value === id) {
+      const firstAvailable = Object.keys(newProjects)[0];
+      console.log(`Active project deleted, switching to ${firstAvailable}`);
+      this.setActiveProject(firstAvailable);
+    }
   }
 
+  /**
+   * Set the active project
+   */
   public setActiveProject(id: string | null): void {
     if (id && !this.projects[id]) {
       console.warn(`Attempted to set invalid project as active: ${id}`);
@@ -228,61 +489,98 @@ export class ProjectStore {
 
     console.log(`Setting active project to: ${id}`);
     this.activeProjectIdSignal.value = id;
-    localStorage.setItem(ProjectStore.DEFAULT_PROJECT_KEY, id || "");
+
+    if (id) {
+      localStorage.setItem(ProjectStore.ACTIVE_PROJECT_KEY, id);
+
+      // Load messages for this project
+      this.loadProjectMessagesInternal(id);
+    } else {
+      localStorage.removeItem(ProjectStore.ACTIVE_PROJECT_KEY);
+    }
   }
 
+  /**
+   * Get the active project ID
+   */
   public getActiveProject(): string | null {
     return this.activeProjectIdSignal.value;
   }
 
+  /**
+   * Get all projects
+   */
   public getAllProjects(): Project[] {
     return this.allProjects.value;
   }
 
-  // Message Operations
-  public updateProjectMessages(id: string, messages: MessageExtended[]): void {
+  // Message operations
+  /**
+   * Load messages for a project
+   */
+  public async loadProjectMessages(id: string): Promise<MessageExtended[]> {
+    await this.waitForInitialization();
+
+    console.log(`Loading messages for project ${id}`);
+    return dbService.getMessagesForProject(id);
+  }
+
+  /**
+   * Internal method to load messages for a project and update the messagesMapSignal
+   * This is used by the activeProjectMessages computed property
+   */
+  private loadProjectMessagesInternal(id: string): void {
+    // Don't await, just start the loading process
+    this.loadProjectMessages(id).then(messages => {
+      // Update the messages map and message counts
+      this.messagesMapSignal.value = {
+        ...this.messagesMapSignal.value,
+        [id]: messages
+      };
+      this.messageCountsSignal.value = {
+        ...this.messageCountsSignal.value,
+        [id]: messages.length
+      };
+      console.log(`Loaded ${messages.length} messages for project ${id}`);
+    }).catch(error => {
+      console.error(`Error loading messages for project ${id}:`, error);
+    });
+  }
+
+  /**
+   * Update messages for a project
+   */
+  public async updateProjectMessages(id: string, messages: MessageExtended[]): Promise<void> {
+    await this.waitForInitialization();
+
     if (!this.projects[id]) {
-      console.warn(
-        `Attempted to save messages for non-existent project: ${id}`
-      );
+      console.warn(`Attempted to save messages for non-existent project: ${id}`);
       return;
     }
 
-    // console.log(`Updating ${messages.length} messages for project ${id}`);
+    // Add projectId to each message
+    const messagesWithProjectId = messages.map(msg => ({
+      ...msg,
+      projectId: id
+    }));
 
-    batch(() => {
-      const newProjects = { ...this.projects };
-      newProjects[id] = {
-        ...newProjects[id],
-        messages: messages.map((msg) => ({ ...msg, projectId: id })),
-        updatedAt: Date.now(),
-      };
-      this.projectsSignal.value = newProjects;
-      this.saveProjects();
-    });
+    // Save messages to IndexedDB
+    await dbService.saveMessages(messagesWithProjectId);
 
-    // console.log(`Successfully updated messages for project ${id}`);
-  }
+    // Update local signal cache
+    this.messagesMapSignal.value = {
+      ...this.messagesMapSignal.value,
+      [id]: messagesWithProjectId
+    };
 
-  // Storage Operations
-  private loadProjects(): void {
-    const stored = localStorage.getItem(ProjectStore.STORAGE_KEY);
-    if (stored) {
-      try {
-        this.projectsSignal.value = JSON.parse(stored);
-      } catch (error) {
-        console.error("Error parsing projects:", error);
-        this.projectsSignal.value = {};
-      }
-    }
-  }
+    // Update message count signal
+    this.messageCountsSignal.value = {
+      ...this.messageCountsSignal.value,
+      [id]: messagesWithProjectId.length
+    };
 
-  private saveProjects(): void {
-    // console.log("Saving projects");
-    localStorage.setItem(
-      ProjectStore.STORAGE_KEY,
-      JSON.stringify(this.projects)
-    );
+    // Update project's updatedAt timestamp
+    await this.updateProject(id, { updatedAt: Date.now() });
   }
 
   // Event handling for project changes - keeping for backward compatibility
@@ -298,12 +596,12 @@ export class ProjectStore {
     console.group("ProjectStore Debug");
     console.log("Active Project:", this.activeProjectIdSignal.value);
     console.log("Projects:", this.projects);
-    console.log("localStorage keys:", Object.keys(localStorage));
+    console.log("IndexedDB Metrics:", dbService.getMetrics());
     console.groupEnd();
   }
 
-  // New method to update project configuration
-  public updateProjectConfig(
+  // Update project configuration
+  public async updateProjectConfig(
     id: string,
     config: {
       model?: string;
@@ -311,37 +609,38 @@ export class ProjectStore {
       persistentUserMessage?: string;
       enabledTools?: string[];
     }
-  ): void {
-    if (!this.projects[id]) {
-      console.warn(
-        `Attempted to update config for non-existent project: ${id}`
-      );
+  ): Promise<void> {
+    await this.waitForInitialization();
+
+    const project = await this.getProject(id);
+    if (!project) {
+      console.warn(`Attempted to update config for non-existent project: ${id}`);
       return;
     }
 
     console.log(`Updating project ${id} configuration:`, config);
 
-    batch(() => {
-      const newProjects = { ...this.projects };
-
-      // Create config object if it doesn't exist
-      if (!newProjects[id].config) {
-        newProjects[id].config = {};
-      }
-
-      // Update only the provided fields
-      newProjects[id].config = {
-        ...newProjects[id].config,
+    // Create updated project with new config
+    const updatedProject = {
+      ...project,
+      config: {
+        ...project.config,
         ...config,
-      };
+      },
+      updatedAt: Date.now()
+    };
 
-      newProjects[id].updatedAt = Date.now();
-      this.projectsSignal.value = newProjects;
-      this.saveProjects();
-    });
+    // Save to IndexedDB
+    await dbService.saveProject(updatedProject);
+
+    // Update signal
+    this.projectsSignal.value = {
+      ...this.projectsSignal.value,
+      [id]: updatedProject
+    };
   }
 
-  // New method to get project configuration
+  // Get project configuration
   public getProjectConfig(id: string): Project["config"] {
     if (!this.projects[id]) {
       console.warn(`Attempted to get config for non-existent project: ${id}`);
@@ -353,17 +652,15 @@ export class ProjectStore {
 
   /**
    * Clone an existing project
-   * @param id ID of the project to clone
-   * @param newName Optional name for the cloned project (defaults to "Copy of [Original Name]")
-   * @param cloneMessages Whether to clone the messages (defaults to true)
-   * @returns ID of the newly created project
    */
-  public cloneProject(
+  public async cloneProject(
     id: string,
     newName?: string,
     cloneMessages: boolean = true
-  ): string {
-    const sourceProject = this.getProject(id);
+  ): Promise<string> {
+    await this.waitForInitialization();
+
+    const sourceProject = await this.getProject(id);
 
     if (!sourceProject) {
       console.error(`Cannot clone non-existent project: ${id}`);
@@ -377,64 +674,90 @@ export class ProjectStore {
     const newId = crypto.randomUUID();
     const now = Date.now();
 
-    batch(() => {
-      const newProjects = { ...this.projects };
-      newProjects[newId] = {
-        id: newId,
-        name: cloneName,
-        description: sourceProject.description,
-        createdAt: now,
-        updatedAt: now,
-        status: "active",
-        version: sourceProject.version || 1,
-        messages: cloneMessages
-          ? JSON.parse(JSON.stringify(sourceProject.messages))
-          : [], // Deep clone messages if requested
-        archiveSummary: {
-          summary: null,
-          lastSummarizedMessageIds: [],
-          lastSummarization: 0,
-        },
-        config: sourceProject.config ? { ...sourceProject.config } : {},
-      };
-      this.projectsSignal.value = newProjects;
-      this.saveProjects();
-    });
+    const newProject: Project = {
+      id: newId,
+      name: cloneName,
+      description: sourceProject.description,
+      createdAt: now,
+      updatedAt: now,
+      status: "active",
+      version: sourceProject.version || 1,
+      messages: [],
+      archiveSummary: {
+        summary: null,
+        lastSummarizedMessageIds: [],
+        lastSummarization: 0,
+      },
+      config: sourceProject.config ? { ...sourceProject.config } : {},
+    };
+
+    // Save the new project to IndexedDB
+    await dbService.saveProject(newProject);
+
+    // Update local state
+    this.projectsSignal.value = {
+      ...this.projectsSignal.value,
+      [newId]: newProject,
+    };
+
+    // Clone messages if requested
+    if (cloneMessages) {
+      const sourceMessages = await dbService.getMessagesForProject(id);
+
+      if (sourceMessages.length > 0) {
+        // Clone messages with new project ID
+        const clonedMessages = sourceMessages.map(msg => ({
+          ...msg,
+          projectId: newId
+        }));
+
+        // Save cloned messages
+        await dbService.saveMessages(clonedMessages);
+      }
+    }
 
     return newId;
   }
 
-  // Utility method to update archive summary for a project
-  public updateProjectArchiveSummary(
+  /**
+   * Update archive summary for a project
+   */
+  public async updateProjectArchiveSummary(
     id: string,
     summary: string | null,
     lastSummarizedMessageIds: string[] = [],
     lastSummarization: number = Date.now()
-  ): void {
-    if (!this.projects[id]) {
-      console.warn(
-        `Attempted to update archive summary for non-existent project: ${id}`
-      );
+  ): Promise<void> {
+    await this.waitForInitialization();
+
+    const project = await this.getProject(id);
+    if (!project) {
+      console.warn(`Attempted to update archive summary for non-existent project: ${id}`);
       return;
     }
 
-    batch(() => {
-      const newProjects = { ...this.projects };
-      newProjects[id] = {
-        ...newProjects[id],
-        archiveSummary: {
-          summary,
-          lastSummarizedMessageIds,
-          lastSummarization,
-        },
-        updatedAt: Date.now(),
-      };
-      this.projectsSignal.value = newProjects;
-      this.saveProjects();
-    });
+    // Create updated project
+    const updatedProject = {
+      ...project,
+      archiveSummary: {
+        summary,
+        lastSummarizedMessageIds,
+        lastSummarization,
+      },
+      updatedAt: Date.now()
+    };
+
+    // Save to IndexedDB
+    await dbService.saveProject(updatedProject);
+
+    // Update signal
+    this.projectsSignal.value = {
+      ...this.projectsSignal.value,
+      [id]: updatedProject
+    };
   }
 
-  // Add the missing showProjectManager method
+  // UI methods
   public showProjectManager(): void {
     console.log("Showing project manager modal");
     const projectModal = document.getElementById(
@@ -447,7 +770,6 @@ export class ProjectStore {
     }
   }
 
-  // Add the showNewProjectForm method
   public showNewProjectForm(): void {
     console.log("Showing new project form modal");
     const projectFormModal = document.getElementById(
@@ -461,81 +783,174 @@ export class ProjectStore {
   }
 
   /**
-   * Exports a project to a JSON file that can be downloaded
-   * @param id ID of the project to export
+   * Export a project to a JSON file that can be downloaded
    */
-  public exportProject(id: string): void {
-    const project = this.getProject(id);
-    if (!project) {
-      console.error(`Cannot export non-existent project: ${id}`);
-      throw new Error(`Project not found: ${id}`);
+  public async exportProject(id: string): Promise<void> {
+    await this.waitForInitialization();
+
+    try {
+      // Get project data and messages from IndexedDB
+      const { project, messages } = await dbService.exportProject(id);
+
+      if (!project) {
+        console.error(`Cannot export non-existent project: ${id}`);
+        throw new Error(`Project not found: ${id}`);
+      }
+
+      // Create a copy of the project for export
+      const exportData = {
+        project: {
+          ...project,
+          messages: messages // Include messages in the export
+        },
+        exportedAt: Date.now(),
+        exportVersion: 1,
+      };
+
+      // Convert to JSON and create a Blob
+      const jsonStr = JSON.stringify(exportData, null, 2);
+      const blob = new Blob([jsonStr], { type: "application/json" });
+
+      // Create a download link and trigger it
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${project.name
+        .replace(/[^a-z0-9]/gi, "_")
+        .toLowerCase()}_export.json`;
+      document.body.appendChild(a);
+      a.click();
+
+      // Clean up
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+    } catch (error) {
+      console.error("Error exporting project:", error);
+      throw error;
     }
-
-    // Create a copy of the project for export
-    const exportData = {
-      ...project,
-      exportedAt: Date.now(),
-      exportVersion: 1,
-    };
-
-    // Convert to JSON and create a Blob
-    const jsonStr = JSON.stringify(exportData, null, 2);
-    const blob = new Blob([jsonStr], { type: "application/json" });
-
-    // Create a download link and trigger it
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `${project.name
-      .replace(/[^a-z0-9]/gi, "_")
-      .toLowerCase()}_export.json`;
-    document.body.appendChild(a);
-    a.click();
-
-    // Clean up
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
   }
 
   /**
-   * Imports a project from a JSON file
-   * @param jsonData The parsed JSON data from the import file
-   * @returns ID of the newly created project
+   * Import a project from a JSON file
    */
-  public importProject(jsonData: any): string {
-    // Validate the imported data
-    if (!isValidProject(jsonData)) {
-      console.error("Invalid project data format");
-      throw new Error("The imported file does not contain a valid project");
+  public async importProject(jsonData: any): Promise<string> {
+    await this.waitForInitialization();
+
+    try {
+      // Validate the imported data
+      if (!jsonData.project || !isValidProject(jsonData.project)) {
+        console.error("Invalid project data format");
+        throw new Error("The imported file does not contain a valid project");
+      }
+
+      // Extract project data
+      const projectData = jsonData.project;
+
+      // Handle messages - they could be in project.messages or in a separate messages array
+      let messages = [];
+
+      // Check if messages are in the project object (common export format)
+      if (projectData.messages && Array.isArray(projectData.messages)) {
+        console.log(`Found ${projectData.messages.length} messages in project object`);
+        messages = projectData.messages;
+      }
+      // Also check for messages in the root object (alternative format)
+      else if (jsonData.messages && Array.isArray(jsonData.messages)) {
+        console.log(`Found ${jsonData.messages.length} messages in root object`);
+        messages = jsonData.messages;
+      }
+
+      // Create a clean project object without the messages array
+      const { messages: projectMessages, ...projectWithoutMessages } = projectData;
+
+      // Import to IndexedDB
+      const newId = await dbService.importProject({
+        project: projectWithoutMessages,
+        messages: messages
+      });
+
+      // Load the imported project to update local state
+      const importedProject = await dbService.getProject(newId);
+
+      if (importedProject) {
+        this.projectsSignal.value = {
+          ...this.projectsSignal.value,
+          [newId]: importedProject
+        };
+
+        // Update message count for the imported project
+        this.messageCountsSignal.value = {
+          ...this.messageCountsSignal.value,
+          [newId]: messages.length
+        };
+      }
+
+      console.log(`Project imported with ID ${newId} and ${messages.length} messages`);
+      return newId;
+    } catch (error) {
+      console.error("Error importing project:", error);
+      throw error;
     }
+  }
 
-    // Generate a new ID for the imported project
-    const newId = crypto.randomUUID();
-    const now = Date.now();
+  /**
+   * Debug method to force initialization state
+   * This is for emergency recovery only
+   */
+  public debugInitialize(): void {
+    console.log("DEBUG: Force initializing ProjectStore");
 
-    // Create a new project based on the imported data
-    batch(() => {
-      const newProjects = { ...this.projects };
-      newProjects[newId] = {
-        ...jsonData,
-        id: newId,
-        name: `${jsonData.name} (Imported)`,
+    // Force signals to initialized state
+    this.loadingSignal.value = false;
+    this.initializedSignal.value = true;
+
+    // Create emergency fallback project if none exist
+    if (Object.keys(this.projectsSignal.value).length === 0) {
+      const fallbackId = crypto.randomUUID();
+      const now = Date.now();
+
+      const fallbackProject: Project = {
+        id: fallbackId,
+        name: "Emergency Project",
+        description: "Auto-created emergency project due to initialization failure",
         createdAt: now,
         updatedAt: now,
-        messages: jsonData.messages || [],
-        // Make sure we have proper structure
-        archiveSummary: jsonData.archiveSummary || {
+        status: "active",
+        version: 1,
+        messages: [],
+        archiveSummary: {
           summary: null,
           lastSummarizedMessageIds: [],
           lastSummarization: 0,
         },
-        config: jsonData.config || {},
+        config: {
+          model: "default",
+          systemPrompt: "",
+          persistentUserMessage: "",
+        },
       };
-      this.projectsSignal.value = newProjects;
-      this.saveProjects();
-    });
 
-    return newId;
+      // Update the store directly
+      this.projectsSignal.value = {
+        [fallbackId]: fallbackProject
+      };
+
+      // Set as active project
+      this.activeProjectIdSignal.value = fallbackId;
+      localStorage.setItem(ProjectStore.ACTIVE_PROJECT_KEY, fallbackId);
+
+      console.log("DEBUG: Created emergency fallback project:", fallbackId);
+    }
+
+    console.log("DEBUG: ProjectStore force initialized");
+  }
+
+  // Helper method to preload message counts for multiple projects
+  private async preloadMessageCounts(projectIds: string[]): Promise<void> {
+    for (const id of projectIds) {
+      await this.loadProjectMessageCount(id);
+    }
   }
 }
 
