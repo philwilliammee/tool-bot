@@ -40,20 +40,20 @@ export class BedrockService {
   }
 
   /**
-   * Get tool configuration based on enabled tools
-   * @param enabledTools Optional array of tool IDs to enable
+   * Get filtered tool configuration based on enabled tools
+   * @param enabledTools Array of tool names to enable
    * @returns Tool configuration for Bedrock API
    */
-  private getFilteredToolConfig(
+  private async getFilteredToolConfig(
     enabledTools?: string[]
-  ): ToolConfiguration | undefined {
+  ): Promise<ToolConfiguration | undefined> {
     // If no enabledTools specified, return all tools
     if (!enabledTools) {
-      return serverRegistry.getToolConfig();
+      return await serverRegistry.getToolConfig();
     }
 
     // Get the full tool configuration
-    const fullToolConfig = serverRegistry.getToolConfig();
+    const fullToolConfig = await serverRegistry.getToolConfig();
 
     // If no tool configuration exists, return undefined
     if (
@@ -99,7 +99,7 @@ export class BedrockService {
     const system: SystemContentBlock[] = [{ text: systemPrompt }];
 
     // Get filtered tool configuration
-    const toolConfig = this.getFilteredToolConfig(enabledTools);
+    const toolConfig = await this.getFilteredToolConfig(enabledTools);
 
     // console.log(
     //   `[BEDROCK] Using ${
@@ -210,12 +210,10 @@ export class BedrockService {
           // Use optional chaining to safely access type property
           console.error(`      Type: ${block.type ?? "text"}`);
           console.error(
-            `      Text: ${
-              block.text
-                ? `"${block.text.substring(0, 50)}${
-                    block.text.length > 50 ? "..." : ""
-                  }"`
-                : "EMPTY"
+            `      Text: ${block.text
+              ? `"${block.text.substring(0, 50)}${block.text.length > 50 ? "..." : ""
+              }"`
+              : "EMPTY"
             }`
           );
           console.error(`      Text length: ${block.text?.length || 0}`);

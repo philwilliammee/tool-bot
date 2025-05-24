@@ -116,7 +116,7 @@ export class OpenAIService {
     // console.log("openAIMessages", openAIMessages);
 
     // Get tool configuration and filter based on enabledTools
-    const toolConfig = serverRegistry.getToolConfig();
+    const toolConfig = await serverRegistry.getToolConfig();
     let filteredToolConfig = toolConfig;
 
     // Filter tools if enabledTools is provided

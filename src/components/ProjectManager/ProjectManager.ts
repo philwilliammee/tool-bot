@@ -30,7 +30,7 @@ export class ProjectManager {
         this.render();
         // Also update the project list if the modal is open
         if (this.modal.open) {
-          this.renderProjectList();
+          this.renderProjectList().catch(console.error);
         }
       })
     );
@@ -88,7 +88,7 @@ export class ProjectManager {
         if (systemPromptInput && !systemPromptInput.value) {
           systemPromptInput.value = converseAgentConfig.systemPrompt;
         }
-        this.showProjectForm();
+        this.showProjectForm().catch(console.error);
       });
 
     // Manage projects button
@@ -96,7 +96,7 @@ export class ProjectManager {
       .querySelector(".manage-projects-btn")
       ?.addEventListener("click", () => {
         this.modal.showModal();
-        this.renderProjectList();
+        this.renderProjectList().catch(console.error);
       });
 
     // Close modal button in header
@@ -114,7 +114,7 @@ export class ProjectManager {
     });
 
     this.modal.addEventListener("show", () => {
-      this.renderProjectList();
+      this.renderProjectList().catch(console.error);
     });
 
     // Project form submission
@@ -360,13 +360,16 @@ export class ProjectManager {
     `;
   }
 
-  private renderProjectList(): void {
+  private async renderProjectList(): Promise<void> {
     // Clear existing project items
     this.projectList.innerHTML = '';
 
     // Use signals for reactive data
     const projects = projectStore.allProjects.value;
     const groupedModelOptions = getGroupedModelOptions();
+
+    // Ensure MCP tools are initialized before getting tools
+    await clientRegistry.ensureMCPToolsInitialized();
 
     // Get available tools from registry
     const toolsRegistry = clientRegistry.getAllTools();
@@ -520,7 +523,7 @@ export class ProjectManager {
   /**
    * Creates tool options container using template literals for readability
    */
-  private renderToolOptionsHtml(project: Project, availableTools: Array<{id: string, name: string, description: string}>): HTMLDivElement {
+  private renderToolOptionsHtml(project: Project, availableTools: Array<{ id: string, name: string, description: string }>): HTMLDivElement {
     const toolSelectionItem = document.createElement('div');
     toolSelectionItem.className = 'config-item';
 
@@ -739,7 +742,7 @@ export class ProjectManager {
     })();
   }
 
-  private showProjectForm(): void {
+  private async showProjectForm(): Promise<void> {
     const formModal = document.getElementById(
       "project-form-modal"
     ) as HTMLDialogElement;
@@ -773,6 +776,9 @@ export class ProjectManager {
     // Populate tool selection
     const toolsContainer = formModal.querySelector("#new-project-tools");
     if (toolsContainer) {
+      // Ensure MCP tools are initialized before getting tools
+      await clientRegistry.ensureMCPToolsInitialized();
+
       // Get available tools from registry
       const toolsRegistry = clientRegistry.getAllTools();
       const availableTools = Object.keys(toolsRegistry).map((id) => ({
