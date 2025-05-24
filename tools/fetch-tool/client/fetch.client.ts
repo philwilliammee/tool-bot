@@ -33,7 +33,7 @@ export const fetchTool: ClientTool = {
           await markdownPreviewTool.execute({
             markdown: result.data,
             title: title,
-            autoShow: true,
+            autoShow: input.autoSwitchTab !== false,
           });
         }
       } catch (error) {

@@ -5,21 +5,30 @@ export const fetchToolConfig: ToolConfiguration = {
     {
       toolSpec: {
         name: "fetch_url",
-        description: `Fetch and analyze content from any public website or API. Perfect for research, fact-checking, and gathering current information.
+        description: `🌐 **UNIVERSAL WEB RESEARCH TOOL** - Access any public HTTPS website or API for current information, fact-checking, and research.
 
-Key capabilities:
-• Research current events, news, and real-time information
-• Look up documentation, tutorials, and reference materials
-• Access public APIs and data sources
-• Verify facts and gather supporting evidence
-• Analyze competitor websites and market data
+Perfect for:
+• **Current Events & News** - Get up-to-date information and breaking news
+• **Research & Documentation** - Access tutorials, guides, and technical documentation
+• **Fact Verification** - Cross-reference information from authoritative sources
+• **Market Analysis** - Gather current data on trends, pricing, and competitors
+• **API Integration** - Fetch data from public APIs and services
 
-For specific use cases:
-• Weather data: https://api.open-meteo.com/v1/forecast?latitude={lat}&longitude={lon}
-• Web search: https://duckduckgo.com/?q={search_terms}&kp=-1&kl=us-en
-• Any public HTTPS website for research and information gathering
+**Key Features:**
+- Converts HTML to clean, readable markdown (80-90% memory reduction)
+- Automatically displays content in preview tab for immediate reading
+- Removes scripts, styles, and navigation for content focus
+- Professional GitHub-style markdown rendering
+- Perfect for AI analysis and human review
 
-HTML content is automatically converted to clean markdown for better readability and memory efficiency. The markdown content is also automatically displayed in the preview tab for easy reading and analysis.`,
+**Parameters:**
+- url: HTTPS URL to fetch
+- method: HTTP method (GET only)
+- convertToMarkdown: Convert HTML to markdown (default: true)
+- autoPreview: Show markdown in preview tab (default: true)
+- autoSwitchTab: Switch to preview tab automatically (default: true)
+
+Use this tool whenever you need current information that might not be in your training data.`,
         inputSchema: {
           json: {
             type: "object",

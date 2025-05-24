@@ -2,6 +2,7 @@ import { converseStore } from "../../stores/ConverseStore/ConverseStore";
 import { effect } from "@preact/signals-core";
 import { MessageExtended } from "../../app.types";
 import { ReExecuteButton } from "../ReExecuteButton/ReExecuteButton";
+import { FetchReplayButton } from "../FetchReplayButton/FetchReplayButton";
 
 interface FilterState {
   search: string;
@@ -172,8 +173,8 @@ export class MessageTable {
           filters.tool === "any"
             ? hasToolUse || false
             : message.content?.some(
-                (block) => block.toolUse?.name === filters.tool
-              ) || false;
+              (block) => block.toolUse?.name === filters.tool
+            ) || false;
       }
 
       return (
@@ -378,6 +379,16 @@ export class MessageTable {
         actionButtons.firstChild
       );
       buttonCleanups.push(() => reExecuteButton.destroy());
+    }
+
+    // Add fetch replay button if message has fetch tool
+    if (FetchReplayButton.hasFetchTool(message)) {
+      const fetchReplayButton = new FetchReplayButton(message);
+      actionButtons.insertBefore(
+        fetchReplayButton.getElement(),
+        actionButtons.firstChild
+      );
+      buttonCleanups.push(() => fetchReplayButton.destroy());
     }
 
     const buttons = {

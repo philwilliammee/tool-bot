@@ -3,6 +3,7 @@ export interface FetchToolInput {
   method?: "GET";
   convertToMarkdown?: boolean;
   autoPreview?: boolean;
+  autoSwitchTab?: boolean;
 }
 
 export interface FetchToolResponse {
