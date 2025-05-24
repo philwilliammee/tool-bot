@@ -102,11 +102,11 @@ export class WorkArea {
       effect(() => {
         const messages = projectStore.activeProjectMessages.value;
         if (store.activeTab.value === "work-area") {
-            // console.log(
-            //   "Messages updated, updating WorkArea with",
-            //   messages.length,
-            //   "messages"
-            // );
+          // console.log(
+          //   "Messages updated, updating WorkArea with",
+          //   messages.length,
+          //   "messages"
+          // );
           this.updateMessageCount();
           this.updateButtonStates();
         }
@@ -311,13 +311,21 @@ export class WorkArea {
     this.modals.showEditModal(message);
   }
 
-  private handleDeleteMessage(id: string): void {
+  private async handleDeleteMessage(id: string): Promise<void> {
     if (store.isGenerating.value) return;
 
     if (confirm("Are you sure you want to delete this message?")) {
-      this.handleMessageOperation(() => {
-        converseStore.deleteMessage(id);
-      }, "Message deleted");
+      try {
+        await converseStore.deleteMessage(id);
+        this.handleMessageOperation(() => {
+          // Message already deleted, this is just for the notification
+        }, "Message deleted");
+      } catch (error) {
+        console.error("Failed to delete message:", error);
+        this.handleMessageOperation(() => {
+          throw error;
+        }, "Message deleted");
+      }
     }
   }
 

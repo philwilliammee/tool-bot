@@ -35,7 +35,7 @@ export class ResendButton {
           console.log("Resending user message:", message);
 
           // Use the new resendLastUserMessage method to avoid duplicates
-          const success = converseStore.resendLastUserMessage();
+          const success = await converseStore.resendLastUserMessage();
 
           if (success) {
             store.showToast("Message resent to AI");

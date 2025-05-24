@@ -5,15 +5,15 @@ import { Signal, signal, effect } from "@preact/signals-core";
 // Add these imports
 const VITE_TARGET_TOKENS = import.meta.env.VITE_TARGET_TOKENS
   ? parseInt(import.meta.env.VITE_TARGET_TOKENS, 10)
-  : 50; // Default to 100 if not defined
+  : 10; // Default to 100 if not defined
 
 const VITE_MAX_TOKENS = import.meta.env.VITE_MAX_TOKENS
   ? parseInt(import.meta.env.VITE_MAX_TOKENS, 10)
-  : 100; // Default to 600 if not defined
+  : 70; // Default to 600 if not defined
 
 const VITE_OVERLAP_TOKENS = import.meta.env.VITE_OVERLAP_TOKENS
   ? parseInt(import.meta.env.VITE_OVERLAP_TOKENS, 10)
-  : 10; // Default to 50 if not defined
+  : 3; // Default to 50 if not defined
 
 /**
  * Configuration for managing conversation context windows based on token limits.

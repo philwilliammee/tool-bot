@@ -568,7 +568,7 @@ export class ConverseStore {
     });
   }
 
-  public deleteMessage(id: string): void {
+  public async deleteMessage(id: string): Promise<void> {
     if (!this.projectId) {
       console.warn("Attempted to delete message with no active project");
       return;
@@ -580,8 +580,26 @@ export class ConverseStore {
       return;
     }
 
-    this.messageManager.deleteMessage(id);
-    this.notifyMessageChange();
+    try {
+      // Delete from local memory first for immediate UI update
+      this.messageManager.deleteMessage(id);
+      this.notifyMessageChange();
+
+      // Delete from IndexedDB to persist the deletion
+      await dbService.deleteMessage(this.projectId, id);
+      console.log(`Message ${id} successfully deleted from project ${this.projectId}`);
+
+    } catch (error) {
+      console.error(`Failed to delete message ${id}:`, error);
+
+      // If database deletion failed, restore the message to local state
+      if (messageExists) {
+        this.messageManager.addMessage(messageExists);
+        this.notifyMessageChange();
+      }
+
+      throw error; // Re-throw to let caller handle the error
+    }
 
     // Keep a minimal safety check to ensure DOM updates
     setTimeout(() => {
@@ -679,7 +697,7 @@ export class ConverseStore {
    * Resends the last user message to get a new AI response.
    * This removes the last user message and re-adds it, triggering a fresh LLM call.
    */
-  public resendLastUserMessage(): boolean {
+  public async resendLastUserMessage(): Promise<boolean> {
     if (!this.projectId) {
       console.warn("Attempted to resend message with no active project");
       return false;
@@ -714,18 +732,15 @@ export class ConverseStore {
       // Store the message content before deletion
       const messageContent = lastUserMessage.content;
 
-      // Remove any error messages after the last user message
+      // Find all messages after (and including) the last user message to remove
       const lastUserIndex = messages.findIndex(msg => msg.id === lastUserMessage.id);
       const messagesToRemove = messages.slice(lastUserIndex);
 
-      messagesToRemove.forEach(msg => {
-        if (msg.metadata?.error || msg.role === "assistant") {
-          this.deleteMessage(msg.id);
-        }
-      });
-
-      // Delete the last user message
-      this.deleteMessage(lastUserMessage.id);
+      // Delete all messages from the last user message onwards
+      // This removes the user message and any assistant responses/errors that followed
+      for (const msg of messagesToRemove) {
+        await this.deleteMessage(msg.id);
+      }
 
       // Re-add the same message content, which will trigger a new LLM call
       this.addMessage({
@@ -733,6 +748,7 @@ export class ConverseStore {
         content: messageContent || [{ text: "" }],
       });
 
+      console.log("Successfully resent last user message");
       return true;
     } catch (error) {
       console.error("Failed to resend last user message:", error);

@@ -38,7 +38,7 @@ export class DatabaseService {
   // Singleton pattern
   private static instance: DatabaseService;
 
-  private constructor() {}
+  private constructor() { }
 
   public static getInstance(): DatabaseService {
     if (!DatabaseService.instance) {
@@ -104,7 +104,7 @@ export class DatabaseService {
 
             // Check if we have the expected object stores
             if (this.db.objectStoreNames.contains('projects') &&
-                this.db.objectStoreNames.contains('messages')) {
+              this.db.objectStoreNames.contains('messages')) {
               Logger.info('Required object stores verified');
               resolve();
             } else {
@@ -905,6 +905,37 @@ export class DatabaseService {
         unique: false
       });
       Logger.debug('Created messages store with indexes');
+    }
+  }
+
+  /**
+   * Delete a single message
+   */
+  public async deleteMessage(projectId: string, messageId: string): Promise<void> {
+    await this.init();
+    const startTime = performance.now();
+
+    try {
+      await new Promise<void>((resolve, reject) => {
+        const transaction = this.db!.transaction(['messages'], 'readwrite');
+        const store = transaction.objectStore('messages');
+
+        // Use composite key [projectId, messageId] as defined in schema
+        const request = store.delete([projectId, messageId]);
+
+        request.onerror = () => {
+          const error = new Error(`Failed to delete message ${messageId} from project ${projectId}`);
+          console.error(error);
+          reject(error);
+        };
+
+        request.onsuccess = () => {
+          console.log(`Message ${messageId} deleted from IndexedDB`);
+          resolve();
+        };
+      });
+    } finally {
+      this.trackOperation(`deleteMessage(${projectId}:${messageId})`, startTime);
     }
   }
 }
