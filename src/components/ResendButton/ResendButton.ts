@@ -71,10 +71,20 @@ export class ResendButton {
     const allMessages = converseStore.getMessages();
     if (allMessages.length === 0) return false;
 
-    // Find the most recent message
-    const lastMessage = allMessages[allMessages.length - 1];
+    // Find the most recent actual user message (not error messages)
+    const lastUserMessage = [...allMessages]
+      .reverse()
+      .find(msg =>
+        msg.role === "user" &&
+        !msg.metadata?.error &&
+        !msg.content?.some(block => block.toolResult) // Skip tool results
+      );
 
-    // Check if this message is the last one and it's a user message
-    return lastMessage.id === message.id && message.role === "user";
+    if (!lastUserMessage) return false;
+
+    // Check if this message is the last user message and it's actually from the user
+    return lastUserMessage.id === message.id &&
+      message.role === "user" &&
+      !message.metadata?.error;
   }
 }

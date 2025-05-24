@@ -476,14 +476,33 @@ export class ConverseStore {
 
           onError: (error) => {
             console.error("callLLM -> onError:", error);
-            this.messageManager.updateMessage(tempMessage.id, {
-              content: [{ text: "Error: Failed to generate response" }],
-              metadata: {
-                ...tempMessage.metadata,
-                isStreaming: false,
-                error: true,
-              },
-            });
+
+            // Remove the temporary message instead of updating it with an error
+            this.messageManager.deleteMessage(tempMessage.id);
+
+            // Add a single error message only if there isn't already one
+            const recentMessages = this.getMessages().slice(-3);
+            const hasRecentError = recentMessages.some(msg =>
+              msg.metadata?.error ||
+              msg.content?.some(block =>
+                block.text?.includes("Error: Failed to generate response")
+              )
+            );
+
+            if (!hasRecentError) {
+              this.messageManager.addMessage({
+                role: "assistant",
+                content: [{ text: "I apologize, but I encountered an error generating a response. Please try again." }],
+                projectId: this.projectId,
+                metadata: {
+                  error: true,
+                  createdAt: Date.now(),
+                  updatedAt: Date.now(),
+                  isStreaming: false,
+                },
+              });
+            }
+
             this.notifyMessageChange();
             store.setGenerating(false);
           },
@@ -672,9 +691,17 @@ export class ConverseStore {
       return false;
     }
 
-    const lastMessage = messages[messages.length - 1];
-    if (lastMessage.role !== "user") {
-      console.warn("Last message is not from user, cannot resend");
+    // Find the last actual user message (not error messages or tool results)
+    const lastUserMessage = [...messages]
+      .reverse()
+      .find(msg =>
+        msg.role === "user" &&
+        !msg.metadata?.error &&
+        !msg.content?.some(block => block.toolResult)
+      );
+
+    if (!lastUserMessage) {
+      console.warn("No valid user message found to resend");
       return false;
     }
 
@@ -685,10 +712,20 @@ export class ConverseStore {
 
     try {
       // Store the message content before deletion
-      const messageContent = lastMessage.content;
+      const messageContent = lastUserMessage.content;
 
-      // Delete the last message
-      this.deleteMessage(lastMessage.id);
+      // Remove any error messages after the last user message
+      const lastUserIndex = messages.findIndex(msg => msg.id === lastUserMessage.id);
+      const messagesToRemove = messages.slice(lastUserIndex);
+
+      messagesToRemove.forEach(msg => {
+        if (msg.metadata?.error || msg.role === "assistant") {
+          this.deleteMessage(msg.id);
+        }
+      });
+
+      // Delete the last user message
+      this.deleteMessage(lastUserMessage.id);
 
       // Re-add the same message content, which will trigger a new LLM call
       this.addMessage({
