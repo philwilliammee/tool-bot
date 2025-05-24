@@ -27,6 +27,7 @@ import { projectReaderConfig } from "./project-reader-tool/config.js";
 import { codeExecutorConfig } from "./code-executor/config.js";
 import { dataRowReaderConfig } from "./data-row-reader/config.js";
 import { projectSearchConfig } from "./project-search-tool/config.js";
+import { markdownPreviewConfig } from "./markdown-preview-tool/config.js";
 
 class ToolRegistry {
   private tools: ServerToolRegistry = {};
@@ -66,6 +67,7 @@ class ToolRegistry {
         // ...(xToolConfig.tools || []),
         ...(dataRowReaderConfig.tools || []),
         ...(projectSearchConfig.tools || []), // Add our new project search tool config
+        ...(markdownPreviewConfig.tools || []), // Add markdown preview tool config
       ],
     };
   }

@@ -1,8 +1,53 @@
 import { ServerTool } from "../../server/tool.interface.js";
 import { Request, Response } from "express";
 import { FETCH_CONFIG, FetchToolInput, FetchToolResponse } from "./fetch.types.js";
+import TurndownService from "turndown";
 
 class FetchService {
+  private turndownService: TurndownService;
+
+  constructor() {
+    // Initialize HTML-to-markdown converter with optimized settings
+    this.turndownService = new TurndownService({
+      headingStyle: 'atx',
+      codeBlockStyle: 'fenced',
+      emDelimiter: '*',
+      strongDelimiter: '**',
+      linkStyle: 'inlined',
+      linkReferenceStyle: 'full'
+    });
+
+    // Configure turndown to handle common elements better
+    this.turndownService.addRule('removeComments', {
+      filter: function (node: Node) {
+        return node.nodeType === 8; // Comment node
+      },
+      replacement: function () {
+        return '';
+      }
+    });
+
+    // Remove script and style tags completely
+    this.turndownService.addRule('removeScriptsAndStyles', {
+      filter: ['script', 'style', 'noscript'],
+      replacement: function () {
+        return '';
+      }
+    });
+
+    // Better handling of navigation and footer elements
+    this.turndownService.addRule('removeNavigation', {
+      filter: function (node: HTMLElement): boolean {
+        return node.nodeName === 'NAV' ||
+          (node.className && typeof node.className === 'string' &&
+            node.className.includes('nav')) || false;
+      },
+      replacement: function () {
+        return '';
+      }
+    });
+  }
+
   private isUrlAllowed(url: string): boolean {
     return true; // allow all domains
     // Commented out domain restriction as per original code
@@ -24,9 +69,19 @@ class FetchService {
     // );
   }
 
+  private cleanMarkdown(markdown: string): string {
+    // Remove excessive whitespace and empty lines
+    return markdown
+      .replace(/\n{3,}/g, '\n\n') // Replace 3+ newlines with 2
+      .replace(/[ \t]+$/gm, '') // Remove trailing whitespace
+      .replace(/^\s*[\r\n]/gm, '\n') // Clean up empty lines
+      .trim();
+  }
+
   private async processResponse(
     response: globalThis.Response,
-    contentType: string
+    contentType: string,
+    convertToMarkdown: boolean = true
   ): Promise<string | Record<string, unknown>> {
     if (contentType.includes("json")) {
       const jsonData = await response.json();
@@ -39,6 +94,17 @@ class FetchService {
       try {
         return JSON.parse(textData);
       } catch {
+        return textData;
+      }
+    }
+
+    // Convert HTML to markdown if requested and content looks like HTML
+    if (convertToMarkdown && contentType.includes("html") && textData.includes("<")) {
+      try {
+        const markdown = this.turndownService.turndown(textData);
+        return this.cleanMarkdown(markdown);
+      } catch (error) {
+        console.warn("Failed to convert HTML to markdown, returning original:", error);
         return textData;
       }
     }
@@ -98,13 +164,16 @@ class FetchService {
           headers[key] = value;
         });
 
-        const data = await this.processResponse(response, contentType);
+        const convertToMarkdown = input.convertToMarkdown !== false; // Default to true
+        const data = await this.processResponse(response, contentType, convertToMarkdown);
+        const isMarkdown = convertToMarkdown && contentType.includes("html") && typeof data === 'string';
 
         return {
           status: response.status,
           headers,
           data,
           contentType,
+          isMarkdown,
         };
       } finally {
         clearTimeout(timeoutId);

@@ -13,6 +13,7 @@ import { projectReaderTool } from "./project-reader-tool/client/project-reader.c
 import { octokitTool } from "./octokit-tool/client/octokit.client.js";
 import { dataRowReaderTool } from "./data-row-reader/client/data-row-reader.client.js";
 import { projectSearchTool } from "./project-search-tool/client/project-search.client.js";
+import { markdownPreviewTool } from "./markdown-preview-tool/client/markdown-preview.client.js";
 
 // Make dataStore available globally for tools
 // @todo have a tool-data-store that the client can subscribe to.
@@ -40,6 +41,7 @@ class ToolRegistry {
     // this.registerTool(xTool);
     this.registerTool(dataRowReaderTool);
     this.registerTool(projectSearchTool); // Add our new project search tool
+    this.registerTool(markdownPreviewTool); // Add markdown preview tool
   }
 
   private registerTool(tool: ClientTool): void {

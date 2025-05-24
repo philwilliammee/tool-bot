@@ -1,6 +1,8 @@
 export interface FetchToolInput {
   url: string;
   method?: "GET";
+  convertToMarkdown?: boolean;
+  autoPreview?: boolean;
 }
 
 export interface FetchToolResponse {
@@ -10,6 +12,7 @@ export interface FetchToolResponse {
   error?: boolean;
   message?: string;
   contentType?: string;
+  isMarkdown?: boolean;
 }
 
 export const FETCH_CONFIG = {
