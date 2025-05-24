@@ -3,6 +3,7 @@ import { effect } from "@preact/signals-core";
 import { MessageExtended } from "../../app.types";
 import { ReExecuteButton } from "../ReExecuteButton/ReExecuteButton";
 import { FetchReplayButton } from "../FetchReplayButton/FetchReplayButton";
+import { ResendButton } from "../ResendButton/ResendButton";
 
 interface FilterState {
   search: string;
@@ -389,6 +390,16 @@ export class MessageTable {
         actionButtons.firstChild
       );
       buttonCleanups.push(() => fetchReplayButton.destroy());
+    }
+
+    // Add resend button if this is the most recent user message
+    if (ResendButton.isLastUserMessage(message)) {
+      const resendButton = new ResendButton(message);
+      actionButtons.insertBefore(
+        resendButton.getElement(),
+        actionButtons.firstChild
+      );
+      buttonCleanups.push(() => resendButton.destroy());
     }
 
     const buttons = {

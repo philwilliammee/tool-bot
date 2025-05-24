@@ -655,6 +655,53 @@ export class ConverseStore {
     this.messageManager.clear();
     // No need to clean up summary state as it's handled by SummaryHandler
   }
+
+  /**
+   * Resends the last user message to get a new AI response.
+   * This removes the last user message and re-adds it, triggering a fresh LLM call.
+   */
+  public resendLastUserMessage(): boolean {
+    if (!this.projectId) {
+      console.warn("Attempted to resend message with no active project");
+      return false;
+    }
+
+    const messages = this.getMessages();
+    if (messages.length === 0) {
+      console.warn("No messages to resend");
+      return false;
+    }
+
+    const lastMessage = messages[messages.length - 1];
+    if (lastMessage.role !== "user") {
+      console.warn("Last message is not from user, cannot resend");
+      return false;
+    }
+
+    if (store.isGenerating.value || store.isToolRunning.value) {
+      console.warn("Cannot resend while AI is generating or tools are running");
+      return false;
+    }
+
+    try {
+      // Store the message content before deletion
+      const messageContent = lastMessage.content;
+
+      // Delete the last message
+      this.deleteMessage(lastMessage.id);
+
+      // Re-add the same message content, which will trigger a new LLM call
+      this.addMessage({
+        role: "user",
+        content: messageContent || [{ text: "" }],
+      });
+
+      return true;
+    } catch (error) {
+      console.error("Failed to resend last user message:", error);
+      return false;
+    }
+  }
 }
 
 export const converseStore = new ConverseStore();
