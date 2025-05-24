@@ -15,6 +15,7 @@ import { fileTreeTool } from "./file-tree-tool/server/file-tree.service.js";
 import { projectReaderTool } from "./project-reader-tool/server/project-reader.service.js";
 import { fileWriterTool } from "./file-writer/server/file-writer.service.js";
 import { octokitTool } from "./octokit-tool/server/octokit.service.js";
+import { mcpProxyTool } from "./mcp-tool/server/mcp.service.js";
 
 // Tool configs
 import { fetchToolConfig } from "./fetch-tool/config.js";
@@ -28,6 +29,7 @@ import { codeExecutorConfig } from "./code-executor/config.js";
 import { dataRowReaderConfig } from "./data-row-reader/config.js";
 import { projectSearchConfig } from "./project-search-tool/config.js";
 import { markdownPreviewConfig } from "./markdown-preview-tool/config.js";
+import { getMCPToolConfig } from "./mcp-tool/config.js";
 
 class ToolRegistry {
   private tools: ServerToolRegistry = {};
@@ -44,37 +46,48 @@ class ToolRegistry {
     this.registerTool(octokitTool);
     this.registerTool(bashTool);
     // this.registerTool(xTool);
+    this.registerTool(mcpProxyTool); // Register MCP proxy tool
 
     // end of register
 
     this.setupRoutes();
   }
 
-  public getToolConfig(): ToolConfiguration {
+  public async getToolConfig(): Promise<ToolConfiguration> {
+    // Get static tool configurations
+    const staticTools = [
+      ...(fetchToolConfig.tools || []),
+      // ...(ldapToolConfig.tools || []),
+      ...(htmlToolConfig.tools || []),
+      ...(mathToolConfig.tools || []),
+      ...(fileTreeConfig.tools || []),
+      ...(projectReaderConfig.tools || []),
+      ...(fileWriterConfig.tools || []),
+      // ...(codeExecutorConfig.tools || []),
+      ...(octokitConfig.tools || []),
+      // ...(dataStoreConfig.tools || []),
+      ...(bashToolConfig.tools || []),
+      // ...(xToolConfig.tools || []),
+      ...(dataRowReaderConfig.tools || []),
+      ...(projectSearchConfig.tools || []),
+      ...(markdownPreviewConfig.tools || []),
+    ];
+
+    // Get dynamic MCP tool configurations
+    const mcpToolConfig = await getMCPToolConfig();
+    const mcpTools = mcpToolConfig.tools || [];
+
+    console.log(`📋 Tool configuration: ${staticTools.length} static + ${mcpTools.length} MCP tools`);
+
     return {
-      tools: [
-        ...(fetchToolConfig.tools || []),
-        // ...(ldapToolConfig.tools || []),
-        ...(htmlToolConfig.tools || []),
-        ...(mathToolConfig.tools || []),
-        ...(fileTreeConfig.tools || []),
-        ...(projectReaderConfig.tools || []),
-        ...(fileWriterConfig.tools || []),
-        // ...(codeExecutorConfig.tools || []),
-        ...(octokitConfig.tools || []),
-        // ...(dataStoreConfig.tools || []),
-        ...(bashToolConfig.tools || []),
-        // ...(xToolConfig.tools || []),
-        ...(dataRowReaderConfig.tools || []),
-        ...(projectSearchConfig.tools || []), // Add our new project search tool config
-        ...(markdownPreviewConfig.tools || []), // Add markdown preview tool config
-      ],
+      tools: [...staticTools, ...mcpTools]
     };
   }
 
   private registerTool(tool: ServerTool): void {
     this.tools[tool.name] = tool;
-    console.log(`Registered server tool: ${tool.name}`);
+    const prefix = tool.name === 'mcp_proxy' ? '🔌' : '🔧';
+    console.log(`${prefix} Registered server tool: ${tool.name}`);
   }
 
   private setupRoutes(): void {

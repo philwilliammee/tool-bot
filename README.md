@@ -33,6 +33,9 @@ An AI-powered chat bot that can help with various tasks through natural language
 - **Bash Tool**: Secure shell command execution
 - **X Tool**: X (Twitter) integration for posts and feeds
 - **Project Search Tool**: Search across projects and messages
+- **MCP Tools**: External tools via Model Context Protocol (e.g., `mcp_calculate` for mathematical calculations)
+
+**Note**: MCP tools are dynamically discovered from external servers and will appear in the Project Manager when available.
 
 ## Quick Start
 
@@ -97,6 +100,150 @@ An AI-powered chat bot that can help with various tasks through natural language
     ```bash
     docker run -p 3000:3000 --env-file .env tool-bot
     ```
+
+## MCP (Model Context Protocol) Development
+
+Tool-Bot includes support for external MCP servers that can provide additional tools and capabilities. The MCP integration allows you to connect external services and tools that follow the Model Context Protocol specification.
+
+### MCP Architecture
+
+The MCP integration consists of:
+- **MCP Client**: Discovers and communicates with external MCP servers
+- **MCP Tool Registry**: Manages registration of external tools
+- **MCP Proxy**: Routes tool calls between the AI and external MCP servers
+- **UI Integration**: MCP tools appear in the Project Manager alongside built-in tools
+
+### Running MCP Tools in Development
+
+#### 1. Start the MCP Calculator Server
+
+For development and testing, we include a simple MCP calculator server:
+
+```bash
+# Start the MCP calculator server (runs on port 3000)
+node simple-mcp-server.cjs
+```
+
+The MCP server provides:
+- `POST /initialize` - Client registration
+- `GET /tools/initialize` - Tool discovery
+- `POST /tools/calculate` - Mathematical calculations
+- `GET /health` - Health check
+
+#### 2. Start Tool-Bot Development Server
+
+```bash
+# Start the main development server (client on 5173/5174, server on 3001)
+npm run dev
+```
+
+#### 3. Verify MCP Integration
+
+1. **Check Server Logs**: Look for MCP discovery messages:
+   ```
+   🚀 Initializing 1 MCP servers...
+   ✅ MCP client initialized: http://localhost:3000
+   🔌 Registered MCP tool: mcp_calculate
+   ✅ Discovered 1 MCP tools total
+   ```
+
+2. **Test Tool Discovery**: Visit the test page:
+   ```
+   http://localhost:5173/test-mcp-client.html
+   ```
+
+3. **Check Project Manager**: In the main app, create a new project and verify `mcp_calculate` appears in the enabled tools list.
+
+#### 4. Test End-to-End Functionality
+
+1. Create a new project with `mcp_calculate` enabled
+2. Start a conversation and ask: "What is 15 * 8 + 12?"
+3. The AI should automatically use the MCP calculator tool
+
+### MCP Configuration
+
+MCP servers are configured in `tools/mcp-tool/client/mcp.client.ts`:
+
+```typescript
+// Add additional MCP servers
+this.addMCPServer({
+  url: 'http://localhost:3000',
+  name: 'Calculator MCP Server'
+});
+
+// Add your custom MCP server
+this.addMCPServer({
+  url: 'http://localhost:4000',
+  name: 'Custom MCP Server'
+});
+```
+
+### Creating Custom MCP Servers
+
+To create your own MCP server, implement these endpoints:
+
+1. **POST /initialize**: Return client registration
+   ```json
+   {
+     "clientId": "unique-client-id",
+     "serverName": "Your MCP Server"
+   }
+   ```
+
+2. **GET /tools/initialize**: Return available tools
+   ```json
+   {
+     "tools": [
+       {
+         "name": "your_tool",
+         "description": "Tool description",
+         "inputSchema": {
+           "type": "object",
+           "properties": { ... },
+           "required": [...]
+         }
+       }
+     ]
+   }
+   ```
+
+3. **POST /tools/{toolName}**: Handle tool execution
+   ```json
+   {
+     "result": "tool result",
+     "message": "Success message"
+   }
+   ```
+
+### MCP Development Tips
+
+- **CORS**: Ensure your MCP server includes proper CORS headers for browser requests
+- **Error Handling**: Implement robust error responses with meaningful messages
+- **Input Validation**: Validate and sanitize all inputs to your MCP tools
+- **Logging**: Add comprehensive logging to debug tool execution
+- **Testing**: Use the test page to verify tool discovery and execution
+
+### Troubleshooting MCP Integration
+
+**MCP tools not appearing in UI**:
+1. Check that the MCP server is running on the expected port
+2. Verify CORS headers are properly configured
+3. Check browser console for initialization errors
+4. Ensure the POST /initialize endpoint returns a valid response
+
+**Tool execution failures**:
+1. Check MCP server logs for errors
+2. Verify the tool input schema matches expected format
+3. Test the MCP endpoints directly with curl
+4. Check network connectivity between tool-bot and MCP server
+
+**Connection issues**:
+1. Verify the MCP server URL in the client configuration
+2. Check firewall settings
+3. Ensure both servers are running
+4. Check for port conflicts
+
+For a working MCP server example, see the `simple-mcp-server.cjs` file included in the project root.
 
 ## Technical Architecture
 
@@ -200,6 +347,7 @@ For detailed instructions on creating custom tools, please refer to the [tools/R
 - Enhanced GitHub integration via Octokit
 - Auto-switching to preview tab for HTML content
 - Added robust tool and text generation interrupt system
+- **MCP (Model Context Protocol) integration for external tool discovery and execution**
 
 ### Current Focus 🚧
 - Code and test coverage optimization
