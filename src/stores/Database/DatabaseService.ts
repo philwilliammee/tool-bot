@@ -938,6 +938,10 @@ export class DatabaseService {
       this.trackOperation(`deleteMessage(${projectId}:${messageId})`, startTime);
     }
   }
+
+  public destroy(): void {
+    // Implementation of destroy method
+  }
 }
 
 export const dbService = DatabaseService.getInstance();

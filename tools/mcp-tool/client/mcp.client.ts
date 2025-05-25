@@ -161,28 +161,117 @@ export class MCPToolRegistry {
       return [];
     }
 
-    // Return tool configurations for Bedrock
-    return Array.from(this.registeredTools.keys()).map(toolName => {
+    // Return tool configurations for Bedrock with proper schemas
+    const configs = [];
+
+    for (const [toolName, tool] of this.registeredTools.entries()) {
       const originalName = toolName.replace('mcp_', '');
-      return {
+
+      // Get the original tool spec to use its proper input schema
+      let inputSchema: any = {
+        type: "object",
+        properties: {
+          expression: {
+            type: "string",
+            description: "Tool input"
+          }
+        },
+        required: ["expression"]
+      };
+
+      // Override with specific schemas for known Puppeteer tools
+      if (originalName === 'puppeteer_navigate') {
+        inputSchema = {
+          type: "object",
+          properties: {
+            url: {
+              type: "string",
+              description: "URL to navigate to"
+            }
+          },
+          required: ["url"]
+        };
+      } else if (originalName === 'puppeteer_screenshot') {
+        inputSchema = {
+          type: "object",
+          properties: {
+            name: {
+              type: "string",
+              description: "Name for the screenshot"
+            },
+            width: {
+              type: "number",
+              description: "Width in pixels (default: 800)"
+            },
+            height: {
+              type: "number",
+              description: "Height in pixels (default: 600)"
+            }
+          },
+          required: ["name"]
+        };
+      } else if (originalName === 'puppeteer_click') {
+        inputSchema = {
+          type: "object",
+          properties: {
+            selector: {
+              type: "string",
+              description: "CSS selector for element to click"
+            }
+          },
+          required: ["selector"]
+        };
+      } else if (originalName === 'puppeteer_fill') {
+        inputSchema = {
+          type: "object",
+          properties: {
+            selector: {
+              type: "string",
+              description: "CSS selector for input field"
+            },
+            value: {
+              type: "string",
+              description: "Value to fill"
+            }
+          },
+          required: ["selector", "value"]
+        };
+      } else if (originalName === 'puppeteer_evaluate') {
+        inputSchema = {
+          type: "object",
+          properties: {
+            script: {
+              type: "string",
+              description: "JavaScript code to execute"
+            }
+          },
+          required: ["script"]
+        };
+      } else if (originalName === 'calculate') {
+        inputSchema = {
+          type: "object",
+          properties: {
+            expression: {
+              type: "string",
+              description: "Mathematical expression to evaluate"
+            }
+          },
+          required: ["expression"]
+        };
+      }
+
+      configs.push({
         toolSpec: {
           name: toolName,
           description: `MCP ${originalName} tool from ${this.serverConfig.name}`,
           inputSchema: {
-            json: {
-              type: "object",
-              properties: {
-                expression: {
-                  type: "string",
-                  description: "Mathematical expression to evaluate"
-                }
-              },
-              required: ["expression"]
-            }
+            json: inputSchema
           }
         }
-      };
-    });
+      });
+    }
+
+    return configs;
   }
 }
 
@@ -196,6 +285,12 @@ class GlobalMCPRegistry {
     this.addMCPServer({
       url: 'http://localhost:3000',
       name: 'Calculator MCP Server'
+    });
+
+    // Add Puppeteer MCP Bridge server
+    this.addMCPServer({
+      url: 'http://localhost:3002',
+      name: 'Puppeteer MCP Bridge'
     });
   }
 
